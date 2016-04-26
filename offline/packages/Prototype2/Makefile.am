@@ -14,9 +14,9 @@ libPrototype2_la_LDFLAGS = \
 lib_LTLIBRARIES = \
   libPrototype2.la
 
-include_HEADERS = \
+pkginclude_HEADERS = \
   RawTower_Prototype2.h 
-  
+
 libPrototype2_la_SOURCES = \
   RawTower_Prototype2.cc \
   RawTower_Prototype2Dict.cc \
@@ -36,9 +36,6 @@ libPrototype2_la_LIBADD = \
   -lphool \
   -lfun4all \
   -lcemc
-
-install-exec-hook:
-	@[ $$OSTYPE = darwin ] && ln -sf $(DESTDIR)$(libdir)/libPrototype2.dylib $(DESTDIR)$(libdir)/libPrototype2.so || true
 
 BUILT_SOURCES = \
   testexternals.C
