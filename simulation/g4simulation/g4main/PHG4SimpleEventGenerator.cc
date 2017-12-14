@@ -29,6 +29,7 @@ PHG4SimpleEventGenerator::PHG4SimpleEventGenerator(const string &name):
   _vertex_func_x(Uniform),
   _vertex_func_y(Uniform),
   _vertex_func_z(Uniform),
+  _t0(0.0),
   _vertex_x(0.0),
   _vertex_y(0.0),
   _vertex_z(0.0),
@@ -63,6 +64,11 @@ void PHG4SimpleEventGenerator::add_particles(const std::string &name, const unsi
 
 void PHG4SimpleEventGenerator::add_particles(const int pid, const unsigned int num) {
   _particle_codes.push_back(std::make_pair(pid,num));
+  return;
+}
+
+void PHG4SimpleEventGenerator::set_t0(const double t0) {
+  _t0 = t0;
   return;
 }
 
@@ -220,6 +226,7 @@ int PHG4SimpleEventGenerator::InitRun(PHCompositeNode *topNode) {
     cout << " Eta range = " << _eta_min << " - " << _eta_max << endl;
     cout << " Phi range = " << _phi_min << " - " << _phi_max << endl;
     cout << " pT range = " << _pt_min << " - " << _pt_max << endl;
+    cout << " t0 = " << _t0 << endl;
     cout << "===========================================================================" << endl;
   }
 
@@ -236,6 +243,11 @@ int PHG4SimpleEventGenerator::InitRun(PHCompositeNode *topNode) {
 
 int PHG4SimpleEventGenerator::process_event(PHCompositeNode *topNode) {
 
+  if (verbosity > 0) {
+    cout << "====================== PHG4SimpleEventGenerator::process_event() =====================" << endl;
+    cout <<"PHG4SimpleEventGenerator::process_event - reuse_existing_vertex = "<<reuse_existing_vertex<<endl;
+  }
+
   // vtx_x, vtx_y and vtx_z are doubles from the base class
   // common methods modify those, please no private copies
   // at some point we might rely on them being up to date
@@ -250,6 +262,12 @@ int PHG4SimpleEventGenerator::process_event(PHCompositeNode *topNode) {
   vtx_x += _vertex_offset_x;
   vtx_y += _vertex_offset_y;
   vtx_z += _vertex_offset_z;
+
+  if (verbosity > 0) {
+  cout <<"PHG4SimpleEventGenerator::process_event - vertex center"<<reuse_existing_vertex
+      << vtx_x<<", "<< vtx_y<<", "<< vtx_z<<" cm"
+      <<endl;
+  }
 
   int vtxindex = -1;
   int trackid = -1;
@@ -273,9 +291,9 @@ int PHG4SimpleEventGenerator::process_event(PHCompositeNode *topNode) {
         y *= r;
         z *= r;
 
-	vtxindex = _ineve->AddVtx(vtx_x+x,vtx_y+y,vtx_z+z,0.0);
+	vtxindex = _ineve->AddVtx(vtx_x+x,vtx_y+y,vtx_z+z,_t0);
       } else if ((i==0)&&(j==0)) {
-	vtxindex = _ineve->AddVtx(vtx_x,vtx_y,vtx_z,0.0);
+	vtxindex = _ineve->AddVtx(vtx_x,vtx_y,vtx_z,_t0);
       }
 
       ++trackid;
@@ -316,7 +334,6 @@ int PHG4SimpleEventGenerator::process_event(PHCompositeNode *topNode) {
   }
 
   if (verbosity > 0) {
-    cout << "====================== PHG4SimpleEventGenerator::process_event() =====================" << endl;
     _ineve->identify();
     cout << "======================================================================================" << endl;
   } 

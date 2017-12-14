@@ -1,15 +1,17 @@
 #include "RawClusterv1.h"
+#include <limits>
 
 using namespace std;
 
-ClassImp(RawClusterv1)
-
-RawClusterv1::RawClusterv1()
-: RawCluster(),
+RawClusterv1::RawClusterv1():
+  RawCluster(),
   clusterid(0),
   _eta(0.0),
   _phi(0.0),
-  _energy(0.0)
+  _energy(0.0),
+  _ecore(0.0),
+  _chi2(numeric_limits<float>::signaling_NaN()),
+  _prob(numeric_limits<float>::signaling_NaN())
 {}
 
 void
@@ -19,6 +21,7 @@ RawClusterv1::Reset()
   _eta = 0.0;
   _phi = 0.0;
   _energy = 0.0;
+  _ecore = 0.0;
   towermap.clear();
 }
 

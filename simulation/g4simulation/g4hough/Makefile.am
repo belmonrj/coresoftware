@@ -1,10 +1,9 @@
 AUTOMAKE_OPTIONS = foreign
 
-INCLUDES = \
+AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include  \
   -I${G4_MAIN}/include \
-  -I${G4_MAIN}/include/Geant4 \
   -I`root-config --incdir` \
   -I$(OFFLINE_MAIN)/include/eigen3
 
@@ -13,7 +12,7 @@ lib_LTLIBRARIES = \
    libg4hough.la
 
 AM_CXXFLAGS = \
- -Wall -Werror -msse2
+ -Werror -msse2 -DRAVE -DRaveDllExport=
 
 AM_LDFLAGS = \
   -L$(libdir) \
@@ -33,6 +32,10 @@ libg4hough_la_LIBADD = \
   -lSeamstress \
   -lg4bbc_io \
   -lcemc_io \
+  -lgenfit2 \
+  -lphfield \
+  -lgenfit2exp \
+  -lPHGenFit \
   libg4hough_io.la
 
 pkginclude_HEADERS = \
@@ -42,7 +45,6 @@ pkginclude_HEADERS = \
   SvtxVertexMap_v1.h \
   PHG4SvtxDeadArea.h \
   PHG4SvtxThresholds.h \
-  PHG4SvtxAddConnectedCells.h \
   PHG4SvtxDigitizer.h \
   PHG4SvtxClusterizer.h \
   SvtxHit.h \
@@ -57,12 +59,38 @@ pkginclude_HEADERS = \
   SvtxTrackState_v1.h \
   SvtxTrack.h \
   SvtxTrack_v1.h \
+  SvtxTrack_FastSim.h \
   SvtxTrackMap.h \
   SvtxTrackMap_v1.h \
   SvtxBeamSpot.h \
+  Cluster3D.h \
+  Track3D.h \
+  HelixTrackState.h \
+  HelixHoughSpace.h \
+  HelixHoughSpace_v1.h \
+  HelixHoughBin.h \
+  HelixHoughBin_v1.h \
+  HelixHoughFuncs.h \
+  HelixHoughFuncs_v1.h \
+  HelixKalmanFilter.h \
+  CellularAutomaton.h \
+  CellularAutomaton_v1.h \
+  FunctionGradHessian.h \
+  SquareGradient.h \
+  NewtonMinimizerGradHessian.h \
+  VertexFitter.h \
+  VertexFitFuncs.h \
   PHG4HoughTransform.h \
   PHG4HoughTransformTPC.h \
+  PHG4KalmanPatRec.h \
+  PHG4InitZVertexing.h \
+  PHG4PatternReco.h \
   PHG4TrackGhostRejection.h \
+  PHG4TrackKalmanFitter.h \
+  PHG4TruthPatRec.h \
+  PHG4TrackFastSim.h \
+  PHG4SvtxMomentumRecal.h \
+  PHG4GenFitTrackProjection.h \
   PHG4SvtxTrackProjection.h \
   PHG4SvtxBeamSpotReco.h \
   PHG4TPCClusterizer.h \
@@ -92,7 +120,9 @@ libg4hough_io_la_SOURCES = \
   SvtxTrack.C \
   SvtxTrack_Dict.C \
   SvtxTrack_v1.C \
+  SvtxTrack_FastSim.C \
   SvtxTrack_v1_Dict.C \
+  SvtxTrack_FastSim_Dict.C \
   SvtxBeamSpot.C \
   SvtxBeamSpot_Dict.C \
   SvtxTrackMap.C \
@@ -106,15 +136,39 @@ libg4hough_io_la_SOURCES = \
   SvtxVertexMap.C \
   SvtxVertexMap_Dict.C \
   SvtxVertexMap_v1.C \
-  SvtxVertexMap_v1_Dict.C
+  SvtxVertexMap_v1_Dict.C \
+  Cluster3D.C \
+  Track3D.C \
+  HelixTrackState.C \
+  HelixHoughSpace.C \
+  HelixHoughSpace_Dict.C \
+  HelixHoughSpace_v1.C \
+  HelixHoughSpace_v1_Dict.C \
+  HelixHoughBin.C \
+  HelixHoughBin_Dict.C \
+  HelixHoughBin_v1.C \
+  HelixHoughBin_v1_Dict.C \
+  HelixHoughFuncs.C \
+  HelixHoughFuncs_Dict.C \
+  HelixHoughFuncs_v1.C \
+  HelixHoughFuncs_v1_Dict.C \
+  HelixKalmanFilter.C \
+  CellularAutomaton.C \
+  CellularAutomaton_Dict.C \
+  CellularAutomaton_v1.C \
+  CellularAutomaton_v1_Dict.C \
+  SquareGradient.C \
+  NewtonMinimizerGradHessian.C \
+  VertexFitter.C \
+  VertexFitFuncs.C
 
 libg4hough_la_SOURCES = \
+  PHG4SiliconTrackerDigitizer.C \
+  PHG4SiliconTrackerDigitizer_Dict.C \
   PHG4SvtxDeadArea.C \
   PHG4SvtxDeadArea_Dict.C \
   PHG4SvtxThresholds.C \
   PHG4SvtxThresholds_Dict.C \
-  PHG4SvtxAddConnectedCells.C \
-  PHG4SvtxAddConnectedCells_Dict.C \
   PHG4SvtxDigitizer.C \
   PHG4SvtxDigitizer_Dict.C \
   PHG4SvtxClusterizer.C \
@@ -125,8 +179,24 @@ libg4hough_la_SOURCES = \
   PHG4HoughTransform_Dict.C \
   PHG4HoughTransformTPC.C \
   PHG4HoughTransformTPC_Dict.C \
+  PHG4KalmanPatRec.C \
+  PHG4KalmanPatRec_Dict.C \
+  PHG4InitZVertexing.C \
+  PHG4InitZVertexing_Dict.C \
+  PHG4PatternReco.C \
+  PHG4PatternReco_Dict.C \
   PHG4TrackGhostRejection.C \
   PHG4TrackGhostRejection_Dict.C \
+  PHG4TrackKalmanFitter.C \
+  PHG4TruthPatRec.C \
+  PHG4TrackFastSim.C \
+  PHG4TrackKalmanFitter_Dict.C \
+  PHG4TruthPatRec_Dict.C \
+  PHG4TrackFastSim_Dict.C \
+  PHG4SvtxMomentumRecal.C \
+  PHG4SvtxMomentumRecal_Dict.C \
+  PHG4GenFitTrackProjection.C \
+  PHG4GenFitTrackProjection_Dict.C \
   PHG4SvtxTrackProjection.C \
   PHG4SvtxTrackProjection_Dict.C \
   PHG4SvtxBeamSpotReco.C \
@@ -135,24 +205,20 @@ libg4hough_la_SOURCES = \
 
 # Rule for generating table CINT dictionaries.
 %_Dict.C: %.h %LinkDef.h
-	rootcint -f $@ -c $(DEFAULT_INCLUDES) $(INCLUDES) $^
-
-%_Dict.cpp: %.h %LinkDef.h
-	rootcint -f $@ -c $(DEFAULT_INCLUDES) $(INCLUDES) $^
-
-
+	rootcint -f $@ @CINTDEFS@  -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
 
 ################################################
 # linking tests
 
-noinst_PROGRAMS = testexternals
+noinst_PROGRAMS = \
+  testexternals_g4hough_io \
+  testexternals_g4hough
 
-BUILT_SOURCES = \
-  testexternals.C
+testexternals_g4hough_io_SOURCES = testexternals.C
+testexternals_g4hough_io_LDADD = libg4hough_io.la
 
-testexternals_LDADD = \
-  libg4hough_io.la \
-  libg4hough.la
+testexternals_g4hough_SOURCES = testexternals.C
+testexternals_g4hough_LDADD = libg4hough.la
 
 testexternals.C:
 	echo "//*** this is a generated file. Do not commit, do not edit" > $@
@@ -162,4 +228,4 @@ testexternals.C:
 	echo "}" >> $@
 
 clean-local:
-	rm -f *Dict*
+	rm -f *Dict* *.pcm
