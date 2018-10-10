@@ -79,7 +79,7 @@ public:
 	PHG4KalmanPatRec(
 			const std::string &name = "PHG4KalmanPatRec",
 			unsigned int nlayers_maps = 3,
-			unsigned int nlayers_intt = 4,
+			unsigned int nlayers_intt = 8,
 			unsigned int nlayers_tpc = 60,
 			unsigned int seeding_nlayer = 7,
 			unsigned int min_seeding_nlayer = 4);
@@ -453,12 +453,12 @@ public:
 		_blowup_factor = blowupFactor;
 	}
 
-	float get_max_search_win_phi_intt() const {
-		return _max_search_win_phi_intt;
+	float get_max_search_win_phi_intt(int inttlayer) const {
+		return _max_search_win_phi_intt[inttlayer];
 	}
 
-	void set_max_search_win_phi_intt(float maxSearchWinPhiIntt) {
-		_max_search_win_phi_intt = maxSearchWinPhiIntt;
+	void set_max_search_win_phi_intt(int inttlayer, float maxSearchWinPhiIntt) {
+		_max_search_win_phi_intt[inttlayer] = maxSearchWinPhiIntt;
 	}
 
 	float get_max_search_win_phi_maps() const {
@@ -469,12 +469,12 @@ public:
 		_max_search_win_phi_maps = maxSearchWinPhiMaps;
 	}
 
-	float get_max_search_win_theta_intt() const {
-		return _max_search_win_theta_intt;
+	float get_max_search_win_theta_intt(int inttlayer) const {
+		return _max_search_win_theta_intt[inttlayer];
 	}
 
-	void set_max_search_win_theta_intt(float maxSearchWinThetaIntt) {
-		_max_search_win_theta_intt = maxSearchWinThetaIntt;
+	void set_max_search_win_theta_intt(int inttlayer, float maxSearchWinThetaIntt) {
+		_max_search_win_theta_intt[inttlayer] = maxSearchWinThetaIntt;
 	}
 
 	float get_max_search_win_theta_maps() const {
@@ -485,12 +485,12 @@ public:
 		_max_search_win_theta_maps = maxSearchWinThetaMaps;
 	}
 
-	float get_min_search_win_phi_intt() const {
-		return _min_search_win_phi_intt;
+	float get_min_search_win_phi_intt(int inttlayer) const {
+		return _min_search_win_phi_intt[inttlayer];
 	}
 
-	void set_min_search_win_phi_intt(float minSearchWinPhiIntt) {
-		_min_search_win_phi_intt = minSearchWinPhiIntt;
+	void set_min_search_win_phi_intt(int inttlayer, float minSearchWinPhiIntt) {
+		_min_search_win_phi_intt[inttlayer] = minSearchWinPhiIntt;
 	}
 
 	float get_min_search_win_phi_maps() const {
@@ -509,12 +509,12 @@ public:
 		_min_search_win_phi_tpc = minSearchWinPhiTpc;
 	}
 
-	float get_min_search_win_theta_intt() const {
-		return _min_search_win_theta_intt;
+	float get_min_search_win_theta_intt(int inttlayer) const {
+		return _min_search_win_theta_intt[inttlayer];
 	}
 
-	void set_min_search_win_theta_intt(float minSearchWinThetaIntt) {
-		_min_search_win_theta_intt = minSearchWinThetaIntt;
+	void set_min_search_win_theta_intt(int inttlayer, float minSearchWinThetaIntt) {
+		_min_search_win_theta_intt[inttlayer] = minSearchWinThetaIntt;
 	}
 
 	float get_min_search_win_theta_maps() const {
@@ -730,6 +730,9 @@ private:
 	PHTimer *_t_seed_init3;
 	PHTimer *_t_seeds_cleanup;
 	PHTimer *_t_translate_to_PHGenFitTrack;
+	PHTimer *_t_translate1;
+	PHTimer *_t_translate2;
+	PHTimer *_t_translate3;
 	PHTimer *_t_kalman_pat_rec;
 	PHTimer *_t_search_clusters;
 	PHTimer *_t_search_clusters_encoding;
@@ -863,10 +866,10 @@ private:
 	float _max_search_win_theta_tpc;
 	float _min_search_win_theta_tpc;
 
-	float _max_search_win_phi_intt;
-	float _min_search_win_phi_intt;
-	float _max_search_win_theta_intt;
-	float _min_search_win_theta_intt;
+	float _max_search_win_phi_intt[8];
+	float _min_search_win_phi_intt[8];
+	float _max_search_win_theta_intt[8];
+	float _min_search_win_theta_intt[8];
 
 	float _max_search_win_phi_maps;
 	float _min_search_win_phi_maps;
