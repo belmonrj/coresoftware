@@ -4,19 +4,19 @@
 
 
 // g4hough includes
-#include "SvtxVertexMap.h"
-#include "SvtxVertexMap_v1.h"
-#include "SvtxVertex.h"
-#include "SvtxVertex_v1.h"
-#include "SvtxTrackMap.h"
-#include "SvtxTrackMap_v1.h"
-#include "SvtxTrack.h"
-#include "SvtxTrack_v1.h"
-#include "SvtxTrackState.h"
-#include "SvtxClusterMap.h"
-#include "SvtxCluster.h"
-#include "SvtxHit_v1.h"
-#include "SvtxHitMap.h"
+#include <trackbase_historic/SvtxVertexMap.h>
+#include <trackbase_historic/SvtxVertexMap_v1.h>
+#include <trackbase_historic/SvtxVertex.h>
+#include <trackbase_historic/SvtxVertex_v1.h>
+#include <trackbase_historic/SvtxTrackMap.h>
+#include <trackbase_historic/SvtxTrackMap_v1.h>
+#include <trackbase_historic/SvtxTrack.h>
+#include <trackbase_historic/SvtxTrack_v1.h>
+#include <trackbase_historic/SvtxTrackState.h>
+#include <trackbase_historic/SvtxClusterMap.h>
+#include  <trackbase_historic/SvtxCluster.h>
+#include  <trackbase_historic/SvtxHit_v1.h>
+#include  <trackbase_historic/SvtxHitMap.h>
 
 // sPHENIX Geant4 includes
 #include <g4detectors/PHG4CylinderGeomContainer.h>
@@ -242,7 +242,7 @@ int PHG4PatternReco::InitRun(PHCompositeNode* topNode) {
 	_t_output_io = new PHTimer("_t_output_io");
 	_t_output_io->stop();
 
-	if (verbosity > 0) {
+	if (Verbosity() > 0) {
 		cout
 				<< "====================== PHG4PatternReco::InitRun() ======================"
 				<< endl;
@@ -274,7 +274,7 @@ int PHG4PatternReco::InitRun(PHCompositeNode* topNode) {
 int PHG4PatternReco::process_event(PHCompositeNode *topNode) 
 {
 
-	if (verbosity > 0)
+	if (Verbosity() > 0)
 		cout << "PHG4PatternReco::process_event -- entered" << endl;
 
 	// start fresh
@@ -365,10 +365,35 @@ int PHG4PatternReco::process_event(PHCompositeNode *topNode)
 
 			for(unsigned int i=0; i<_temp_tracks.size(); ++i) _temp_tracks[i].reset();
 			_temp_tracks.clear();
-                        for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map.begin(); it!=bins_map.end(); ++it){ delete it->second; bins_map.erase(it);}
-                        for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_prev.begin(); it!=bins_map_prev.end(); ++it){ delete it->second; bins_map_prev.erase(it);}
-                        for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_cur.begin(); it!=bins_map_cur.end(); ++it){ delete it->second; bins_map_cur.erase(it);}
-                        for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_sel.begin(); it!=bins_map_sel.end(); ++it){ delete it->second; bins_map_sel.erase(it);}
+			auto it_begin = bins_map.begin();
+			auto it_end = bins_map.end();
+                        while(it_begin != it_end)
+			{
+			  delete it_begin->second;
+			  bins_map.erase(it_begin++);
+			}
+                        it_begin = bins_map_prev.begin();
+			it_end = bins_map_prev.end();
+                        while(it_begin != it_end)
+			{
+			  delete it_begin->second;
+			  bins_map_prev.erase(it_begin++);
+			}
+                        it_begin = bins_map_cur.begin();
+			it_end = bins_map_cur.end();
+                        while(it_begin != it_end)
+			{
+			  delete it_begin->second;
+			  bins_map_cur.erase(it_begin++);
+			}
+                        it_begin = bins_map_sel.begin();
+			it_end = bins_map_sel.end();
+                        while(it_begin != it_end)
+			{
+			  delete it_begin->second;
+			  bins_map_sel.erase(it_begin++);
+			}
+
                         bins_map.clear();
                         bins_map_prev.clear();
                         bins_map_cur.clear();
@@ -486,7 +511,7 @@ int PHG4PatternReco::create_nodes(PHCompositeNode* topNode) {
 	if (!tb_node) {
 		tb_node = new PHCompositeNode("SVTX");
 		dstNode->addNode(tb_node);
-		if (verbosity > 0)
+		if (Verbosity() > 0)
 			cout << "SVTX node added" << endl;
 	}
 
@@ -494,14 +519,14 @@ int PHG4PatternReco::create_nodes(PHCompositeNode* topNode) {
 	PHIODataNode<PHObject>* tracks_node = new PHIODataNode<PHObject>(_trackmap,
 			"SvtxTrackMap", "PHObject");
 	tb_node->addNode(tracks_node);
-	if (verbosity > 0)
+	if (Verbosity() > 0)
 		cout << "Svtx/SvtxTrackMap node added" << endl;
 
 	_vertexmap = new SvtxVertexMap_v1;
 	PHIODataNode<PHObject>* vertexes_node = new PHIODataNode<PHObject>(
 			_vertexmap, "SvtxVertexMap", "PHObject");
 	tb_node->addNode(vertexes_node);
-	if (verbosity > 0)
+	if (Verbosity() > 0)
 		cout << "Svtx/SvtxVertexMap node added" << endl;
 
 
@@ -517,9 +542,9 @@ int PHG4PatternReco::initialize_geometry(PHCompositeNode *topNode) {
 	PHG4CylinderCellGeomContainer* cellgeos = findNode::getClass<
 			PHG4CylinderCellGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
 	PHG4CylinderGeomContainer* laddergeos = findNode::getClass<
-			PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_SILICON_TRACKER");
-	PHG4CylinderGeomContainer* mapsladdergeos = findNode::getClass<
-			PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_MAPS");
+			PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_INTT");
+	PHG4CylinderGeomContainer* mvtxladdergeos = findNode::getClass<
+			PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_MVTX");
 
 
 	_nlayers = _seeding_layer.size();
@@ -552,9 +577,9 @@ int PHG4PatternReco::initialize_geometry(PHCompositeNode *topNode) {
 		}
 	}
 
-	if (mapsladdergeos) {
+	if (mvtxladdergeos) {
 		PHG4CylinderGeomContainer::ConstRange layerrange =
-				mapsladdergeos->get_begin_end();
+				mvtxladdergeos->get_begin_end();
 		for (PHG4CylinderGeomContainer::ConstIterator layeriter =
 				layerrange.first; layeriter != layerrange.second; ++layeriter) {
 			radius_layer_map.insert(
@@ -591,7 +616,7 @@ int PHG4PatternReco::initialize_geometry(PHCompositeNode *topNode) {
 
 			//if(cellgeo->get_layer() > (int) _radii.size() ) continue;
 
-//			if (verbosity >= 2)
+//			if (Verbosity() >= 2)
 //			cellgeo->identify();
 
 			//TODO
@@ -615,7 +640,7 @@ int PHG4PatternReco::initialize_geometry(PHCompositeNode *topNode) {
 
 			//if(geo->get_layer() > (int) _radii.size() ) continue;
 
-//			if (verbosity >= 2)
+//			if (Verbosity() >= 2)
 //			geo->identify();
 
 			_radii_all[_layer_ilayer_map_all[geo->get_layer()]] =
@@ -628,16 +653,16 @@ int PHG4PatternReco::initialize_geometry(PHCompositeNode *topNode) {
 		}
 	}
 
-	if (mapsladdergeos) {
+	if (mvtxladdergeos) {
 		PHG4CylinderGeomContainer::ConstRange begin_end =
-			mapsladdergeos->get_begin_end();
+			mvtxladdergeos->get_begin_end();
 		PHG4CylinderGeomContainer::ConstIterator miter = begin_end.first;
 		for (; miter != begin_end.second; ++miter) {
 			PHG4CylinderGeom *geo = miter->second;
 
 			//if(geo->get_layer() > (int) _radii.size() ) continue;
 
-//			if (verbosity >= 2)
+//			if (Verbosity() >= 2)
 //				geo->identify();
 
 			_radii_all[_layer_ilayer_map_all[geo->get_layer()]] =
@@ -737,7 +762,7 @@ int PHG4PatternReco::translate_input(PHCompositeNode* topNode) {
 		hits_used.insert(std::pair<unsigned int, bool>(hit3d.get_id(),false));
         }
 	
-        if (verbosity > 10) {
+        if (Verbosity() > 10) {
         cout << "-------------------------------------------------------------------"
              << endl;
         cout << "PHG4PatternReco::process_event has the following input clusters:"
@@ -763,7 +788,7 @@ int PHG4PatternReco::translate_input(PHCompositeNode* topNode) {
 
 int PHG4PatternReco::export_output(){
 
-	// clear maps at the begining of an event
+	// clear mvtx at the begining of an event
 //	_vertexmap->clear();
 //	_trackmap->clear();
 //        if (_tracks.empty())
@@ -848,7 +873,7 @@ int PHG4PatternReco::export_output(){
                         track_hits.at(ihit).get_id());
                         clusterID = cluster->get_id();
 
-			if (verbosity > 5) {
+			if (Verbosity() > 5) {
                         cout
                         <<__LINE__
                         <<": itrack: " << itrack
@@ -931,7 +956,7 @@ int PHG4PatternReco::export_output(){
 
 		//if a triplet doesn't have a reco vertex tied to it, assign 9999
 		if (fabs(z0 - distance)>0.05) vid = 9999;		
-		if (verbosity > 5) cout<<"vertex_id "<<vid<<endl;
+		if (Verbosity() > 5) cout<<"vertex_id "<<vid<<endl;
 		// pca 
 		if (vid==9999){
 		track.set_x(0.);
@@ -947,7 +972,7 @@ int PHG4PatternReco::export_output(){
 		if (vid==9999) fake_vertex.insert_track(track.get_id());
                 else svtx_vertex_list[vid]->insert_track(track.get_id());
 
-                if (verbosity > 5) {
+                if (Verbosity() > 5) {
                         cout << "track " << itrack << " quality = " << track.get_quality()
                         << endl;
                         cout << "px = " << track.get_px() << " py = " << track.get_py()
@@ -956,13 +981,13 @@ int PHG4PatternReco::export_output(){
         }  // track loop
 
 //	do not repeat saving vertices this time, add only fake vertex
- 	SvtxVertex *vtxptr = _vertexmap->insert(&fake_vertex);
-	if (verbosity > 5) vtxptr->identify();
+ 	SvtxVertex *vtxptr = _vertexmap->insert_clone(&fake_vertex);
+	if (Verbosity() > 5) vtxptr->identify();
 
 /*	
 	for (unsigned int vid = 0; vid < _vertex_list.size(); ++vid ){
-        SvtxVertex *vtxptr = _vertexmap->insert(&svtx_vertex_list[vid]);
-        if (verbosity > 5) vtxptr->identify();
+        SvtxVertex *vtxptr = _vertexmap->insert_clone(&svtx_vertex_list[vid]);
+        if (Verbosity() > 5) vtxptr->identify();
 	}
 */
         hits_map.clear();
@@ -1123,8 +1148,7 @@ void PHG4PatternReco::vote_z_init(unsigned int zoomlevel){
 
 
 void PHG4PatternReco::find_track_candidates_z_init(unsigned int zoomlevel){
-
-          for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_sel.begin(); it!=bins_map_sel.end(); ++it){ bins_map_sel.erase(it);}
+        bins_map_sel.erase(bins_map_sel.begin(), bins_map_sel.end());
 	bins_map_sel.clear();
 
 	unsigned int max_i=-1;
@@ -1301,7 +1325,7 @@ void PHG4PatternReco::vote_z(unsigned int zoomlevel){
 	kappa_phi_d_ranges.clear();
                 }//clusters
             } //bins_map_prev
-            for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_prev.begin(); it!=bins_map_prev.end(); ++it){ bins_map_prev.erase(it);}
+	    bins_map_prev.erase(bins_map_prev.begin(),bins_map_prev.end());
 	    bins_map_prev.clear();
 
 	    cout<<"bins_map_cur.size at zoom "<<zoomlevel << " (vote_z) : " <<bins_map_cur.size()<<endl;
@@ -1309,7 +1333,7 @@ void PHG4PatternReco::vote_z(unsigned int zoomlevel){
 
 
 void PHG4PatternReco::find_track_candidates_z(unsigned int zoomlevel){
-        for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_sel.begin(); it!=bins_map_sel.end(); ++it){ bins_map_sel.erase(it);}
+        bins_map_sel.erase(bins_map_sel.begin(),bins_map_sel.end());
 	bins_map_sel.clear();
 
 
@@ -1340,8 +1364,7 @@ void PHG4PatternReco::find_track_candidates_z(unsigned int zoomlevel){
 		}
 
 	}
-
-        for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_cur.begin(); it!=bins_map_cur.end(); ++it){ bins_map_cur.erase(it);}
+	bins_map_cur.erase(bins_map_cur.begin(), bins_map_cur.end());
 	bins_map_cur.clear();
 
         cout<<"bins_map_sel.size at zoom "<< zoomlevel<<" (find_track_candidates_z) : " <<bins_map_sel.size()<<endl;
@@ -1628,14 +1651,14 @@ void PHG4PatternReco::vote_xy(unsigned int zoomlevel){
 
         }//binsmap_sel
         cout<<"bins_map_cur.size at zoom "<<zoomlevel <<" (vote_xy) : " <<bins_map_cur.size()<<endl;
-          for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_sel.begin(); it!=bins_map_sel.end(); ++it){ bins_map_sel.erase(it);}
+	bins_map_sel.erase(bins_map_sel.begin(), bins_map_sel.end());
 	bins_map_sel.clear();
 
 }
 
 void PHG4PatternReco::find_track_candidates_xy(unsigned int zoomlevel){
 
-        for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_prev.begin(); it!=bins_map_prev.end(); ++it){ bins_map_prev.erase(it);}
+        bins_map_prev.erase(bins_map_prev.begin(), bins_map_prev.end());
 	bins_map_prev.clear();
 
         for (std::map<unsigned int,HelixHoughBin*>::iterator it=bins_map_cur.begin(); it!=bins_map_cur.end(); ++it)
@@ -1671,7 +1694,7 @@ void PHG4PatternReco::find_track_candidates_xy(unsigned int zoomlevel){
         }
 
         cout<<"bins_map_prev.size at zoom "<<zoomlevel <<" (find_track_candidates_xy) " <<bins_map_prev.size()<<endl;
-          for (std::map<unsigned int,HelixHoughBin* >::iterator it=bins_map_cur.begin(); it!=bins_map_cur.end(); ++it){ bins_map_cur.erase(it);}
+        bins_map_cur.erase(bins_map_cur.begin(), bins_map_cur.end());
 	bins_map_cur.clear();
 
 }
@@ -2251,7 +2274,7 @@ int PHG4PatternReco::fit_vertex(){
 	{
 		if (_multi_vtx_tracks[i].size()==0) continue;
 		_vertex[2] = _multi_vtx[i];
-    		if (verbosity > 0) {
+    		if (Verbosity() > 0) {
       		cout << " seed track vertex pre-fit: "
            		<< _vertex[0] << " "
         		<< _vertex[1] << " "
@@ -2265,7 +2288,7 @@ int PHG4PatternReco::fit_vertex(){
 		n_vtx_tracks = _multi_vtx_tracks[i].size();
 		cout<<"number of fitted tracks for vertex "<<i<< " : "<<n_vtx_tracks <<endl;
 
-  		if (verbosity > 0) {
+  		if (Verbosity() > 0) {
     			cout << " seed track vertex post-fit: "
          		<< _vertex[0] << " " << _vertex[1] << " " << _vertex[2] << endl;
   		}

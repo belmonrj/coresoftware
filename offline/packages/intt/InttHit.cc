@@ -9,27 +9,22 @@
 
 InttHit::InttHit()
   : TrkrHit()
-  , m_adc(0)
 {
 }
 
-void 
-InttHit::identify(std::ostream& os) const
+void InttHit::identify(std::ostream& os) const
 {
-  os << "InttHit with adc:" << getAdc()
-     << std::endl;
+  //os << "InttHit with energy " << getEnergy() << " adc:" << getAdc()
+  // << std::endl;
 }
 
-void 
-InttHit::Reset()
+void InttHit::Reset()
 {
   TrkrHit::Reset();
 }
 
-int 
-InttHit::isValid() const
+int InttHit::isValid() const
 {
   // valid if the key is not equal to the default value
-  return m_adc != 0;
+  return 0;
 }
-

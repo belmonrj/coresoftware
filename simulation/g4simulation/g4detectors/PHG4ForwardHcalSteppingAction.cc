@@ -35,6 +35,7 @@ using namespace std;
 
 //____________________________________________________________________________..
 PHG4ForwardHcalSteppingAction::PHG4ForwardHcalSteppingAction( PHG4ForwardHcalDetector* detector ):
+  PHG4SteppingAction(detector->GetName()),
   detector_( detector ),
   hits_(NULL),
   absorberhits_(NULL),
@@ -78,7 +79,6 @@ bool PHG4ForwardHcalSteppingAction::UserSteppingAction( const G4Step* aStep, boo
   int tower_id = -1;
   int idx_j = -1;
   int idx_k = -1;
-  int idx_l = -1;
 
   if (whichactive > 0) // in sctintillator
     {
@@ -110,6 +110,7 @@ bool PHG4ForwardHcalSteppingAction::UserSteppingAction( const G4Step* aStep, boo
   /* Make sure we are in a volume */
   if ( detector_->IsActive() )
     {
+      int idx_l = -1;
       /* Check if particle is 'geantino' */
       bool geantino = false;
       if (aTrack->GetParticleDefinition()->GetPDGEncoding() == 0 &&

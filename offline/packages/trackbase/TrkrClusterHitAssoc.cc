@@ -33,8 +33,9 @@ TrkrClusterHitAssoc::identify(std::ostream &os) const
 
   for ( auto& entry : m_map )
   {
-    os << "   cluster key: 0x" << std::hex << entry.first << std::dec
-       << " hit index: " << entry.second << std::endl;
+    // os << "   cluster key: 0x" << std::hex << entry.first << std::dec
+    os << "   cluster key: "  << entry.first << std::dec
+       << " hit key: " << entry.second << std::endl;
   }
 
   os << "------------------------------" << std::endl;

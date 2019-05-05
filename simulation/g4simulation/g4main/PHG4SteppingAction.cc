@@ -7,6 +7,7 @@
  */
 
 #include "PHG4SteppingAction.h"
+
 #include "PHG4Hit.h"
 
 #include <Geant4/G4EmSaturation.hh>
@@ -24,6 +25,16 @@
 #include <iostream>
 
 using namespace std;
+
+PHG4SteppingAction::PHG4SteppingAction(const std::string& name, const int i)
+  : m_Verbosity(i)
+  , m_LightBalanceInnerRadius(NAN)
+  , m_LightBalanceInnerCorr(NAN)
+  , m_LightBalanceOuterRadius(NAN)
+  , m_LightBalanceOuterCorr(NAN)
+  , m_Name(name)
+{
+}
 
 double
 PHG4SteppingAction::GetScintLightYield(const G4Step* step)

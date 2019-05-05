@@ -1,5 +1,5 @@
-#ifndef PHG4Reco_h
-#define PHG4Reco_h
+#ifndef G4MAIN_PHG4RECO_H
+#define G4MAIN_PHG4RECO_H
 
 #include <g4decayer/EDecayType.hh>
 
@@ -7,12 +7,12 @@
 
 #include <phfield/PHFieldConfig.h>
 
-#include <phool/PHTimeServer.h>
-
 #include <list>
 
 // Forward declerations
 class PHCompositeNode;
+class G4LogicalVolume;
+class G4VPhysicalVolume;
 class G4RunManager;
 class PHG4PrimaryGeneratorAction;
 class PHG4PhenixDetector;
@@ -118,12 +118,10 @@ class PHG4Reco : public SubsysReco
 
   static void G4Seed(const unsigned int i);
 
-  // this is an ugly hack to get Au ions working for CAD
+  // this is a hack to get ions working for CAD and NSRL
   // our particle generators have pdg build in which doesn't work
-  // with ions, so the generator action has to be replaced
-  // which is hardcoded in PHG4Reco (it has to be created after
-  // the physics lists are instantiated
-  void setGeneratorAction(G4VUserPrimaryGeneratorAction *action);
+  // with ions, so the default generator action has to be replaced
+//  void setGeneratorAction(PHG4PrimaryGeneratorAction *action);
 
   PHG4Subsystem *getSubsystem(const std::string &name);
 
@@ -133,6 +131,7 @@ class PHG4Reco : public SubsysReco
 
   //! disable event/track/stepping actions to reduce resource consumption for G4 running only. E.g. dose analysis
   void setDisableUserActions(bool b = true) {m_disableUserActions = b;}
+  void ApplyDisplayAction();
 
  protected:
   int InitUImanager();
@@ -187,9 +186,6 @@ class PHG4Reco : public SubsysReco
 
   bool save_DST_geometry_;
   bool m_disableUserActions;
-
-  //! module timer.
-  PHTimeServer::timer _timer;
 };
 
 #endif
