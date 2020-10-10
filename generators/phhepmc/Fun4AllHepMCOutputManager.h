@@ -2,15 +2,14 @@
 #define PHHEPMC_FUN4ALLHEPMCOUTPUTMANAGER_H
 
 #include <fun4all/Fun4AllOutputManager.h>
-#include <string>
 
 #include <fstream>
-#include <ostream>
+#include <string>
 
 namespace HepMC
 {
-class IO_GenEvent;
-};
+  class IO_GenEvent;
+}
 
 class PHCompositeNode;
 

@@ -1,28 +1,41 @@
 #include "HepMCNodeReader.h"
 #include "PHG4InEvent.h"
+#include "PHG4Particle.h"
 #include "PHG4Particlev1.h"
-#include "PHG4Particlev2.h"
 
 #include <fun4all/Fun4AllReturnCodes.h>
 
 #include <phhepmc/PHHepMCGenEvent.h>
 #include <phhepmc/PHHepMCGenEventMap.h>
 
+#include <phool/PHCompositeNode.h>
+#include <phool/PHDataNode.h>
+#include <phool/PHNode.h>  // for PHNode
+#include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>
 #include <phool/PHRandomSeed.h>
 #include <phool/getClass.h>
+#include <phool/phool.h>
 #include <phool/recoConsts.h>
 
-#include <Geant4/G4ParticleDefinition.hh>
-#include <Geant4/G4ParticleTable.hh>
-
 #include <HepMC/GenEvent.h>
+#include <HepMC/GenParticle.h>
+#include <HepMC/GenVertex.h>
+#include <HepMC/IteratorRange.h>
+#include <HepMC/SimpleVector.h>
+#include <HepMC/Units.h>
 
 #include <gsl/gsl_const.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
 #include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <iterator>
 #include <list>
+#include <utility>
 
 using namespace std;
 
@@ -216,9 +229,22 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
                (*v)->particles_begin(HepMC::children);
            p != (*v)->particles_end(HepMC::children); ++p)
       {
+        if (Verbosity() > 1)
+        {
+          cout << __PRETTY_FUNCTION__ << " : " << __LINE__ << endl;
+          (*p)->print();
+          cout << "end vertex " << (*p)->end_vertex() << endl;
+        }
         if (isfinal(*p))
         {
+          if (Verbosity() > 1)
+            cout << "partile passed " << endl;
           finalstateparticles.push_back(*p);
+        }
+        else
+        {
+          if (Verbosity() > 1)
+            cout << "partivle failed" << endl;
         }
       }
 
@@ -278,7 +304,6 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
              fiter != finalstateparticles.end();
              ++fiter)
         {
-
           if (Verbosity() > 1) (*fiter)->print();
 
           PHG4Particle *particle = new PHG4Particlev1();

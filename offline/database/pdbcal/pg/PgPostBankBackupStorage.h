@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 /*!
  * \file PgPostBankBackupStorage.hh
  * \brief 
@@ -6,18 +8,17 @@
  * \date $Date: 2014/04/14 22:56:48 $
  */
 
-#ifndef PDBCAL_PG_PGPOSTBANKBACKUPSTORAGE_H
-#define PDBCAL_PG_PGPOSTBANKBACKUPSTORAGE_H
+#ifndef PDBCALPG_PGPOSTBANKBACKUPSTORAGE_H
+#define PDBCALPG_PGPOSTBANKBACKUPSTORAGE_H
 
 #include <pdbcalbase/PdbCalChan.h>
-#include <pdbcalbase/PdbClassMap.h>
 
 #include <phool/PHTimeStamp.h>
 
-#include <TClonesArray.h>
 #include <TNamed.h>
+#include <TObject.h>
 
-#include <cassert>
+#include <cstddef>
 #include <string>
 
 class PgPostCalBank;

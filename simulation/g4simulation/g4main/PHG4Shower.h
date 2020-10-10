@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef G4MAIN_PHG4SHOWER_H
 #define G4MAIN_PHG4SHOWER_H
 
@@ -30,7 +32,7 @@ class PHG4Shower : public PHObject
   // PHObject virtual overloads
 
   virtual void identify(std::ostream& os = std::cout) const { os << "PHG4Shower base class" << std::endl; }
-  virtual PHG4Shower* Clone() const { return nullptr; }
+  virtual PHG4Shower* CloneMe() const { return nullptr; }
   virtual void Reset() {}
   virtual int isValid() const { return 0; }
 

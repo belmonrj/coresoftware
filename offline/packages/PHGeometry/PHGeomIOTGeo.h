@@ -13,6 +13,7 @@
 
 #include <phool/PHObject.h>
 
+#include <iostream>
 #include <vector>
 
 class TGeoVolume;
@@ -29,9 +30,7 @@ class PHGeomIOTGeo : public PHObject
   PHGeomIOTGeo();
   virtual ~PHGeomIOTGeo();
 
-  /// Virtual copy constructor.
-  virtual PHObject*
-  clone() const;
+  virtual PHObject* CloneMe() const {return new PHGeomIOTGeo(*this);}
 
   /** identify Function from PHObject
    @param os Output Stream

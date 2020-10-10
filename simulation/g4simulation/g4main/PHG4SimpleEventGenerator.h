@@ -1,23 +1,29 @@
-#ifndef PHG4SimpleEventGenerator_H__
-#define PHG4SimpleEventGenerator_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4MAIN_PHG4SIMPLEEVENTGENERATOR_H
+#define G4MAIN_PHG4SIMPLEEVENTGENERATOR_H
 
 #include "PHG4ParticleGeneratorBase.h"
 
-#include <map>
+#include <string>   // for string
+#include <utility>  // for pair
 #include <vector>
 
 class PHG4InEvent;
 class PHCompositeNode;
 
-class PHG4SimpleEventGenerator : public PHG4ParticleGeneratorBase {
-
-public:
-
+class PHG4SimpleEventGenerator : public PHG4ParticleGeneratorBase
+{
+ public:
   //! supported function distributions
-  enum FUNCTION {Uniform,Gaus};
+  enum FUNCTION
+  {
+    Uniform,
+    Gaus
+  };
 
-  PHG4SimpleEventGenerator(const std::string &name="EVTGENERATOR");
-  virtual ~PHG4SimpleEventGenerator(){}
+  PHG4SimpleEventGenerator(const std::string &name = "EVTGENERATOR");
+  virtual ~PHG4SimpleEventGenerator() {}
 
   int InitRun(PHCompositeNode *topNode);
   int process_event(PHCompositeNode *topNode);
@@ -29,8 +35,8 @@ public:
   void add_particles(const int pid, const unsigned int count);
 
   //! set the starting time for the event
-  void set_t0(const double t0);
-  
+  void set_t0(const double t) { _t0 = t; }
+
   //! range of randomized eta values
   void set_eta_range(const double eta_min, const double eta_max);
 
@@ -56,20 +62,19 @@ public:
 
   //! set an offset vector from the existing vertex
   void set_existing_vertex_offset_vector(const double x, const double y, const double z);
-  
+
   //! set the distribution function of particles about the vertex
   void set_vertex_size_function(FUNCTION r);
 
   //! set the dimensions of the distribution of particles about the vertex
   void set_vertex_size_parameters(const double mean, const double width);
 
-private:
-
+ private:
   double smearvtx(const double position, const double width, FUNCTION dist) const;
   // these need to be stored separately until run time when the names
   // can be translated using the GEANT4 lookup
-  std::vector<std::pair<int, unsigned int> > _particle_codes; // <pdgcode, count>
-  std::vector<std::pair<std::string, unsigned int> > _particle_names; // <names, count>  
+  std::vector<std::pair<int, unsigned int> > _particle_codes;          // <pdgcode, count>
+  std::vector<std::pair<std::string, unsigned int> > _particle_names;  // <names, count>
   FUNCTION _vertex_func_x;
   FUNCTION _vertex_func_y;
   FUNCTION _vertex_func_z;
@@ -94,10 +99,10 @@ private:
   double _pt_max;
   double _pt_gaus_width;
   double _p_min;
-  double _p_max; 
+  double _p_max;
   double _p_gaus_width;
 
-  PHG4InEvent* _ineve;
+  PHG4InEvent *_ineve;
 };
 
 #endif

@@ -1,32 +1,38 @@
 #include "PHG4OuterHcalDetector.h"
 
-#include "PHG4OuterHcalDisplayAction.h"
-#include "PHG4OuterHcalSubsystem.h"
 #include "PHG4HcalDefs.h"
+#include "PHG4OuterHcalDisplayAction.h"
+#include "PHG4OuterHcalFieldSetup.h"
 
 #include <phparameter/PHParameters.h>
 
+#include <g4main/PHG4Detector.h>
+#include <g4main/PHG4DisplayAction.h>
+#include <g4main/PHG4Subsystem.h>
 #include <g4main/PHG4Utils.h>
 
-#include <phool/PHCompositeNode.h>
-#include <phool/PHIODataNode.h>
-#include <phool/getClass.h>
+#include <phool/phool.h>
 
 #include <TSystem.h>
 
 #include <Geant4/G4AssemblyVolume.hh>
 #include <Geant4/G4Box.hh>
-#include <Geant4/G4Colour.hh>
 #include <Geant4/G4ExtrudedSolid.hh>
 #include <Geant4/G4IntersectionSolid.hh>
 #include <Geant4/G4LogicalVolume.hh>
 #include <Geant4/G4Material.hh>
 #include <Geant4/G4PVPlacement.hh>
+#include <Geant4/G4RotationMatrix.hh>
+#include <Geant4/G4String.hh>
 #include <Geant4/G4SubtractionSolid.hh>
 #include <Geant4/G4SystemOfUnits.hh>
+#include <Geant4/G4ThreeVector.hh>
+#include <Geant4/G4Transform3D.hh>
 #include <Geant4/G4Tubs.hh>
 #include <Geant4/G4TwoVector.hh>
 #include <Geant4/G4UserLimits.hh>
+#include <Geant4/G4VPhysicalVolume.hh>
+#include <Geant4/G4VSolid.hh>
 
 #include <CGAL/Boolean_set_operations_2.h>
 #include <CGAL/Circular_kernel_intersections.h>
@@ -37,8 +43,14 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <iterator>
 #include <sstream>
+
+class PHCompositeNode;
 
 typedef CGAL::Circle_2<PHG4OuterHcalDetector::Circular_k> Circle_2;
 typedef CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k> Circular_arc_point_2;
@@ -54,8 +66,8 @@ using namespace std;
 // scintilator length takes care of this
 static double subtract_from_scinti_x = 0.1 * mm;
 
-PHG4OuterHcalDetector::PHG4OuterHcalDetector(PHG4OuterHcalSubsystem *subsys, PHCompositeNode *Node, PHParameters *parames, const std::string &dnam)
-  : PHG4Detector(Node, dnam)
+PHG4OuterHcalDetector::PHG4OuterHcalDetector(PHG4Subsystem *subsys, PHCompositeNode *Node, PHParameters *parames, const std::string &dnam)
+  : PHG4Detector(subsys, Node, dnam)
   , m_DisplayAction(dynamic_cast<PHG4OuterHcalDisplayAction *>(subsys->GetDisplayAction()))
   , m_FieldSetup(nullptr)
   , m_Params(parames)
@@ -139,7 +151,7 @@ PHG4OuterHcalDetector::ConstructScintillatorBox(G4LogicalVolume *hcalenvelope)
   for (iter = res.begin(); iter != res.end(); ++iter)
   {
     CGAL::Object obj = *iter;
-    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
     {
       if (CGAL::to_double(point->first.x()) > CGAL::to_double(p_upperedge.x()))
       {
@@ -173,7 +185,7 @@ PHG4OuterHcalDetector::ConstructScintillatorBox(G4LogicalVolume *hcalenvelope)
   for (iter = res.begin(); iter != res.end(); ++iter)
   {
     CGAL::Object obj = *iter;
-    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
     {
       if (CGAL::to_double(point->first.x()) > minx)
       {
@@ -217,7 +229,7 @@ PHG4OuterHcalDetector::ConstructSteelPlate(G4LogicalVolume *hcalenvelope)
   for (iter = res.begin(); iter != res.end(); ++iter)
   {
     CGAL::Object obj = *iter;
-    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
     {
       if (CGAL::to_double(point->first.x()) > 0)
       {
@@ -238,7 +250,7 @@ PHG4OuterHcalDetector::ConstructSteelPlate(G4LogicalVolume *hcalenvelope)
   for (iter = res.begin(); iter != res.end(); ++iter)
   {
     CGAL::Object obj = *iter;
-    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
     {
       if (CGAL::to_double(point->first.x()) > CGAL::to_double(p_loweredge.x()))
       {
@@ -277,7 +289,7 @@ PHG4OuterHcalDetector::ConstructSteelPlate(G4LogicalVolume *hcalenvelope)
     for (iter = res.begin(); iter != res.end(); ++iter)
     {
       CGAL::Object obj = *iter;
-      if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+      if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
       {
         if (CGAL::to_double(point->first.x()) > pxmax)
         {
@@ -298,7 +310,7 @@ PHG4OuterHcalDetector::ConstructSteelPlate(G4LogicalVolume *hcalenvelope)
     for (iter = res.begin(); iter != res.end(); ++iter)
     {
       CGAL::Object obj = *iter;
-      if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+      if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
       {
         if (CGAL::to_double(point->first.x()) > CGAL::to_double(p_loweredge.x()))
         {
@@ -372,7 +384,7 @@ void PHG4OuterHcalDetector::ShiftSecantToTangent(PHG4OuterHcalDetector::Point_2 
   for (iter = res.begin(); iter != res.end(); ++iter)
   {
     CGAL::Object obj = *iter;
-    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
     {
       if (CGAL::to_double(point->first.x()) > pxmax)
       {
@@ -400,7 +412,7 @@ void PHG4OuterHcalDetector::ShiftSecantToTangent(PHG4OuterHcalDetector::Point_2 
   return;
 }
 
-void PHG4OuterHcalDetector::Construct(G4LogicalVolume *logicWorld)
+void PHG4OuterHcalDetector::ConstructMe(G4LogicalVolume *logicWorld)
 {
 #ifdef SCINTITEST
   ConstructOuterHcal(logicWorld);
@@ -490,8 +502,8 @@ int PHG4OuterHcalDetector::ConstructOuterHcal(G4LogicalVolume *hcalenvelope)
   // of crossings is given
   m_FieldSetup = new PHG4OuterHcalFieldSetup(
       m_NumScintiPlates, /*G4int steelPlates*/
-      m_ScintiGap,      /*G4double scintiGap*/
-      m_TiltAngle);     /*G4double tiltAngle*/
+      m_ScintiGap,       /*G4double scintiGap*/
+      m_TiltAngle);      /*G4double tiltAngle*/
 
   m_ScintiMotherAssembly = ConstructHcalScintillatorAssembly(hcalenvelope);
 #ifdef SCINTITEST
@@ -717,10 +729,10 @@ void PHG4OuterHcalDetector::ConstructHcalSingleScintillators(G4LogicalVolume *hc
   }
   G4TwoVector zero(0, 0);
   m_SteelCutoutForMagnetG4Solid = new G4ExtrudedSolid("ScintillatorTile",
-                                                vertexes,
-                                                m_ScintiTileThickness + 20 * cm,
-                                                zero, 1.0,
-                                                zero, 1.0);
+                                                      vertexes,
+                                                      m_ScintiTileThickness + 20 * cm,
+                                                      zero, 1.0,
+                                                      zero, 1.0);
   return;
 }
 
@@ -843,8 +855,8 @@ void PHG4OuterHcalDetector::SetTiltViaNcross()
   int ncross = m_Params->get_int_param("ncross");
   if (!ncross || isfinite(m_TiltAngle))
   {
-// mark ncross parameter as not used
-    m_Params->set_int_param("ncross",0);
+    // mark ncross parameter as not used
+    m_Params->set_int_param("ncross", 0);
     return;
   }
   if ((isfinite(m_TiltAngle)) && (Verbosity() > 0))
@@ -871,7 +883,7 @@ void PHG4OuterHcalDetector::SetTiltViaNcross()
   for (iter = res.begin(); iter != res.end(); ++iter)
   {
     CGAL::Object obj = *iter;
-    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
     {
       if (CGAL::to_double(point->first.x()) > 0)
       {
@@ -892,7 +904,7 @@ void PHG4OuterHcalDetector::SetTiltViaNcross()
   for (iter = res.begin(); iter != res.end(); ++iter)
   {
     CGAL::Object obj = *iter;
-    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> >(&obj))
+    if (const std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned> *point = CGAL::object_cast<std::pair<CGAL::Circular_arc_point_2<PHG4OuterHcalDetector::Circular_k>, unsigned>>(&obj))
     {
       if (CGAL::to_double(point->first.x()) > 0)
       {

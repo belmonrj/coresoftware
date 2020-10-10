@@ -3,10 +3,12 @@
 #include "PHCompositeNode.h"
 #include "PHDataNode.h"
 #include "PHIODataNode.h"
+#include "PHNode.h"
 #include "PHObject.h"
 #include "getClass.h"
 
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -32,14 +34,14 @@ void PHNodeIntegrate::perform(PHNode *node)
           // we are guaranteed that it exists (and we handle only
           // objects which come from the current input file
           PHObject *runobj = findNode::getClass<PHObject>(runnode, node->getName());
-          runobj->CopyContent(sumobj);
+          runobj->CopyFrom(sumobj);
         }
         else
         {
           // since this object was also copied to the node tree we only need
           // to store it in case a second file gets opened where this one then
           // serves as the object which contains the sum
-          sumobj = obj->clone();
+          sumobj = obj->CloneMe();
           PHIODataNode<PHObject> *sumobjnode = new PHIODataNode<PHObject>(sumobj, node->getName(), "PHObject");
           runsumnode->addNode(sumobjnode);
         }

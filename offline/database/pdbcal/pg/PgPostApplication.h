@@ -1,14 +1,15 @@
-#ifndef PDBCAL_PG_PGPOSTAPPLICATION_H
-#define PDBCAL_PG_PGPOSTAPPLICATION_H
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef PDBCALPG_PGPOSTAPPLICATION_H
+#define PDBCALPG_PGPOSTAPPLICATION_H
 
 #include <pdbcalbase/Pdb.h>
 #include <pdbcalbase/PdbApplication.h>
 
-#include <phool/phool.h>
-
-#include <RDBC/TSQLConnection.h>
-
 #include <string>
+
+class PdbCalBank;
+class TSQLConnection;
 
 class PgPostApplication : public PdbApplication
 {

@@ -3,11 +3,7 @@
 
 #include "BbcVertex.h"
 
-#include <phool/PHObject.h>
-
 #include <iostream>
-#include <set>
-#include <vector>
 
 class BbcVertexv1 : public BbcVertex
 {
@@ -20,7 +16,7 @@ class BbcVertexv1 : public BbcVertex
   void identify(std::ostream& os = std::cout) const;
   void Reset() { *this = BbcVertexv1(); }
   int isValid() const;
-  BbcVertex* Clone() { return new BbcVertexv1(*this); }
+  PHObject* CloneMe() const { return new BbcVertexv1(*this); }
 
   // vertex info
 

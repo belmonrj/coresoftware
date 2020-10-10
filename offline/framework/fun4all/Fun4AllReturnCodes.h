@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef FUN4ALL_FUN4ALLRETURNCODES_H
 #define FUN4ALL_FUN4ALLRETURNCODES_H
 
@@ -12,7 +14,8 @@ enum
   SYNC_OK = 0,
   SYNC_FAIL = -1,
   SYNC_NOOBJECT = 1,
-  DONOTREGISTERSUBSYSTEM = -3
+  DONOTREGISTERSUBSYSTEM = -3,
+  RESET_NODE_TREE = 1
 };
 }
 

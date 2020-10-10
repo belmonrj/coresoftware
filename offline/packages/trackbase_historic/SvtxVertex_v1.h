@@ -1,12 +1,13 @@
-#ifndef __SVTXVERTEX_V1_H__
-#define __SVTXVERTEX_V1_H__
+#ifndef TRACKBASEHISTORIC_SVTXVERTEXV1_H
+#define TRACKBASEHISTORIC_SVTXVERTEXV1_H
 
 #include "SvtxVertex.h"
 
-#include <phool/PHObject.h>
+#include <cstddef>      // for size_t
 #include <iostream>
 #include <set>
-#include <vector>
+
+class PHObject;
 
 class SvtxVertex_v1 : public SvtxVertex
 {
@@ -19,7 +20,7 @@ class SvtxVertex_v1 : public SvtxVertex
   void identify(std::ostream& os = std::cout) const;
   void Reset() { *this = SvtxVertex_v1(); }
   int isValid() const;
-  SvtxVertex* Clone() const { return new SvtxVertex_v1(*this); }
+  PHObject* CloneMe() const { return new SvtxVertex_v1(*this); }
 
   // vertex info
 

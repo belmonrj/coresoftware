@@ -9,50 +9,53 @@
 
 #include <phparameter/PHParameters.h>
 
-#include <fun4all/Fun4AllHistoManager.h>
 #include <fun4all/Fun4AllServer.h>
 
 #include <g4main/PHG4Hit.h>
 #include <g4main/PHG4HitContainer.h>
 #include <g4main/PHG4Hitv1.h>
 #include <g4main/PHG4Shower.h>
+#include <g4main/PHG4SteppingAction.h>         // for PHG4SteppingAction
 #include <g4main/PHG4TrackUserInfoV1.h>
 
 #include <phool/getClass.h>
+
+// Root headers
+#include <TAxis.h>                             // for TAxis
+#include <TH2.h>
+#include <TNamed.h>                            // for TNamed
+#include <TSystem.h>
 
 // Geant4 headers
 
 #include <Geant4/G4Field.hh>
 #include <Geant4/G4FieldManager.hh>
-#include <Geant4/G4MaterialCutsCouple.hh>
+#include <Geant4/G4ParticleDefinition.hh>      // for G4ParticleDefinition
 #include <Geant4/G4PropagatorInField.hh>
+#include <Geant4/G4ReferenceCountedHandle.hh>  // for G4ReferenceCountedHandle
 #include <Geant4/G4Step.hh>
+#include <Geant4/G4StepPoint.hh>               // for G4StepPoint
+#include <Geant4/G4StepStatus.hh>              // for fGeomBoundary, fAtRest...
+#include <Geant4/G4String.hh>                  // for G4String
 #include <Geant4/G4SystemOfUnits.hh>
+#include <Geant4/G4ThreeVector.hh>             // for G4ThreeVector
+#include <Geant4/G4TouchableHandle.hh>         // for G4TouchableHandle
+#include <Geant4/G4Track.hh>                   // for G4Track
+#include <Geant4/G4TrackStatus.hh>             // for fStopAndKill
 #include <Geant4/G4TransportationManager.hh>
-
-// Root headers
-#include <TH2F.h>
-#include <TSystem.h>
-
-// boost headers
-#include <boost/foreach.hpp>
-#include <boost/tokenizer.hpp>
-// this is an ugly hack, the gcc optimizer has a bug which
-// triggers the uninitialized variable warning which
-// stops compilation because of our -Werror
-#include <boost/version.hpp>  // to get BOOST_VERSION
-#if (__GNUC__ == 4 && __GNUC_MINOR__ == 4 && BOOST_VERSION == 105700)
-#pragma GCC diagnostic ignored "-Wuninitialized"
-#pragma message "ignoring bogus gcc warning in boost header lexical_cast.hpp"
-#include <boost/lexical_cast.hpp>
-#pragma GCC diagnostic warning "-Wuninitialized"
-#else
-#include <boost/lexical_cast.hpp>
-#endif
+#include <Geant4/G4Types.hh>                   // for G4double
+#include <Geant4/G4VPhysicalVolume.hh>         // for G4VPhysicalVolume
+#include <Geant4/G4VTouchable.hh>              // for G4VTouchable
+#include <Geant4/G4VUserTrackInformation.hh>   // for G4VUserTrackInformation
 
 // finally system headers
 #include <cassert>
+#include <cmath>                               // for isfinite, sqrt
 #include <iostream>
+#include <string>                              // for operator<<, string
+#include <utility>                             // for pair
+
+class PHCompositeNode;
 
 using namespace std;
 //____________________________________________________________________________..
@@ -75,10 +78,6 @@ PHG4OuterHcalSteppingAction::PHG4OuterHcalSteppingAction(PHG4OuterHcalDetector* 
   , m_IsBlackHoleFlag(m_Params->get_int_param("blackhole"))
   , m_NScintiPlates(m_Params->get_int_param(PHG4HcalDefs::scipertwr) * m_Params->get_int_param("n_towers"))
   , m_LightScintModelFlag(m_Params->get_int_param("light_scint_model"))
-  , m_LightBalanceInnerCorr(m_Params->get_double_param("light_balance_inner_corr"))
-  , m_LightBalanceInnerRadius(m_Params->get_double_param("light_balance_inner_radius") * cm)
-  , m_LightBalanceOuterCorr(m_Params->get_double_param("light_balance_outer_corr"))
-  , m_LightBalanceOuterRadius(m_Params->get_double_param("light_balance_outer_radius") * cm)
 {
   SetName(m_Detector->GetName());
 }
@@ -95,6 +94,13 @@ PHG4OuterHcalSteppingAction::~PHG4OuterHcalSteppingAction()
 int PHG4OuterHcalSteppingAction::Init()
 {
   m_EnableFieldCheckerFlag = m_Params->get_int_param("field_check");
+// method in base class for light correction
+  SetLightCorrection(m_Params->get_double_param("light_balance_inner_radius") * cm,
+		     m_Params->get_double_param("light_balance_inner_corr"),
+		     m_Params->get_double_param("light_balance_outer_radius") * cm,
+		     m_Params->get_double_param("light_balance_outer_corr")
+    );
+
   return 0;
 }
 
@@ -247,7 +253,7 @@ bool PHG4OuterHcalSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
            << " post vol : " << touchpost->GetVolume()->GetName() << endl;
       cout << " previous phys pre vol: " << m_SaveVolPre->GetName()
            << " previous phys post vol: " << m_SaveVolPost->GetName() << endl;
-      exit(1);
+      gSystem->Exit(1);
     }
     m_SavePostStepStatus = postPoint->GetStepStatus();
     // check if track id matches the initial one when the hit was created
@@ -257,7 +263,7 @@ bool PHG4OuterHcalSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
       cout << "saved track: " << m_SaveTrackId
            << ", current trackid: " << aTrack->GetTrackID()
            << endl;
-      exit(1);
+      gSystem->Exit(1);
     }
     m_SavePreStepStatus = prePoint->GetStepStatus();
     m_SavePostStepStatus = postPoint->GetStepStatus();
@@ -283,14 +289,11 @@ bool PHG4OuterHcalSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
         light_yield = eion;
       }
 
-      if (isfinite(m_LightBalanceOuterRadius) &&
-          isfinite(m_LightBalanceInnerRadius) &&
-          isfinite(m_LightBalanceOuterCorr) &&
-          isfinite(m_LightBalanceInnerCorr))
+      if (ValidCorrection())
       {
-        double r = sqrt(postPoint->GetPosition().x() * postPoint->GetPosition().x() + postPoint->GetPosition().y() * postPoint->GetPosition().y());
-        double cor = GetLightCorrection(r);
-        light_yield = light_yield * cor;
+double cor =  GetLightCorrection(postPoint->GetPosition().x() , (postPoint->GetPosition().y() ));
+cout << "applying cor: " << cor << endl;
+        light_yield = light_yield *  GetLightCorrection(postPoint->GetPosition().x() , (postPoint->GetPosition().y() ));
       }
     }
 
@@ -391,18 +394,6 @@ void PHG4OuterHcalSteppingAction::SetInterfacePointers(PHCompositeNode* topNode)
       cout << "PHG4HcalSteppingAction::SetTopNode - unable to find " << absorbernodename << endl;
     }
   }
-}
-
-double
-PHG4OuterHcalSteppingAction::GetLightCorrection(const double r) const
-{
-  double m = (m_LightBalanceOuterCorr - m_LightBalanceInnerCorr) / (m_LightBalanceOuterRadius - m_LightBalanceInnerRadius);
-  double b = m_LightBalanceInnerCorr - m * m_LightBalanceInnerRadius;
-  double value = m * r + b;
-  if (value > 1.0) return 1.0;
-  if (value < 0.0) return 0.0;
-
-  return value;
 }
 
 void PHG4OuterHcalSteppingAction::FieldChecker(const G4Step* aStep)

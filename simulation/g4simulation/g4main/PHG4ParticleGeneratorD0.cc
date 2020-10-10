@@ -1,23 +1,26 @@
 #include "PHG4ParticleGeneratorD0.h"
 
+#include "PHG4Particle.h"        // for PHG4Particle
 #include "PHG4Particlev1.h"
 #include "PHG4InEvent.h"
 
 #include <phool/getClass.h>
-#include <phool/recoConsts.h>
-#include <phool/PHCompositeNode.h>
-#include <phool/PHIODataNode.h>
 #include <phool/PHRandomSeed.h>
-
-#include <Geant4/G4ParticleDefinition.hh>
-#include <Geant4/G4ParticleTable.hh>
 
 #include <TF1.h>
 #include <TLorentzVector.h>
+#include <TRandom.h>             // for TRandom
 #include <TRandom3.h>
 
 #include <gsl/gsl_const.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>         // for gsl_rng_uniform_pos, gsl_rng_uniform
+
+#include <cmath>                // for sqrt, sin, cos, M_PI
+#include <iostream>              // for operator<<, basic_ostream, basic_ost...
+#include <vector>                // for vector, vector<>::const_iterator
+
+class PHCompositeNode;
 
 using namespace std;
 
@@ -158,8 +161,8 @@ int PHG4ParticleGeneratorD0::process_event(PHCompositeNode *topNode)
 
   // Get the pseudorapidity, eta, from the rapidity, mass and pt
 
-  double mt = sqrt(pow(mnow, 2) + pow(pt, 2));
-  double eta = TMath::ASinH(TMath::SinH(y) * mt / pt);
+  double mt = sqrt(mnow*mnow + pt*pt);
+  double eta = asinh(sinh(y) * mt / pt);
 
   // Put it in a TLorentzVector
 
@@ -189,8 +192,9 @@ int PHG4ParticleGeneratorD0::process_event(PHCompositeNode *topNode)
   // Now decay it
   // Get the decay energy and momentum in the frame of the D0 - this correctly handles decay particles of any mass.
 
-  double E1 = (pow(mnow, 2) - pow(m2, 2) + pow(m1, 2)) / (2.0 * mnow);
-  double p1 = sqrt((pow(mnow, 2) - pow(m1 + m2, 2)) * (pow(mnow, 2) - pow(m1 - m2, 2))) / (2.0 * mnow);
+  double E1 = (mnow*mnow - m2*m2 + m1*m1) / (2.0 * mnow);
+  double p1 = sqrt((mnow*mnow - (m1 + m2)*(m1 + m2)) * (mnow*mnow - (m1 - m2)*(m1 - m2))) / (2.0 * mnow);
+
 
   // In the frame of the D0, get a random theta and phi angle for particle 1
   // Assume angular distribution in the frame of the decaying D0 that is uniform in phi and goes as sin(theta) in theta

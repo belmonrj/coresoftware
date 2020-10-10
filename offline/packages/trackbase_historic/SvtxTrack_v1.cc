@@ -2,16 +2,20 @@
 #include "SvtxTrackState.h"
 #include "SvtxTrackState_v1.h"
 
-#include <limits.h>
-#include <math.h>
-#include <algorithm>
+#include <trackbase/TrkrDefs.h>  // for cluskey
+
+#include <phool/PHObject.h>      // for PHObject
+
+#include <climits>
 #include <map>
+#include <vector>                // for vector
 
 
-    using namespace std;
+using namespace std;
 
 SvtxTrack_v1::SvtxTrack_v1()
   : _track_id(UINT_MAX)
+  , _vertex_id(UINT_MAX)
   , _is_positive_charge(false)
   , _chisq(NAN)
   , _ndf(0)
@@ -47,6 +51,7 @@ SvtxTrack_v1::SvtxTrack_v1(const SvtxTrack_v1& track)
 SvtxTrack_v1& SvtxTrack_v1::operator=(const SvtxTrack_v1& track)
 {
   _track_id = track.get_id();
+  _vertex_id = track.get_vertex_id();
   _is_positive_charge = track.get_positive_charge();
   _chisq = track.get_chisq();
   _ndf = track.get_ndf();
@@ -65,8 +70,8 @@ SvtxTrack_v1& SvtxTrack_v1::operator=(const SvtxTrack_v1& track)
        iter != track.end_states();
        ++iter)
   {
-    SvtxTrackState* state = iter->second;
-    _states.insert(make_pair(state->get_pathlength(), state->Clone()));
+    SvtxTrackState* state = dynamic_cast< SvtxTrackState*> (iter->second->CloneMe());
+    _states.insert(make_pair(state->get_pathlength(), state));
   }
 
   // copy over cluster ID set
@@ -125,6 +130,7 @@ void SvtxTrack_v1::identify(std::ostream& os) const
 {
   os << "SvtxTrack_v1 Object ";
   os << "id: " << get_id() << " ";
+  os << "vertex id: " << get_vertex_id() << " ";
   os << "charge: " << get_charge() << " ";
   os << "chisq: " << get_chisq() << " ndf:" << get_ndf() << " ";
   os << endl;
@@ -184,20 +190,20 @@ int SvtxTrack_v1::isValid() const
 const SvtxTrackState* SvtxTrack_v1::get_state(float pathlength) const
 {
   ConstStateIter iter = _states.find(pathlength);
-  if (iter == _states.end()) return NULL;
+  if (iter == _states.end()) return nullptr;
   return iter->second;
 }
 
 SvtxTrackState* SvtxTrack_v1::get_state(float pathlength)
 {
   StateIter iter = _states.find(pathlength);
-  if (iter == _states.end()) return NULL;
+  if (iter == _states.end()) return nullptr;
   return iter->second;
 }
 
 SvtxTrackState* SvtxTrack_v1::insert_state(const SvtxTrackState* state)
 {
-  _states.insert(make_pair(state->get_pathlength(), state->Clone()));
+  _states.insert(make_pair(state->get_pathlength(), dynamic_cast< SvtxTrackState*> (state->CloneMe())));
   return _states[state->get_pathlength()];
 }
 

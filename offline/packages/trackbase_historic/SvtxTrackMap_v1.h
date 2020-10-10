@@ -1,11 +1,13 @@
-#ifndef __SVTXTRACKMAP_V1_H__
-#define __SVTXTRACKMAP_V1_H__
+#ifndef TRACKBASEHISTORIC_SVTXTRACKMAPV1_H
+#define TRACKBASEHISTORIC_SVTXTRACKMAPV1_H
 
 #include "SvtxTrack.h"
 #include "SvtxTrackMap.h"
 
-#include <phool/PHObject.h>
-#include <map>
+#include <cstddef>        // for size_t
+#include <iostream>        // for cout, ostream
+
+class PHObject;
 
 class SvtxTrackMap_v1 : public SvtxTrackMap
 {
@@ -18,7 +20,7 @@ class SvtxTrackMap_v1 : public SvtxTrackMap
   void identify(std::ostream& os = std::cout) const;
   void Reset();
   int isValid() const { return 1; }
-  SvtxTrackMap* Clone() const { return new SvtxTrackMap_v1(*this); }
+  PHObject* CloneMe() const { return new SvtxTrackMap_v1(*this); }
 
   bool empty() const { return _map.empty(); }
   size_t size() const { return _map.size(); }

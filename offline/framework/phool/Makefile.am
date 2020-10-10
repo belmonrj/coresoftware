@@ -1,9 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
 
 lib_LTLIBRARIES = \
-  libphool.la \
-  libphool_raw.la
-
+  libphool.la
 
 AM_CPPFLAGS = \
   -I$(includedir) \
@@ -19,31 +17,16 @@ libphool_la_LDFLAGS = \
   -L$(OFFLINE_MAIN)/lib \
   `root-config --libs`
 
-libphool_raw_la_LIBADD = \
-  libphool.la \
-  -lEvent
-
 ROOTDICTS = \
   PHObject_Dict.cc \
   PHTimeStamp_Dict.cc
 
-if MAKEROOT6
 pcmdir = $(libdir)
 nobase_dist_pcm_DATA = \
   PHObject_Dict_rdict.pcm \
   PHTimeStamp_Dict_rdict.pcm
 
-else
-ROOT5DICTS = \
-  PHMessage_Dict.cc \
-  PHRandomSeed_Dict.cc \
-  PHFlag_Dict.cc \
-  PHTimeServer_Dict.cc \
-  recoConsts_Dict.cc
-endif
-
 libphool_la_SOURCES = \
-  $(ROOT5DICTS) \
   $(ROOTDICTS) \
   PHCompositeNode.cc \
   PHFlag.cc \
@@ -62,10 +45,6 @@ libphool_la_SOURCES = \
   PHTimeStamp.cc \
   recoConsts.cc
 
-libphool_raw_la_SOURCES = \
-  PHRawDataNode.cc \
-  PHRawOManager.cc
-
 pkginclude_HEADERS =  \
   getClass.h \
   PHCompositeNode.h \
@@ -74,6 +53,7 @@ pkginclude_HEADERS =  \
   PHFlag.h \
   PHIODataNode.h \
   PHIOManager.h \
+  PHLog.h \
   PHNode.h \
   PHNodeIOManager.h \
   PHNodeIntegrate.h \
@@ -87,7 +67,6 @@ pkginclude_HEADERS =  \
   PHRandomSeed.h \
   PHPointerList.h \
   PHPointerListIterator.h \
-  PHRawOManager.h \
   PHTimer.h \
   PHTimeServer.h \
   PHTimeStamp.h \
@@ -98,17 +77,12 @@ BUILT_SOURCES = \
   testexternals.cc
 
 noinst_PROGRAMS = \
-  testexternals \
-  testexternals_raw
+  testexternals
 
 
 testexternals_SOURCES = testexternals.cc
 testexternals_LDADD = \
   libphool.la
-
-testexternals_raw_SOURCES = testexternals.cc
-testexternals_raw_LDADD = \
-  libphool_raw.la
 
 testexternals.cc:
 	echo "//*** this is a generated file. Do not commit, do not edit" > $@
@@ -118,7 +92,7 @@ testexternals.cc:
 	echo "}" >> $@
 
 %_Dict.cc: %.h %LinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
+	rootcint -f $@ @CINTDEFS@ $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
 
 #just to get the dependency
 %_Dict_rdict.pcm: %_Dict.cc ;

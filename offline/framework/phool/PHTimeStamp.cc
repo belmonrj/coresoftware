@@ -11,18 +11,12 @@
 
 #include <climits>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 
 using namespace std;
 
 const unsigned long long PHTimeStamp::PHFarFuture = ULLONG_MAX;
-
-#ifndef HAVE_STRPTIME_PROTOTYPE
-extern "C"
-{
-  char *strptime(const char *s, const char *format, struct tm *tm);
-}
-#endif
 
 #ifdef WIN32
 const phtime_t ticOffset = 35067168000000000UL;

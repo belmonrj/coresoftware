@@ -1,23 +1,25 @@
 #include "BaseTruthEval.h"
 
-#include <phool/PHCompositeNode.h>
-#include <phool/getClass.h>
-
 #include <g4main/PHG4Hit.h>
 #include <g4main/PHG4Particle.h>
 #include <g4main/PHG4Shower.h>
 #include <g4main/PHG4TruthInfoContainer.h>
 #include <g4main/PHG4VtxPoint.h>
 
+#include <phool/getClass.h>
+#include <phool/phool.h>
+
 #include <cassert>
+#include <cstdlib>
 #include <iostream>
+#include <utility>
 
 using namespace std;
 
 BaseTruthEval::BaseTruthEval(PHCompositeNode* topNode)
   : m_TruthInfo(nullptr)
   , m_Strict(false)
-  , m_Verbosity(1)
+  , m_Verbosity(0)
   , m_Errors(0)
 {
   get_node_pointers(topNode);

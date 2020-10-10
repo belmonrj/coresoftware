@@ -10,20 +10,25 @@
 
 #include "RawTowerDeadMapLoader.h"
 
+#include <calobase/RawTowerDeadMap.h>
 #include <calobase/RawTowerDeadMapv1.h>
+#include <calobase/RawTowerDefs.h>
 
 #include <phparameter/PHParameters.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/SubsysReco.h>
 
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>
 #include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>
 #include <phool/getClass.h>
 
 // boost headers
-#include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/token_iterator.hpp>            // for token_iterator
 // this is an ugly hack, the gcc optimizer has a bug which
 // triggers the uninitialized variable warning which
 // stops compilation because of our -Werror
@@ -42,13 +47,13 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 using namespace std;
 
 RawTowerDeadMapLoader::RawTowerDeadMapLoader(const std::string &detector)
   : SubsysReco("RawTowerDeadMapLoader_" + detector)
   , m_detector(detector)
-  , m_deadmap(nullptr)
 {
 }
 

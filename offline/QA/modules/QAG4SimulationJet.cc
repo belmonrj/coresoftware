@@ -1,61 +1,47 @@
 #include "QAG4SimulationJet.h"
 #include "QAHistManagerDef.h"
 
-#include <fun4all/Fun4AllReturnCodes.h>
-#include <fun4all/Fun4AllServer.h>
-#include <fun4all/PHTFileServer.h>
-#include <fun4all/SubsysReco.h>
-#include <phool/PHCompositeNode.h>
-#include <phool/getClass.h>
-
-#include <phool/PHCompositeNode.h>
-
-#include <g4main/PHG4Particle.h>
-#include <g4main/PHG4Shower.h>
-#include <g4main/PHG4TruthInfoContainer.h>
-#include <g4main/PHG4VtxPoint.h>
-
+#include <g4jets/Jet.h>
 #include <g4eval/JetEvalStack.h>
+#include <g4jets/JetMap.h>
+#include <g4eval/JetRecoEval.h>
 #include <g4eval/JetTruthEval.h>
 
-#include <g4jets/JetMap.h>
+#include <g4main/PHG4HitDefs.h>
+#include <g4main/PHG4Shower.h>
 
-#include <TFile.h>
-#include <TH1F.h>
-#include <TH2F.h>
-#include <TLorentzVector.h>
-#include <TString.h>
-#include <TVector3.h>
+#include <fun4all/Fun4AllBase.h>
+#include <fun4all/Fun4AllHistoManager.h>
+#include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/SubsysReco.h>           // for SubsysReco
 
-#include <algorithm>
+#include <phool/getClass.h>
+
+#include <TAxis.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TNamed.h>
+#include <TString.h>                      // for operator+, TString, Form
+
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <set>
-#include <stdexcept>
-#include <vector>
 
 using namespace std;
 
 QAG4SimulationJet::QAG4SimulationJet(const std::string& truth_jet,
                                      enu_flags flags)
   : SubsysReco("QAG4SimulationJet_" + truth_jet)
-  ,  //
-  _jetevalstacks()
-  ,  //
-  _truth_jet(truth_jet)
+  , _jetevalstacks()
+  , _truth_jet(truth_jet)
   , _reco_jets()
   , _flags(flags)
-  ,  //
-  eta_range(-1, 1)
-  ,  //
-  _jet_match_dEta(.1)
+  , eta_range(-1, 1)
+  , _jet_match_dEta(.1)
   , _jet_match_dPhi(.1)
   , _jet_match_dE_Ratio(.5)
-{
-}
-
-QAG4SimulationJet::~QAG4SimulationJet()
 {
 }
 
@@ -95,11 +81,6 @@ int QAG4SimulationJet::InitRun(PHCompositeNode* topNode)
     _jettrutheval->set_verbosity(Verbosity() + 1);
   }
 
-  return Fun4AllReturnCodes::EVENT_OK;
-}
-
-int QAG4SimulationJet::End(PHCompositeNode* topNode)
-{
   return Fun4AllReturnCodes::EVENT_OK;
 }
 

@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef FUN4ALL_TDIRECTORYHELPER_H
 #define FUN4ALL_TDIRECTORYHELPER_H
 
@@ -17,7 +19,7 @@ class TDirectoryHelper
                        const std::string& where);
 
   static TDirectory* mkdir(TDirectory* topDir,
-                           const char* path,
+                           const std::string& path,
                            std::vector<std::string>* titles = 0);
 
   static bool mkpath(TDirectory* dir, const std::string& path);

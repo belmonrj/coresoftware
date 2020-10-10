@@ -15,25 +15,33 @@
 #include "DumpPHG4InEvent.h"
 #include "DumpPHG4ScintillatorSlatContainer.h"
 #include "DumpPHG4TruthInfoContainer.h"
+#include "DumpPHHepMCGenEventMap.h"
 #include "DumpPdbParameterMap.h"
 #include "DumpPdbParameterMapContainer.h"
 #include "DumpRawClusterContainer.h"
 #include "DumpRawTowerContainer.h"
 #include "DumpRawTowerGeomContainer.h"
 #include "DumpRunHeader.h"
-#include "DumpSvtxClusterMap.h"
-#include "DumpSvtxHitMap.h"
 #include "DumpSvtxTrackMap.h"
 #include "DumpSvtxVertexMap.h"
 #include "DumpSyncObject.h"
 #include "DumpTowerBackground.h"
+#include "DumpTrkrClusterContainer.h"
+#include "DumpTrkrHitSetContainer.h"
 #include "DumpVariableArray.h"
 
+#include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>
 #include <phool/getClass.h>
+#include <phool/phool.h>
 
 #include <ffaobjects/RunHeader.h>
 
+#include <TObject.h>
+
+#include <iostream>
 #include <string>
+#include <utility>
 
 using namespace std;
 
@@ -223,6 +231,10 @@ int PHNodeDump::AddDumpObject(const string &NodeName, PHNode *node)
       {
         newdump = new DumpPHG4TruthInfoContainer(NodeName);
       }
+      else if (tmp->InheritsFrom("PHHepMCGenEventMap"))
+      {
+        newdump = new DumpPHHepMCGenEventMap(NodeName);
+      }
       else if (tmp->InheritsFrom("RawClusterContainer"))
       {
         newdump = new DumpRawClusterContainer(NodeName);
@@ -239,14 +251,6 @@ int PHNodeDump::AddDumpObject(const string &NodeName, PHNode *node)
       {
         newdump = new DumpRunHeader(NodeName);
       }
-      else if (tmp->InheritsFrom("SvtxClusterMap"))
-      {
-        newdump = new DumpSvtxClusterMap(NodeName);
-      }
-      else if (tmp->InheritsFrom("SvtxHitMap"))
-      {
-        newdump = new DumpSvtxHitMap(NodeName);
-      }
       else if (tmp->InheritsFrom("SvtxTrackMap"))
       {
         newdump = new DumpSvtxTrackMap(NodeName);
@@ -262,6 +266,14 @@ int PHNodeDump::AddDumpObject(const string &NodeName, PHNode *node)
       else if (tmp->InheritsFrom("TowerBackground"))
       {
         newdump = new DumpTowerBackground(NodeName);
+      }
+      else if (tmp->InheritsFrom("TrkrClusterContainer"))
+      {
+        newdump = new DumpTrkrClusterContainer(NodeName);
+      }
+      else if (tmp->InheritsFrom("TrkrHitSetContainer"))
+      {
+        newdump = new DumpTrkrHitSetContainer(NodeName);
       }
       else if (tmp->InheritsFrom("VariableArray"))
       {

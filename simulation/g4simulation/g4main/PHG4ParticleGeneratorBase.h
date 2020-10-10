@@ -1,15 +1,16 @@
-#ifndef PHG4ParticleGeneratorBase_H__
-#define PHG4ParticleGeneratorBase_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4MAIN_PHG4PARTICLEGENERATORBASE_H
+#define G4MAIN_PHG4PARTICLEGENERATORBASE_H
 
 #include <fun4all/SubsysReco.h>
 
-// rootcint barfs with this header so we need to hide it
-#ifndef __CINT__
 #include <gsl/gsl_rng.h>
-#endif
 
+#include <string>  // for string
 #include <vector>
 
+class PHCompositeNode;
 class PHG4InEvent;
 class PHG4Particle;
 
@@ -51,17 +52,15 @@ class PHG4ParticleGeneratorBase : public SubsysReco
   double get_mass(const int pdgcode) const;
   void CheckAndCreateParticleVector();
   void SetParticleId(PHG4Particle *particle, PHG4InEvent *ineve);
+  gsl_rng *RandomGenerator;
   int embedflag;
   int reuse_existing_vertex;
   double vtx_x;
   double vtx_y;
   double vtx_z;
   double t0;
-  std::vector<PHG4Particle *> particlelist;
   unsigned int seed;
-#ifndef __CINT__
-  gsl_rng *RandomGenerator;
-#endif
+  std::vector<PHG4Particle *> particlelist;
 };
 
 #endif

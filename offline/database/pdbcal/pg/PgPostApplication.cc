@@ -3,10 +3,18 @@
 #include "PgPostBankWrapperManager.h"
 
 #include <pdbcalbase/PdbApplicationFactory.h>
+#include <pdbcalbase/PHGenericFactoryT.h>
+#include <pdbcalbase/Pdb.h>
+#include <pdbcalbase/PdbApplication.h>
+#include <pdbcalbase/PdbCalBank.h>
 
-#include <RDBC/TSQL.h>
+#include <phool/phool.h>
+
 #include <RDBC/TSQLDriverManager.h>
+#include <RDBC/TSQLConnection.h>
 
+#include <iostream>
+#include <memory>
 #include <sstream>
 
 using namespace std;
@@ -40,7 +48,7 @@ int PgPostApplication::Register(const string &dbname)
 {
   if (__instance.get()) return -1;
   mySpecificCopy = new PgPostApplication(dbname);
-  __instance = std::auto_ptr<PdbApplication>(mySpecificCopy);
+  __instance = std::unique_ptr<PdbApplication>(mySpecificCopy);
   return 0;
 }
 

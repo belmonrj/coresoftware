@@ -14,20 +14,24 @@
 #include "PHHepMCGenEventMap.h"
 
 #include <fun4all/Fun4AllReturnCodes.h>
+
 #include <phool/PHCompositeNode.h>
-#include <phool/PHDataNode.h>
+#include <phool/PHIODataNode.h>          // for PHIODataNode
+#include <phool/PHNode.h>                // for PHNode
+#include <phool/PHNodeIterator.h>        // for PHNodeIterator
+#include <phool/PHObject.h>              // for PHObject
 #include <phool/PHRandomSeed.h>
 #include <phool/getClass.h>
+#include <phool/phool.h>                 // for PHWHERE
 
-#include <HepMC/GenEvent.h>
-#include <HepMC/IO_GenEvent.h>
+#include <HepMC/SimpleVector.h>          // for FourVector
 
-#include <gsl/gsl_const.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
 #include <cassert>
-#include <climits>
+#include <limits>
+#include <cstdlib>                      // for exit
 #include <iostream>
 
 using namespace std;
@@ -185,4 +189,33 @@ double PHHepMCGenHelper::smear(const double position,
     exit(10);
   }
   return res;
+}
+
+void PHHepMCGenHelper::CopySettings(PHHepMCGenHelper &helper)
+{
+  helper.set_vertex_distribution_width(_vertex_width_x, _vertex_width_y, _vertex_width_z, _vertex_width_t);
+  helper.set_vertex_distribution_function(_vertex_func_x, _vertex_func_y, _vertex_func_z, _vertex_func_t);
+  helper.set_vertex_distribution_mean( _vertex_x, _vertex_y, _vertex_z, _vertex_t);
+  return;
+}
+
+void PHHepMCGenHelper::Print(const std::string &what) const
+{
+  map<VTXFUNC,string> vtxfunc = {{VTXFUNC::Uniform,"Uniform"},{VTXFUNC::Gaus,"Gaus"}};
+  cout << "Vertex distribution width x: " << _vertex_width_x
+       << ", y: " << _vertex_width_y
+       << ", z: " << _vertex_width_z
+       << ", t: " << _vertex_width_t
+       << endl;
+  cout << "Vertex distribution function x: " << vtxfunc[_vertex_func_x]
+       << ", y: " << vtxfunc[_vertex_func_y]
+       << ", z: " << vtxfunc[_vertex_func_z]
+       << ", t: " << vtxfunc[_vertex_func_t]
+       << endl;
+  cout << "Vertex distribution mean x: " << _vertex_x
+       << ", y: " << _vertex_y
+       << ", z: " << _vertex_z
+       << ", t: " << _vertex_t
+       << endl;
+  return;
 }

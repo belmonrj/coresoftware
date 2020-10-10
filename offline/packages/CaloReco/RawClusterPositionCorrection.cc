@@ -2,25 +2,32 @@
 
 #include <calobase/RawCluster.h>
 #include <calobase/RawClusterContainer.h>
-#include <calobase/RawClusterv1.h>
 #include <calobase/RawTower.h>
 #include <calobase/RawTowerContainer.h>
 #include <calobase/RawTowerGeomContainer.h>
 
-#include <fun4all/Fun4AllReturnCodes.h>
-#include <fun4all/Fun4AllServer.h>
+#include <phparameter/PHParameters.h>
 
-#include <phool/PHCompositeNode.h>
+#include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/SubsysReco.h>
+
 #include <phool/getClass.h>
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>
+#include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>
 #include <phool/phool.h>
 
 #include <cassert>
-#include <cfloat>
-#include <cmath>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <utility>                           // for pair
 
 using namespace std;
 
@@ -118,10 +125,10 @@ int RawClusterPositionCorrection::process_event(PHCompositeNode *topNode)
   }
 
   string towergeomnodename = "TOWERGEOM_" + _det_name;
-  RawTowerGeomContainer *towergeom = findNode::getClass<RawTowerGeomContainer>(topNode, towergeomnodename.c_str());
+  RawTowerGeomContainer *towergeom = findNode::getClass<RawTowerGeomContainer>(topNode, towergeomnodename);
   if (!towergeom)
   {
-    cout << PHWHERE << ": Could not find node " << towergeomnodename.c_str() << endl;
+    cout << PHWHERE << ": Could not find node " << towergeomnodename << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
   const int nphibin = towergeom->get_phibins();
@@ -226,7 +233,8 @@ int RawClusterPositionCorrection::process_event(PHCompositeNode *topNode)
       eclus_recalib_val = eclus_calib_constants.at(etabin).at(phibin);
       ecore_recalib_val = ecore_calib_constants.at(etabin).at(phibin);
     }
-    RawCluster *recalibcluster = static_cast<RawCluster *>(cluster->Clone());
+    RawCluster *recalibcluster = dynamic_cast<RawCluster *>(cluster->CloneMe());
+    assert(recalibcluster);
     recalibcluster->set_energy(clus_energy / eclus_recalib_val);
     recalibcluster->set_ecore(cluster->get_ecore() / ecore_recalib_val);
     _recalib_clusters->AddCluster(recalibcluster);

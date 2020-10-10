@@ -1,31 +1,40 @@
 #include "PHG4Hit.h"
 
+#include <TSystem.h> // for gSystem
+
+#include <cassert>
 #include <cstdlib>
+#include <type_traits>
 
 using namespace std;
 
 void
-PHG4Hit::Copy(PHG4Hit const &g4hit)
+PHG4Hit::CopyFrom(const PHObject *phobj)
 {
+  const PHG4Hit *g4hit = dynamic_cast<const PHG4Hit *> (phobj);
+  assert(g4hit);
   for (int i =0; i<2; i++)
     {
-      set_x(i,g4hit.get_x(i));
-      set_y(i,g4hit.get_y(i));
-      set_z(i,g4hit.get_z(i));
-      set_t(i,g4hit.get_t(i));
+      set_x(i,g4hit->get_x(i));
+      set_y(i,g4hit->get_y(i));
+      set_z(i,g4hit->get_z(i));
+      set_t(i,g4hit->get_t(i));
     }
-  set_hit_id(g4hit.get_hit_id());
-  set_trkid(g4hit.get_trkid());
-  set_edep(g4hit.get_edep());
+  set_edep(g4hit->get_edep());
+  set_hit_id(g4hit->get_hit_id());
+  set_shower_id(g4hit->get_shower_id());
+  set_trkid(g4hit->get_trkid());
+// This is a generic copy of ALL properties a hit has
+// do not add explicit copies, they will be added to
+// the new hits with their default value increasing memory use
   for (unsigned char ic = 0; ic < UCHAR_MAX; ic++)
     {
       PROPERTY prop_id = static_cast<PHG4Hit::PROPERTY> (ic);
-      if (g4hit.has_property(prop_id))
+      if (g4hit->has_property(prop_id))
         {
-	  set_property_nocheck(prop_id,g4hit.get_property_nocheck(prop_id));
+	  set_property_nocheck(prop_id,g4hit->get_property_nocheck(prop_id));
 	}
     }
-  set_hit_type(g4hit.get_hit_type()); 
 }
 
 
@@ -146,6 +155,7 @@ PHG4Hit::get_property_info(const PROPERTY prop_id)
 
   default:
     cout << "PHG4Hit::get_property_info - Fatal Error - unknown index " << prop_id << endl;
+    gSystem->Exit(1);
     exit(1);
   }
 }

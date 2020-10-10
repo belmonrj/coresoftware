@@ -1,8 +1,11 @@
 #include "Dumper.h"
 #include "PHNodeDump.h"
 
+#include <fun4all/SubsysReco.h>
+
+#include <phool/PHCompositeNode.h>
+#include <phool/PHNode.h>
 #include <phool/PHNodeIterator.h>
-#include <phool/PHPointerListIterator.h>
 
 #include <vector>
 

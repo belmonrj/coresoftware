@@ -7,13 +7,10 @@
 #ifndef TRACKRECO_PHTRACKSEEDING_H
 #define TRACKRECO_PHTRACKSEEDING_H
 
-#include "AssocInfoContainer.h"
-
 // PHENIX includes
 #include <fun4all/SubsysReco.h>
 
 // STL includes
-#include <set>
 #include <string>
 
 // forward declarations
@@ -21,6 +18,7 @@ class PHCompositeNode;
 
 //class SvtxClusterMap;
 class TrkrClusterContainer;
+class TrkrClusterHitAssoc;
 class SvtxVertexMap;
 class SvtxTrackMap;
 class AssocInfoContainer;
@@ -35,10 +33,10 @@ class PHTrackSeeding : public SubsysReco
   PHTrackSeeding(const std::string &name = "PHTrackSeeding");
   virtual ~PHTrackSeeding() {}
 
-  int Init(PHCompositeNode *topNode);
   int InitRun(PHCompositeNode *topNode);
   int process_event(PHCompositeNode *topNode);
   int End(PHCompositeNode *topNode);
+  void set_track_map_name(const std::string &map_name) { _track_map_name = map_name; }
 
   //virtual const std::set<unsigned int>& get_seeding_layers() const = 0;
 
@@ -51,16 +49,18 @@ class PHTrackSeeding : public SubsysReco
 
   /// process event interface for trackers, called in process_event.
   /// implemented in derived classes
-  virtual int Process() = 0;
+  virtual int Process(PHCompositeNode *topNode) = 0;
 
   /// Called in SubsysReco::End
   virtual int End() = 0;
 
-  //SvtxClusterMap *_cluster_map;
-  TrkrClusterContainer *_cluster_map;
-  SvtxVertexMap *_vertex_map;
-  SvtxTrackMap *_track_map;
-  AssocInfoContainer *_assoc_container;
+  TrkrClusterContainer *_cluster_map = nullptr;
+  TrkrClusterHitAssoc *_cluster_hit_map = nullptr;
+  SvtxVertexMap *_vertex_map = nullptr;
+  SvtxTrackMap *_track_map = nullptr;
+  AssocInfoContainer *_assoc_container = nullptr;
+
+  std::string _track_map_name = "SvtxTrackMap";
 
  private:
   /// create new node output pointers

@@ -1,9 +1,10 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef FUN4ALL_FUN4ALLHISTOMANAGER_H
 #define FUN4ALL_FUN4ALLHISTOMANAGER_H
 
 #include "Fun4AllBase.h"
 
-#include <iostream>
 #include <map>
 #include <string>
 
@@ -38,7 +39,7 @@ class Fun4AllHistoManager : public Fun4AllBase
   int isHistoRegistered(const std::string &name) const;
   TNamed *getHisto(const std::string &hname) const;
   TNamed *getHisto(const unsigned int ihisto) const;
-  const char *getHistoName(const unsigned int ihisto) const;
+  std::string getHistoName(const unsigned int ihisto) const;
   unsigned int nHistos() const { return Histo.size(); }
   void Reset();
   int dumpHistos(const std::string &filename = "", const std::string &openmode = "RECREATE");

@@ -2,16 +2,10 @@
 #include "ClusterJetInput.h"
 
 #include "Jet.h"
-#include "JetInput.h"
 #include "Jetv1.h"
 
-#include <phool/PHCompositeNode.h>
-#include <phool/PHIODataNode.h>
-#include <phool/PHNodeIterator.h>
-#include <phool/PHTypedNodeIterator.h>
 #include <phool/getClass.h>
 
-// PHENIX Geant4 includes
 #include <calobase/RawCluster.h>
 #include <calobase/RawClusterContainer.h>
 #include <calobase/RawClusterUtility.h>
@@ -20,10 +14,13 @@
 #include <g4vertex/GlobalVertex.h>
 #include <g4vertex/GlobalVertexMap.h>
 
+#include <CLHEP/Vector/ThreeVector.h>        // for Hep3Vector
+
 // standard includes
 #include <cassert>
-#include <cstdlib>
 #include <iostream>
+#include <map>                               // for _Rb_tree_const_iterator
+#include <utility>                           // for pair
 #include <vector>
 
 using namespace std;
@@ -39,6 +36,8 @@ void ClusterJetInput::identify(std::ostream &os)
   os << "   ClusterJetInput: ";
   if (_input == Jet::CEMC_CLUSTER)
     os << "CLUSTER_CEMC to Jet::CEMC_CLUSTER";
+  if (_input == Jet::EEMC_CLUSTER)
+    os << "CLUSTER_EEMC to Jet::EEMC_CLUSTER";
   else if (_input == Jet::HCALIN_CLUSTER)
     os << "CLUSTER_HCALIN to Jet::HCALIN_CLUSTER";
   else if (_input == Jet::HCALOUT_CLUSTER)
@@ -66,12 +65,18 @@ std::vector<Jet *> ClusterJetInput::get_input(PHCompositeNode *topNode)
   }
 
   RawClusterContainer *clusters = nullptr;
-  RawTowerGeomContainer *geom = nullptr;
   if (_input == Jet::CEMC_CLUSTER)
   {
     clusters = findNode::getClass<RawClusterContainer>(topNode, "CLUSTER_CEMC");
-    geom = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_CEMC");
-    if (!clusters || !geom)
+    if (!clusters)
+    {
+      return std::vector<Jet *>();
+    }
+  }
+  else if (_input == Jet::EEMC_CLUSTER)
+  {
+    clusters = findNode::getClass<RawClusterContainer>(topNode, "CLUSTER_EEMC");
+    if (!clusters)
     {
       return std::vector<Jet *>();
     }
@@ -79,8 +84,7 @@ std::vector<Jet *> ClusterJetInput::get_input(PHCompositeNode *topNode)
   else if (_input == Jet::HCALIN_CLUSTER)
   {
     clusters = findNode::getClass<RawClusterContainer>(topNode, "CLUSTER_HCALIN");
-    geom = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_HCALIN");
-    if (!clusters || !geom)
+    if (!clusters)
     {
       return std::vector<Jet *>();
     }
@@ -88,8 +92,15 @@ std::vector<Jet *> ClusterJetInput::get_input(PHCompositeNode *topNode)
   else if (_input == Jet::HCALOUT_CLUSTER)
   {
     clusters = findNode::getClass<RawClusterContainer>(topNode, "CLUSTER_HCALOUT");
-    geom = findNode::getClass<RawTowerGeomContainer>(topNode, "TOWERGEOM_HCALOUT");
-    if (!clusters || !geom)
+    if (!clusters)
+    {
+      return std::vector<Jet *>();
+    }
+  }
+  else if (_input == Jet::HCAL_TOPO_CLUSTER)
+  {
+    clusters = findNode::getClass<RawClusterContainer>(topNode, "TOPOCLUSTER_HCAL");
+    if (!clusters)
     {
       return std::vector<Jet *>();
     }

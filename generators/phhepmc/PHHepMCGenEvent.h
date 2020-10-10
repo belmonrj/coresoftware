@@ -2,17 +2,17 @@
 #define PHHEPMC_PHHEPMCGENEVENT_H
 
 #include <phool/PHObject.h>
+
 #include <phool/phool.h>
 
-#include <HepMC/GenEvent.h>
-#include <HepMC/GenParticle.h>
-#include <HepMC/GenVertex.h>
 #include <HepMC/SimpleVector.h>
+
+#include <iostream>                // for cout, ostream
 
 namespace HepMC
 {
-class GenEvent;
-};
+  class GenEvent;
+}
 
 class PHHepMCGenEvent : public PHObject
 {
@@ -30,7 +30,7 @@ class PHHepMCGenEvent : public PHObject
     PHOOL_VIRTUAL_WARNING;
     return 0;
   }
-  PHHepMCGenEvent* Clone() const { return new PHHepMCGenEvent(*this); }
+  PHObject* CloneMe() const { return new PHHepMCGenEvent(*this); }
   virtual HepMC::GenEvent* getEvent();
   virtual const HepMC::GenEvent* getEvent() const;
 

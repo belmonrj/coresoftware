@@ -1,12 +1,14 @@
-#ifndef __SVTXVERTEXMAP_V1_H__
-#define __SVTXVERTEXMAP_V1_H__
+#ifndef TRACKBASEHISTORIC_SVTXVERTEXMAPV1_H
+#define TRACKBASEHISTORIC_SVTXVERTEXMAPV1_H
 
 #include "SvtxVertex.h"
 #include "SvtxVertexMap.h"
 
-#include <phool/PHObject.h>
+#include <cstddef>         // for size_t
 #include <iostream>
 #include <map>
+
+class PHObject;
 
 class SvtxVertexMap_v1 : public SvtxVertexMap
 {
@@ -19,7 +21,7 @@ class SvtxVertexMap_v1 : public SvtxVertexMap
   void identify(std::ostream& os = std::cout) const;
   void Reset();
   int isValid() const { return 1; }
-  SvtxVertexMap* Clone() const { return new SvtxVertexMap_v1(*this); }
+  PHObject* CloneMe() const { return new SvtxVertexMap_v1(*this); }
 
   bool empty() const { return _map.empty(); }
   size_t size() const { return _map.size(); }

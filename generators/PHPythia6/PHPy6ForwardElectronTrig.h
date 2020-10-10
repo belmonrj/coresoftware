@@ -3,12 +3,12 @@
 
 #include "PHPy6GenTrigger.h"
 
-#include <HepMC/GenEvent.h>
+#include <string>             // for string
 
 namespace HepMC
 {
-class GenEvent;
-};
+  class GenEvent;
+}
 
 class PHPy6ForwardElectronTrig : public PHPy6GenTrigger
 {
@@ -19,9 +19,7 @@ class PHPy6ForwardElectronTrig : public PHPy6GenTrigger
   //! destructor
   ~PHPy6ForwardElectronTrig(void) {}
 
-#ifndef __CINT__
   bool Apply(const HepMC::GenEvent* evt);
-#endif
 
   void set_electrons_required(int n)
   {

@@ -12,12 +12,14 @@
 
 #include <iostream>
 
+class PHObject;
+
 /**
  * @brief Version 1 of TrkrCluster
  *
  * Note - D. McGlinchey June 2018:
  *   CINT does not like "override", so ignore where CINT
- *   complains. Should be checked with ROOT 6 once 
+ *   complains. Should be checked with ROOT 6 once
  *   migration occurs.
  */
 class TrkrClusterv1 : public TrkrCluster
@@ -32,13 +34,13 @@ class TrkrClusterv1 : public TrkrCluster
   virtual void identify(std::ostream& os = std::cout) const;
   virtual void Reset() {}
   virtual int isValid() const;
-  virtual TrkrCluster* clone() const { return new TrkrClusterv1(*this); }
+  virtual PHObject* CloneMe() const { return new TrkrClusterv1(*this); }
   virtual void setClusKey(TrkrDefs::cluskey id) { m_cluskey = id; }
   virtual TrkrDefs::cluskey getClusKey() const { return m_cluskey; }
   //
   // cluster position
   //
-  virtual float getX() const { return m_pos[0]; } 
+  virtual float getX() const { return m_pos[0]; }
   virtual void setX(float x) { m_pos[0] = x; }
   virtual float getY() const { return m_pos[1]; }
   virtual void setY(float y) { m_pos[1] = y; }
@@ -71,7 +73,6 @@ class TrkrClusterv1 : public TrkrCluster
   virtual float getZError() const;
 
  protected:
-  unsigned int covarIndex(unsigned int i, unsigned int j) const;
 
   TrkrDefs::cluskey m_cluskey;  //< unique identifier within container
   float m_pos[3];               //< mean position x,y,z

@@ -1,7 +1,12 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef G4MAIN_PHG4PARTICLEV1_H
 #define G4MAIN_PHG4PARTICLEV1_H
 
 #include "PHG4Particle.h"
+
+#include <iostream>
+#include <string>
 
 class PHG4Particlev1 : public PHG4Particle
 {

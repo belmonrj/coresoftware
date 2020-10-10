@@ -2,14 +2,13 @@
 #define PHPYTHIA8_PHPY8GENTRIGGER_H
 
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <vector>
 
 namespace Pythia8
 {
-class Pythia;
-};
+  class Pythia;
+}
 
 class PHPy8GenTrigger
 {
@@ -18,7 +17,7 @@ class PHPy8GenTrigger
   PHPy8GenTrigger(const std::string &name = "PHPy8GenTrigger");
 
  public:
-  virtual ~PHPy8GenTrigger();
+  virtual ~PHPy8GenTrigger(){}
 
   virtual bool Apply(Pythia8::Pythia *pythia)
   {

@@ -15,10 +15,8 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 
-#ifndef __CINT__
-#include <boost/smart_ptr.hpp>
-#endif
 /*!
 \class	 PHTimeServer
 \brief	 PHTimer server for accessing external information
@@ -53,9 +51,8 @@ class PHTimeServer
     }
 
    private:
-#ifndef __CINT__
+
     std::shared_ptr<PHTimer> _timer;
-#endif
     unsigned short _uid;
   };
 
@@ -127,7 +124,7 @@ class PHTimeServer
     //! get PHTimer associated to current iterator position, advance iterator
     PHTimeServer::timer* next()
     {
-      if (_iter == _map.end()) return 0;
+      if (_iter == _map.end()) return nullptr;
       PHTimeServer::timer* out(&_iter->second);
       ++_iter;
       return out;
@@ -136,7 +133,7 @@ class PHTimeServer
     //! get PHTimer associated to current iterator position
     PHTimeServer::timer* current()
     {
-      if (_iter == _map.end()) return 0;
+      if (_iter == _map.end()) return nullptr;
       return &_iter->second;
     }
 

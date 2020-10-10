@@ -3,14 +3,12 @@
 
 #include "PHPy6GenTrigger.h"
 
-#include <HepMC/GenEvent.h>
-
 #include <string>
 
 namespace HepMC
 {
 class GenEvent;
-};
+}
 
 class PHPy6JetTrigger : public PHPy6GenTrigger
 {
@@ -18,21 +16,21 @@ class PHPy6JetTrigger : public PHPy6GenTrigger
   PHPy6JetTrigger(const std::string& name = "PHPy6JetTrigger");
   virtual ~PHPy6JetTrigger();
 
-#ifndef __CINT__
   bool Apply(const HepMC::GenEvent* evt);
-#endif
 
   void SetEtaHighLow(double etaHigh, double etaLow);
   void SetMinJetPt(double minPt) { m_minPt = minPt; }
   void SetJetR(double R) { m_R = R; }
+  void SetMinNumConstituents(int nconst) { m_nconst = nconst; }
 
   void PrintConfig();
 
  private:
-  double m_theEtaHigh;
-  double m_theEtaLow;
-  double m_minPt;
-  double m_R;
+  double m_theEtaHigh = 4.;
+  double m_theEtaLow = 1.;
+  double m_minPt = 10.;
+  double m_R = 1.;
+  int m_nconst = 0;
 };
 
 #endif

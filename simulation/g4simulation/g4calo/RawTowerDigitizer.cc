@@ -1,32 +1,39 @@
 #include "RawTowerDigitizer.h"
 
+#include <calobase/RawTower.h>  // for RawTower
 #include <calobase/RawTowerContainer.h>
 #include <calobase/RawTowerDeadMap.h>
+#include <calobase/RawTowerDefs.h>  // for keytype
 #include <calobase/RawTowerGeom.h>
 #include <calobase/RawTowerGeomContainer.h>
 #include <calobase/RawTowerv1.h>
 
-#include <g4detectors/PHG4CylinderCell.h>
-#include <g4detectors/PHG4CylinderCellContainer.h>
-#include <g4detectors/PHG4CylinderCellDefs.h>
-#include <g4detectors/PHG4CylinderCellGeom.h>
-#include <g4detectors/PHG4CylinderCellGeomContainer.h>
-
+#include <fun4all/Fun4AllBase.h>  // for Fun4AllBase::VERBOSITY_MORE
 #include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/SubsysReco.h>  // for SubsysReco
+
+#include <phparameter/PHParameters.h>
+
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>  // for PHNode
 #include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>  // for PHObject
 #include <phool/PHRandomSeed.h>
 #include <phool/getClass.h>
-#include <phool/recoConsts.h>
 
+#include <gsl/gsl_cdf.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
 #include <cmath>
+#include <cstdlib>    // for exit
+#include <exception>  // for exception
 #include <iostream>
 #include <map>
 #include <stdexcept>
+#include <string>
+#include <utility>  // for pair
 
 using namespace std;
 
@@ -44,12 +51,16 @@ RawTowerDigitizer::RawTowerDigitizer(const std::string &name)
   , m_PhotonElecADC(NAN)
   , m_PedstalCentralADC(NAN)
   , m_PedstalWidthADC(NAN)
-  , m_ZeroSuppressionADC(0)  //default to apply no zero suppression
+  , m_pedestalFile(false)
+  , m_ZeroSuppressionADC(-1000)  //default to apply no zero suppression
+  , m_ZeroSuppressionFile(false)
   , m_TowerType(-1)
+  , m_SiPMEffectivePixel(40000 * 4)  // sPHENIX EMCal default, 4x Hamamatsu S12572-015P MPPC [sPHENIX TDR]
+  , _tower_params(name)
 {
   m_RandomGenerator = gsl_rng_alloc(gsl_rng_mt19937);
   m_Seed = PHRandomSeed();  // fixed seed handled in PHRandomSeed()
-  cout << Name() << " Random Seed: " << m_Seed << endl;
+  // cout << Name() << " Random Seed: " << m_Seed << endl;
   gsl_rng_set(m_RandomGenerator, m_Seed);
 }
 
@@ -118,6 +129,28 @@ int RawTowerDigitizer::process_event(PHCompositeNode *topNode)
        it != all_towers.second; ++it)
   {
     const RawTowerDefs::keytype key = it->second->get_id();
+    
+    if (m_ZeroSuppressionFile == true)
+    {
+      const int eta = it->second->get_bineta();
+      const int phi = it->second->get_binphi();
+      const string zsName = "ZS_ADC_eta" + to_string(eta) + "_phi" + to_string(phi);
+      m_ZeroSuppressionADC =
+        _tower_params.get_double_param(zsName);
+    }
+
+    if (m_pedestalFile == true)
+    {
+      const int eta = it->second->get_bineta();
+      const int phi = it->second->get_binphi();
+      const string pedCentralName = "PedCentral_ADC_eta" + to_string(eta) + "_phi" + to_string(phi);
+      m_PedstalCentralADC =
+        _tower_params.get_double_param(pedCentralName);
+      const string pedWidthName = "PedWidth_ADC_eta" + to_string(eta) + "_phi" + to_string(phi);
+      m_PedstalWidthADC =
+        _tower_params.get_double_param(pedWidthName);
+    }
+
     if (m_TowerType >= 0)
     {
       // Skip towers that don't match the type we are supposed to digitize
@@ -158,6 +191,11 @@ int RawTowerDigitizer::process_event(PHCompositeNode *topNode)
     {
       // for photon digitization towers can be created if sim_tower is null pointer
       digi_tower = simple_photon_digitization(sim_tower);
+    }
+    else if (m_DigiAlgorithm == kSiPM_photon_digitization)
+    {
+      // for photon digitization towers can be created if sim_tower is null pointer
+      digi_tower = sipm_photon_digitization(sim_tower);
     }
     else
     {
@@ -206,6 +244,75 @@ RawTowerDigitizer::simple_photon_digitization(RawTower *sim_tower)
   const double photon_count_mean = energy * m_PhotonElecYieldVisibleGeV;
   const int photon_count = gsl_ran_poisson(m_RandomGenerator, photon_count_mean);
   const int signal_ADC = floor(photon_count / m_PhotonElecADC);
+
+  const double pedstal = m_PedstalCentralADC + ((m_PedstalWidthADC > 0) ? gsl_ran_gaussian(m_RandomGenerator, m_PedstalWidthADC) : 0);
+  const int sum_ADC = signal_ADC + (int) pedstal;
+
+  if (sum_ADC > m_ZeroSuppressionADC)
+  {
+    // create new digitalizaed tower
+    if (sim_tower)
+    {
+      digi_tower = new RawTowerv1(*sim_tower);
+    }
+    else
+    {
+      digi_tower = new RawTowerv1();
+    }
+    digi_tower->set_energy((double) sum_ADC);
+  }
+
+  if (Verbosity() >= 2)
+  {
+    cout << Name() << "::" << m_Detector << "::" << __PRETTY_FUNCTION__
+         << endl;
+
+    cout << "input: ";
+    if (sim_tower)
+    {
+      sim_tower->identify();
+    }
+    else
+    {
+      cout << "None" << endl;
+    }
+    cout << "output based on "
+         << "sum_ADC = " << sum_ADC << ", zero_sup = "
+         << m_ZeroSuppressionADC << " : ";
+    if (digi_tower)
+    {
+      digi_tower->identify();
+    }
+    else
+    {
+      cout << "None" << endl;
+    }
+  }
+
+  return digi_tower;
+}
+
+RawTower *
+RawTowerDigitizer::sipm_photon_digitization(RawTower *sim_tower)
+{
+  RawTower *digi_tower = nullptr;
+
+  double energy = 0;
+  if (sim_tower)
+  {
+    energy = sim_tower->get_energy();
+  }
+
+  int signal_ADC = 0;
+
+  if (energy > 0)
+  {
+    const double photon_count_mean = energy * m_PhotonElecYieldVisibleGeV;
+    const double poission_param_per_pixel = photon_count_mean / m_SiPMEffectivePixel;
+    const double prob_activated_per_pixel = gsl_cdf_poisson_Q(0, poission_param_per_pixel);
+    const double active_pixel = gsl_ran_binomial(m_RandomGenerator, prob_activated_per_pixel, m_SiPMEffectivePixel);
+    signal_ADC = floor(active_pixel / m_PhotonElecADC);
+  }
 
   const double pedstal = m_PedstalCentralADC + ((m_PedstalWidthADC > 0) ? gsl_ran_gaussian(m_RandomGenerator, m_PedstalWidthADC) : 0);
   const int sum_ADC = signal_ADC + (int) pedstal;

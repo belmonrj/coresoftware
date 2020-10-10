@@ -2,15 +2,14 @@
 #include "PgPostApplication.h"
 #include "PgPostBankWrapperManager.h"
 
+#include <pdbcalbase/PdbBankID.h>        // for PdbBankID
+#include <pdbcalbase/PdbCalBank.h>       // for PdbCalBank
+
 #include <phool/phool.h>
+#include <phool/PHTimeStamp.h>
 
 #include <RDBC/TSQLConnection.h>
-#include <RDBC/TSQLDriverManager.h>
 #include <RDBC/TSQLPreparedStatement.h>
-#include <RDBC/TSQLResultSet.h>
-#include <RDBC/TSQLResultSetMetaData.h>
-
-#include <RDBC/TSQLDatabaseMetaData.h>
 
 #include <unistd.h>  // for sleep
 #include <cstdlib>

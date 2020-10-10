@@ -6,8 +6,6 @@ AM_CPPFLAGS = \
   -I$(OPT_SPHENIX)/include \
   -I`root-config --incdir` 
 
-AM_CXXFLAGS = -Werror
-
 lib_LTLIBRARIES = libPHSartre.la 
 
 pkginclude_HEADERS = \
@@ -31,15 +29,7 @@ libPHSartre_la_LIBADD = \
   -lEG \
   -lMathMore
 
-if ! MAKEROOT6
-ROOT5_DICTS = \
-  PHSartre_Dict.cc \
-  PHSartreGenTrigger_Dict.cc \
-  PHSartreParticleTrigger_Dict.cc
-endif
-
 libPHSartre_la_SOURCES = \
-  $(ROOT5_DICTS) \
   PHSartre.cc \
   PHSartreGenTrigger.cc \
   PHSartreParticleTrigger.cc
@@ -63,8 +53,5 @@ testexternals.cc:
 	echo "  return 0;" >> $@
 	echo "}" >> $@
 
-%_Dict.cc: %.h %LinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
-
 clean-local:
-	rm -f *Dict* $(BUILT_SOURCES)
+	rm -f $(BUILT_SOURCES)

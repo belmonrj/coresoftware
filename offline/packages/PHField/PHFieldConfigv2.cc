@@ -11,6 +11,9 @@
 #include "PHFieldConfigv2.h"
 
 #include <iostream>
+#include <string>
+
+class PHObject;
 
 using namespace std;
 
@@ -22,13 +25,6 @@ PHFieldConfigv2::PHFieldConfigv2(
   , field_mag_y_(field_mag_y)
   , field_mag_z_(field_mag_z)
 {
-}
-
-/// Virtual copy constructor.
-PHObject*
-PHFieldConfigv2::clone() const
-{
-  return new PHFieldConfigv2(*this);
 }
 
 /** identify Function from PHObject

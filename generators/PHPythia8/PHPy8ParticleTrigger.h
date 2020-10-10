@@ -4,11 +4,12 @@
 #include "PHPy8GenTrigger.h"
 
 #include <string>
+#include <vector>             // for vector
 
 namespace Pythia8
 {
-class Pythia;
-};
+  class Pythia;
+}
 
 class PHPy8ParticleTrigger : public PHPy8GenTrigger
 {

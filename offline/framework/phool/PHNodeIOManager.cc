@@ -5,15 +5,17 @@
 #include "PHCompositeNode.h"
 #include "PHIODataNode.h"
 #include "PHNodeIterator.h"
-#include "PHObject.h"
 #include "phooldefs.h"
 
 #include <RVersion.h>
+#include <TBranch.h>                                         // for TBranch
 #include <TBranchObject.h>
 #include <TClass.h>
+#include <TDirectory.h>                                      // for TDirectory
 #include <TFile.h>
 #include <TLeafObject.h>
 #include <TObject.h>
+#include <TObjArray.h>                                       // for TObjArray
 #include <TROOT.h>
 #include <TTree.h>
 
@@ -23,12 +25,14 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 using namespace std;
 
@@ -36,8 +40,6 @@ PHNodeIOManager::PHNodeIOManager()
   : file(nullptr)
   , tree(nullptr)
   , TreeName("T")
-  , bufSize(0)
-  , split(0)
   , accessMode(PHReadOnly)
   , CompressionLevel(3)
   , isFunctionalFlag(0)
@@ -83,10 +85,6 @@ PHNodeIOManager::PHNodeIOManager(const string& f, const PHAccessType a,
 PHNodeIOManager::~PHNodeIOManager()
 {
   closeFile();
-  //   if (tree)
-  //     {
-  //       tree->Delete();
-  //     }
   delete file;
 }
 
@@ -106,8 +104,6 @@ bool PHNodeIOManager::setFile(const string& f, const string& title,
                               const PHAccessType a)
 {
   filename = f;
-  bufSize = 32000;
-  split = 0;
   accessMode = a;
   if (file)
   {
@@ -182,30 +178,18 @@ bool PHNodeIOManager::write(PHCompositeNode* topNode)
   return false;
 }
 
-bool PHNodeIOManager::write(TObject** data, const string& path)
+bool PHNodeIOManager::write(TObject** data, const string& path, int buffersize, int splitlevel)
 {
   if (file && tree)
   {
     TBranch* thisBranch = tree->GetBranch(path.c_str());
     if (!thisBranch)
     {
-      // Here is were we decide how to save the data in the root
-      // tree. split=0(prior to Root3.01/05; needs -1 afterwards
-      // for classes with custom streamers, as our old PHTable(s))
-      // means data are hidden, interactive T->draw() will not
-      // work. The old wrapped tables seem to need that, with
-      // split = 1 they cannot be read back.  The new PHObjects
-      // can be saved either way, but split = 1 makes interactive
-      // display possible.
-      split = 99;
-      if ((*data)->InheritsFrom("PHObject"))
-      {
-        PHObject* phob = dynamic_cast<PHObject*>(*data);
-        split = phob->SplitLevel();
-        bufSize = phob->BufferSize();
-      }
+      // the buffersize and splitlevel are set on the first call
+      // when the branch is created, the values come from the caller
+      // which is the node which writes itself
       tree->Branch(path.c_str(), (*data)->ClassName(),
-                   data, bufSize, split);
+                   data, buffersize, splitlevel);
     }
     else
     {
@@ -443,7 +427,7 @@ PHNodeIOManager::reconstructNodeTree(PHCompositeNode* topNode)
   // Loop over all branches in the tree. Each branch-name contains the
   // full 'path' of composite-nodes in the original node tree. We
   // split the name and reconstruct the tree.
-  string delimeters = phooldefs::branchpathdelim + "/";  // add old backslash for backward compat
+  string delimeters = phooldefs::branchpathdelim + phooldefs::legacypathdelims;  // add old backslash for backward compat
   for (i = 0; i < (size_t)(branchArray->GetEntriesFast()); i++)
   {
     string branchname = (*branchArray)[i]->GetName();

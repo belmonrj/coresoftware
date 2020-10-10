@@ -6,13 +6,21 @@
 #include <g4main/PHG4HitContainer.h>
 
 #include <fun4all/Fun4AllHistoManager.h>
+#include <fun4all/SubsysReco.h>           // for SubsysReco
 
 #include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>           // for PHIODataNode
+#include <phool/PHNodeIterator.h>         // for PHNodeIterator
+#include <phool/PHObject.h>               // for PHObject
 #include <phool/getClass.h>
 
 #include <TH1.h>
 #include <TH2.h>
 #include <TSystem.h>
+
+#include <iostream>                       // for operator<<, endl, basic_ost...
+#include <map>                            // for _Rb_tree_const_iterator
+#include <utility>                        // for pair
 
 using namespace std;
 
@@ -68,9 +76,7 @@ int G4HitTTree::process_event(PHCompositeNode *topNode)
       PHG4Hit *inhit = hit_iter->second;
       if (savehits)
       {
-        hits->AddHit(*inhit);
-        //	  PHG4Hit *g4h = hits->AddHit( *inhit);
-        //g4h->identify();
+        hits->AddHit(inhit);
       }
       etot += inhit->get_edep();
       eion += inhit->get_eion();
@@ -89,9 +95,7 @@ int G4HitTTree::process_event(PHCompositeNode *topNode)
       PHG4Hit *inhit = hit_iter->second;
       if (savehits)
       {
-        //PHG4Hit *g4h = hits->AddHit( *inhit);
-        hits->AddHit(*inhit);
-        //	  g4h->identify();
+        hits->AddHit(inhit);
       }
     }
   }

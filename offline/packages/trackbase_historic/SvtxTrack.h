@@ -45,7 +45,7 @@ class SvtxTrack : public PHObject
   }
   virtual void Reset() {}
   virtual int isValid() const { return 0; }
-  virtual SvtxTrack* Clone() const { return NULL; }
+  virtual PHObject* CloneMe() const { return nullptr; }
 
   //
   // basic track information ---------------------------------------------------
@@ -53,6 +53,9 @@ class SvtxTrack : public PHObject
 
   virtual unsigned int get_id() const { return UINT_MAX; }
   virtual void set_id(unsigned int id) {}
+
+  virtual unsigned int get_vertex_id() const { return UINT_MAX; }
+  virtual void set_vertex_id(unsigned int vertex_id) {}
 
   virtual unsigned int get_truth_track_id() const { return UINT_MAX; }
   virtual void set_truth_track_id(unsigned int truthTrackId) {}
@@ -133,9 +136,9 @@ class SvtxTrack : public PHObject
   virtual size_t count_states(float pathlength) const { return 0; }
   virtual void clear_states() {}
 
-  virtual const SvtxTrackState* get_state(float pathlength) const { return NULL; }
-  virtual SvtxTrackState* get_state(float pathlength) { return NULL; }
-  virtual SvtxTrackState* insert_state(const SvtxTrackState* state) { return NULL; }
+  virtual const SvtxTrackState* get_state(float pathlength) const { return nullptr; }
+  virtual SvtxTrackState* get_state(float pathlength) { return nullptr; }
+  virtual SvtxTrackState* insert_state(const SvtxTrackState* state) { return nullptr; }
   virtual size_t erase_state(float pathlength) { return 0; }
 
   virtual ConstStateIter begin_states() const { return StateMap().end(); }
@@ -151,17 +154,29 @@ class SvtxTrack : public PHObject
   //
 
   // needed by old tracking
+
+  //! deprecated - please use cluster keys instead
   virtual void clear_clusters() {}
+  //! deprecated - please use cluster keys instead
   virtual bool empty_clusters() const { return false; }
+  //! deprecated - please use cluster keys instead
   virtual size_t size_clusters() const { return 0; }
 
+  //! deprecated - please use cluster keys instead
   virtual void insert_cluster(unsigned int clusterid) {}
+  //! deprecated - please use cluster keys instead
   virtual size_t erase_cluster(unsigned int clusterid) { return 0; }
+  //! deprecated - please use cluster keys instead
   virtual ConstClusterIter begin_clusters() const { return ClusterSet().end(); }
+  //! deprecated - please use cluster keys instead
   virtual ConstClusterIter find_cluster(unsigned int clusterid) const { return ClusterSet().end(); }
+  //! deprecated - please use cluster keys instead
   virtual ConstClusterIter end_clusters() const { return ClusterSet().end(); }
+  //! deprecated - please use cluster keys instead
   virtual ClusterIter begin_clusters() { return ClusterSet().end(); }
+  //! deprecated - please use cluster keys instead
   virtual ClusterIter find_cluster(unsigned int clusterid) { return ClusterSet().end(); }
+  //! deprecated - please use cluster keys instead
   virtual ClusterIter end_clusters() { return ClusterSet().end(); }
 
   // needed by new tracking

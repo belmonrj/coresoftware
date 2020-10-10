@@ -1,9 +1,13 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef G4MAIN_PHG4PARTICLE_H
 #define G4MAIN_PHG4PARTICLE_H
 
 #include <phool/PHObject.h>
 
 #include <cmath>
+#include <iostream>
+#include <string>
 
 class PHG4Particle : public PHObject
 {

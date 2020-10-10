@@ -1,5 +1,5 @@
 // Tell emacs that this is a C++ source
-// This file is really -*- C++ -*-.
+//  -*- C++ -*-.
 #ifndef G4MAIN_PHG4DISPLAYACTION_H
 #define G4MAIN_PHG4DISPLAYACTION_H
 
@@ -34,6 +34,8 @@ class PHG4DisplayAction
   virtual void SetName(const std::string &name) { m_Detector = name; }
 
   virtual std::string GetName() const { return m_Detector; }
+
+  virtual void Print(const std::string &what="ALL") {}
 
   enum CheckReturnCodes
   {

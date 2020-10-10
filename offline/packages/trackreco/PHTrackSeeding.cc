@@ -2,36 +2,31 @@
 
 #include "AssocInfoContainer.h"
 
-//#include <trackbase_historic/SvtxClusterMap.h>
 #include <trackbase_historic/SvtxTrackMap.h>
 #include <trackbase_historic/SvtxTrackMap_v1.h>
 #include <trackbase_historic/SvtxVertexMap.h>
-#include <trackbase_historic/SvtxVertexMap_v1.h>
 
 #include <trackbase/TrkrClusterContainer.h>
-#include <trackbase/TrkrClusterv1.h>
+#include <trackbase/TrkrClusterHitAssoc.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/SubsysReco.h>                  // for SubsysReco
 
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>                        // for PHNode
 #include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>                      // for PHObject
 #include <phool/getClass.h>
+#include <phool/phool.h>                         // for PHWHERE
+
+#include <iostream>                              // for operator<<, endl
 
 using namespace std;
 
 PHTrackSeeding::PHTrackSeeding(const std::string& name)
   : SubsysReco(name)
-  , _cluster_map(nullptr)
-  , _vertex_map(nullptr)
-  , _track_map(nullptr)
-  , _assoc_container(nullptr)
 {
-}
-
-int PHTrackSeeding::Init(PHCompositeNode* topNode)
-{
-  return Fun4AllReturnCodes::EVENT_OK;
 }
 
 int PHTrackSeeding::InitRun(PHCompositeNode* topNode)
@@ -41,7 +36,7 @@ int PHTrackSeeding::InitRun(PHCompositeNode* topNode)
 
 int PHTrackSeeding::process_event(PHCompositeNode* topNode)
 {
-  return Process();
+  return Process(topNode);
 }
 
 int PHTrackSeeding::End(PHCompositeNode* topNode)
@@ -51,6 +46,8 @@ int PHTrackSeeding::End(PHCompositeNode* topNode)
 
 int PHTrackSeeding::Setup(PHCompositeNode* topNode)
 {
+  //cout << PHWHERE << "Entering Setup" << endl;
+ 
   int ret = CreateNodes(topNode);
   if (ret != Fun4AllReturnCodes::EVENT_OK) return ret;
 
@@ -83,22 +80,30 @@ int PHTrackSeeding::CreateNodes(PHCompositeNode* topNode)
     tb_node = new PHCompositeNode("SVTX");
     dstNode->addNode(tb_node);
     if (Verbosity() > 0)
-      cout << "SVTX node added" << endl;
+      cout << PHWHERE << "SVTX node added" << endl;
   }
 
-  _track_map = new SvtxTrackMap_v1;
-  PHIODataNode<PHObject>* tracks_node = new PHIODataNode<PHObject>(
-      _track_map, "SvtxTrackMap", "PHObject");
-  tb_node->addNode(tracks_node);
-  if (Verbosity() > 0)
-    cout << "Svtx/SvtxTrackMap node added" << endl;
+  
+  _track_map = findNode::getClass<SvtxTrackMap>(topNode, _track_map_name);
+  if (!_track_map)
+    {
+      _track_map = new SvtxTrackMap_v1;
+      PHIODataNode<PHObject>* tracks_node = 
+	new PHIODataNode<PHObject>(_track_map, _track_map_name, "PHObject");
+      tb_node->addNode(tracks_node);
+      if (Verbosity() > 0){
+	cout << PHWHERE << "Svtx/" <<_track_map_name  << " node added" << endl;
+      }
+    }
+  if(Verbosity() > 0)
+    _track_map->identify();
 
   _assoc_container = new AssocInfoContainer;
   PHIODataNode<PHObject>* assoc_node = new PHIODataNode<PHObject>(
       _assoc_container, "AssocInfoContainer", "PHObject");
   tb_node->addNode(assoc_node);
   if (Verbosity() > 0)
-    cout << "Svtx/AssocInfoContainer node added" << endl;
+    cout << PHWHERE << "Svtx/AssocInfoContainer node added" << endl;
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -116,17 +121,23 @@ int PHTrackSeeding::GetNodes(PHCompositeNode* topNode)
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 
+  _cluster_hit_map = findNode::getClass<TrkrClusterHitAssoc>(topNode, "TRKR_CLUSTERHITASSOC");
+  if (!_cluster_hit_map)
+  {
+    cerr << PHWHERE << " ERROR: Can't find node TRKR_CLUSTERHITASSOC" << endl;
+  }
+
   _vertex_map = findNode::getClass<SvtxVertexMap>(topNode, "SvtxVertexMap");
   if (!_vertex_map)
   {
     cerr << PHWHERE << " ERROR: Can't find SvtxVertexMap." << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
-
-  _track_map = findNode::getClass<SvtxTrackMap>(topNode, "SvtxTrackMap");
+ 
+ _track_map = findNode::getClass<SvtxTrackMap>(topNode, _track_map_name);
   if (!_track_map)
   {
-    cerr << PHWHERE << " ERROR: Can't find SvtxTrackMap." << endl;
+    cerr << PHWHERE << " ERROR: Can't find " << _track_map_name << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 

@@ -9,10 +9,11 @@
 
 #include "TrkrDefs.h"
 
-#include <TObject.h>
+#include <phool/PHObject.h>
 
 #include <iostream>
 #include <map>
+#include <utility>           // for pair
 
 class TrkrHit;
 
@@ -24,7 +25,7 @@ class TrkrHit;
  * which bounds clustering. Therefore, a TrkrHitSet should contain all
  * TrkrHits which could belong the the same cluster.
  */
-class TrkrHitSet : public TObject
+class TrkrHitSet : public PHObject
 {
  public:
   // iterator typedef

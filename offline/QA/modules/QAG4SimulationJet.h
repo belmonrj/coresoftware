@@ -1,28 +1,22 @@
-#ifndef __QAG4SimulationJet_H__
-#define __QAG4SimulationJet_H__
+#ifndef QA_QAG4SIMULATIONJET_H
+#define QA_QAG4SIMULATIONJET_H
 
 #include <fun4all/SubsysReco.h>
 
 #include <TString.h>
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
 #include <utility>  // std::pair, std::make_pair
 
-#ifndef __CINT__
-#include <cstdint>
-#else
-#include <stdint.h>
-#endif
 
-class PHCompositeNode;
-class Fun4AllHistoManager;
-class TH1F;
 class JetEvalStack;
 class JetTruthEval;
 class Jet;
+class PHCompositeNode;
 
 /// \class QAG4SimulationJet
 class QAG4SimulationJet : public SubsysReco
@@ -45,7 +39,7 @@ class QAG4SimulationJet : public SubsysReco
 
   QAG4SimulationJet(const std::string &truth_jet, enu_flags flags =
                                                       kDefaultFlag);
-  virtual ~QAG4SimulationJet();
+  virtual ~QAG4SimulationJet(){}
 
   //! add reco jet to the process list
   //! @return number of reco jet on list
@@ -134,7 +128,6 @@ class QAG4SimulationJet : public SubsysReco
   int Init(PHCompositeNode *topNode);
   int InitRun(PHCompositeNode *topNode);
   int process_event(PHCompositeNode *topNode);
-  int End(PHCompositeNode *topNode);
 
  private:
   int Init_Spectrum(PHCompositeNode *topNode, const std::string &jet_name);
@@ -149,12 +142,10 @@ class QAG4SimulationJet : public SubsysReco
   get_histo_prefix(const std::string &src_jet_name = "",
                    const std::string &reco_jet_name = "");
 
-#ifndef __CINT__
   //! cache the jet evaluation modules
   typedef std::map<std::string, std::shared_ptr<JetEvalStack>> jetevalstacks_map;
   jetevalstacks_map _jetevalstacks;
   std::shared_ptr<JetTruthEval> _jettrutheval;
-#endif
 
   //! truth jet name
   std::string _truth_jet;
@@ -186,4 +177,4 @@ class QAG4SimulationJet : public SubsysReco
   double _jet_match_dE_Ratio;
 };
 
-#endif  // __CALOEVALUATOR_H__
+#endif  // QA_QAG4SIMULATIONJET_H

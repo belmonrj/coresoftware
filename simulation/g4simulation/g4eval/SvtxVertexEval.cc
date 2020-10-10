@@ -1,22 +1,21 @@
 #include "SvtxVertexEval.h"
 
 #include "SvtxTrackEval.h"
+#include "SvtxTruthEval.h"
 
-#include <trackbase_historic/SvtxTrack.h>
 #include <trackbase_historic/SvtxTrackMap.h>
 #include <trackbase_historic/SvtxVertex.h>
 #include <trackbase_historic/SvtxVertexMap.h>
 
-#include <g4main/PHG4Particle.h>
 #include <g4main/PHG4TruthInfoContainer.h>
-#include <g4main/PHG4VtxPoint.h>
 
-#include <phool/PHCompositeNode.h>
 #include <phool/getClass.h>
 
-#include <float.h>
 #include <cassert>
+#include <iostream>
 #include <set>
+
+class SvtxTrack;
 
 using namespace std;
 
@@ -26,16 +25,12 @@ SvtxVertexEval::SvtxVertexEval(PHCompositeNode* topNode)
   , _trackmap(nullptr)
   , _truthinfo(nullptr)
   , _strict(false)
-  , _verbosity(1)
+  , _use_initial_vertex(false)
+  , _verbosity(0)
   , _errors(0)
   , _do_cache(true)
-  , _cache_all_truth_particles()
-  , _cache_all_truth_points()
-  , _cache_max_truth_point_by_ntracks()
-  , _cache_all_vertexes_from_point()
-  , _cache_best_vertex_from_point()
-  , _cache_get_ntracks_contribution()
 {
+  set_track_nodename("SvtxTrackMap");
   get_node_pointers(topNode);
 }
 
@@ -269,6 +264,7 @@ std::set<SvtxVertex*> SvtxVertexEval::all_vertexes_from(PHG4VtxPoint* truthpoint
   std::set<SvtxVertex*> all_vertexes;
 
   // loop over all vertexes on node
+
   for (SvtxVertexMap::Iter iter = _vertexmap->begin();
        iter != _vertexmap->end();
        ++iter)
@@ -406,9 +402,17 @@ unsigned int SvtxVertexEval::get_ntracks_contribution(SvtxVertex* vertex, PHG4Vt
 void SvtxVertexEval::get_node_pointers(PHCompositeNode* topNode)
 {
   // need things off the DST...
-  _vertexmap = findNode::getClass<SvtxVertexMap>(topNode, "SvtxVertexMap");
 
-  _trackmap = findNode::getClass<SvtxTrackMap>(topNode, "SvtxTrackMap");
+  if (_use_initial_vertex)
+  {
+    _vertexmap = findNode::getClass<SvtxVertexMap>(topNode, "SvtxVertexMap");  // always there, initial vertices
+  }
+  else
+  {
+    _vertexmap = findNode::getClass<SvtxVertexMap>(topNode, "SvtxVertexMapRefit");  // Rave vertices
+  }
+
+  _trackmap = findNode::getClass<SvtxTrackMap>(topNode, m_TrackNodeName);
 
   _truthinfo = findNode::getClass<PHG4TruthInfoContainer>(topNode, "G4TruthInfo");
 
@@ -433,4 +437,10 @@ bool SvtxVertexEval::has_node_pointers()
     return false;
 
   return true;
+}
+
+void SvtxVertexEval::set_track_nodename(const std::string& name)
+{
+  m_TrackNodeName = name;
+  _trackeval.set_track_nodename(name);
 }

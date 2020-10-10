@@ -1,14 +1,13 @@
-#ifndef __SVTXTRACKSTATE_V1_H__
-#define __SVTXTRACKSTATE_V1_H__
+#ifndef TRACKBASEHISTORIC_SVTXTRACKSTATEV1_H
+#define TRACKBASEHISTORIC_SVTXTRACKSTATEV1_H
 
 #include "SvtxTrackState.h"
 
-#include <phool/PHObject.h>
-
 #include <cmath>
 #include <iostream>
-#include <map>
-#include <set>
+#include <string>  // for string, basic_string
+
+class PHObject;
 
 class SvtxTrackState_v1 : public SvtxTrackState
 {
@@ -20,7 +19,7 @@ class SvtxTrackState_v1 : public SvtxTrackState
   void identify(std::ostream &os = std::cout) const;
   void Reset() { *this = SvtxTrackState_v1(0.0); }
   int isValid() const { return 1; }
-  SvtxTrackState *Clone() const { return new SvtxTrackState_v1(*this); }
+  PHObject *CloneMe() const { return new SvtxTrackState_v1(*this); }
 
   float get_pathlength() const { return _pathlength; }
 
@@ -54,12 +53,16 @@ class SvtxTrackState_v1 : public SvtxTrackState
   float get_error(unsigned int i, unsigned int j) const;
   void set_error(unsigned int i, unsigned int j, float value);
 
-  std::string get_name() { return state_name; }
-  void set_name(std::string &name) { state_name = name; }
+  std::string get_name() const { return state_name; }
+  void set_name(const std::string &name) { state_name = name; }
+
+  virtual float get_rphi_error() const;
+  virtual float get_phi_error() const;
+  virtual float get_z_error() const;
+
+  //@}
 
  private:
-  unsigned int covar_index(unsigned int i, unsigned int j) const;
-
   float _pathlength;
   float _pos[3];
   float _mom[3];

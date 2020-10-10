@@ -1,29 +1,23 @@
-
 #include "TrackJetInput.h"
 
 #include "Jet.h"
-#include "JetInput.h"
 #include "Jetv1.h"
 
-#include <phool/PHCompositeNode.h>
-#include <phool/PHIODataNode.h>
-#include <phool/PHNodeIterator.h>
-#include <phool/PHTypedNodeIterator.h>
-#include <phool/getClass.h>
-
-// PHENIX Geant4 includes
 #include <trackbase_historic/SvtxTrack.h>
 #include <trackbase_historic/SvtxTrackMap.h>
 
+#include <phool/getClass.h>
+
 // standard includes
-#include <cstdlib>
 #include <iostream>
+#include <map>                                // for _Rb_tree_const_iterator
+#include <utility>                            // for pair
 #include <vector>
 
 using namespace std;
 
-TrackJetInput::TrackJetInput(Jet::SRC input)
-  : _verbosity(0)
+TrackJetInput::TrackJetInput(Jet::SRC input, const string &nodename)
+  : m_NodeName(nodename)
   , _input(input)
 {
 }
@@ -35,10 +29,10 @@ void TrackJetInput::identify(std::ostream &os)
 
 std::vector<Jet *> TrackJetInput::get_input(PHCompositeNode *topNode)
 {
-  if (_verbosity > 0) cout << "TrackJetInput::process_event -- entered" << endl;
+  if (Verbosity() > 0) cout << "TrackJetInput::process_event -- entered" << endl;
 
   // Pull the reconstructed track information off the node tree...
-  SvtxTrackMap *trackmap = findNode::getClass<SvtxTrackMap>(topNode, "SvtxTrackMap");
+  SvtxTrackMap *trackmap = findNode::getClass<SvtxTrackMap>(topNode, m_NodeName);
   if (!trackmap)
   {
     return std::vector<Jet *>();
@@ -60,7 +54,7 @@ std::vector<Jet *> TrackJetInput::get_input(PHCompositeNode *topNode)
     pseudojets.push_back(jet);
   }
 
-  if (_verbosity > 0) cout << "TrackJetInput::process_event -- exited" << endl;
+  if (Verbosity() > 0) cout << "TrackJetInput::process_event -- exited" << endl;
 
   return pseudojets;
 }

@@ -22,7 +22,7 @@ class PdbCalBank : public  PHObject
 public:
   PdbCalBank() {}
   virtual ~PdbCalBank() {}
-   virtual PdbCalBank* clone() const = 0;
+   virtual PHObject* CloneMe() const = 0;
 
    virtual void printHeader() const = 0;
    virtual void print() = 0;
@@ -48,7 +48,7 @@ public:
    virtual void setEndValTime(const PHTimeStamp &)   = 0;
    virtual void setDescription(const std::string &)     = 0;
    virtual void setUserName(const std::string &)        = 0;
-   
+   using PHObject::isValid;   
    virtual int isValid(const PHTimeStamp &) const = 0;
 
   ClassDef(PdbCalBank,1);

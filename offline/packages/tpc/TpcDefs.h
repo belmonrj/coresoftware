@@ -9,6 +9,8 @@
 
 #include <trackbase/TrkrDefs.h>
 
+#include <cstdint>              // for uint8_t, uint16_t, uint32_t
+
 /**
  * @brief Utility functions for TPC
  *
@@ -17,7 +19,7 @@
  */
 namespace TpcDefs
 {
-#ifndef __CINT__
+#if !defined(__CINT__) || defined(__CLING__)
 // hitsetkey layout:
 //  Tpc specific lower 16 bits
 //   24 - 32  tracker id

@@ -1,26 +1,15 @@
-#ifndef __QAG4SimulationCalorimeterSum_H__
-#define __QAG4SimulationCalorimeterSum_H__
+#ifndef QA_QAG4SIMULATIONCALORIMETERSUM_H
+#define QA_QAG4SIMULATIONCALORIMETERSUM_H
 
 #include <fun4all/SubsysReco.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
-#ifndef __CINT__
-#include <cstdint>
-#else
-#include <stdint.h>
-#endif
-
 class PHCompositeNode;
-class PHG4HitContainer;
 class PHG4TruthInfoContainer;
-class Fun4AllHistoManager;
-class TH1F;
-class TTree;
 class PHG4Particle;
-class RawTowerGeom;
-class RawTowerContainer;
 class CaloEvalStack;
 class SvtxEvalStack;
 class SvtxTrack;
@@ -40,12 +29,11 @@ class QAG4SimulationCalorimeterSum : public SubsysReco
 
   QAG4SimulationCalorimeterSum(enu_flags flags = kDefaultFlag);
 
-  virtual ~QAG4SimulationCalorimeterSum();
+  virtual ~QAG4SimulationCalorimeterSum(){}
 
   int Init(PHCompositeNode *topNode);
   int InitRun(PHCompositeNode *topNode);
   int process_event(PHCompositeNode *topNode);
-  int End(PHCompositeNode *topNode);
 
   uint32_t
   get_flags() const
@@ -132,13 +120,10 @@ class QAG4SimulationCalorimeterSum : public SubsysReco
   int Init_TrackProj(PHCompositeNode *topNode);
   int process_event_TrackProj(PHCompositeNode *topNode);
 
-#ifndef __CINT__
-  //CINT is not c++11 compatible
   std::shared_ptr<CaloEvalStack> _caloevalstack_cemc;
   std::shared_ptr<CaloEvalStack> _caloevalstack_hcalin;
   std::shared_ptr<CaloEvalStack> _caloevalstack_hcalout;
   std::shared_ptr<SvtxEvalStack> _svtxevalstack;
-#endif
 
   uint32_t _flags;
 
@@ -167,4 +152,4 @@ class QAG4SimulationCalorimeterSum : public SubsysReco
   };
 };
 
-#endif  // __CALOEVALUATOR_H__
+#endif  // QA_QAG4SIMULATIONCALORIMETERSUM_H

@@ -1,15 +1,14 @@
 #include "PHG4InnerHcalDisplayAction.h"
 
-#include <Geant4/G4Color.hh>
-#include <Geant4/G4LogicalVolume.hh>
-#include <Geant4/G4VPhysicalVolume.hh>
-#include <Geant4/G4VisAttributes.hh>
+#include <g4main/PHG4DisplayAction.h>  // for PHG4DisplayAction
 
-#include <iostream>
+#include <Geant4/G4Colour.hh>
+#include <Geant4/G4LogicalVolume.hh>
+#include <Geant4/G4VisAttributes.hh>
 
 using namespace std;
 
-PHG4InnerHcalDisplayAction::PHG4InnerHcalDisplayAction(const std::string &name)
+PHG4InnerHcalDisplayAction::PHG4InnerHcalDisplayAction(const string &name)
   : PHG4DisplayAction(name)
   , m_MyTopVolume(nullptr)
   , m_SteelVol(nullptr)
@@ -18,7 +17,7 @@ PHG4InnerHcalDisplayAction::PHG4InnerHcalDisplayAction(const std::string &name)
 
 PHG4InnerHcalDisplayAction::~PHG4InnerHcalDisplayAction()
 {
-  for (auto &it:m_VisAttVec)
+  for (auto &it : m_VisAttVec)
   {
     delete it;
   }
@@ -28,7 +27,7 @@ PHG4InnerHcalDisplayAction::~PHG4InnerHcalDisplayAction()
 
 void PHG4InnerHcalDisplayAction::ApplyDisplayAction(G4VPhysicalVolume *physvol)
 {
-  for (auto &it:m_ScintiLogVolSet)
+  for (auto &it : m_ScintiLogVolSet)
   {
     if (it->GetVisAttributes())
     {

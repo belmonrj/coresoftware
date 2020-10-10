@@ -5,6 +5,7 @@
 
 #include <map>
 #include <set>
+#include <utility>
 
 class PHCompositeNode;
 
@@ -12,7 +13,10 @@ class PHG4Particle;
 class PHG4TruthInfoContainer;
 class PHG4VtxPoint;
 
+class SvtxClusterEval;
+class SvtxHitEval;
 class SvtxTrackMap;
+class SvtxTruthEval;
 class SvtxVertex;
 class SvtxVertexMap;
 
@@ -61,6 +65,10 @@ class SvtxVertexEval
 
   unsigned int get_errors() { return _errors + _trackeval.get_errors(); }
 
+  void set_use_initial_vertex(bool use_init_vertex) { _use_initial_vertex = use_init_vertex; }
+
+  void set_track_nodename(const std::string& name);
+
  private:
   void get_node_pointers(PHCompositeNode* topNode);
   bool has_node_pointers();
@@ -71,6 +79,7 @@ class SvtxVertexEval
   PHG4TruthInfoContainer* _truthinfo;
 
   bool _strict;
+  bool _use_initial_vertex;
   int _verbosity;
   unsigned int _errors;
 
@@ -81,6 +90,7 @@ class SvtxVertexEval
   std::map<PHG4VtxPoint*, std::set<SvtxVertex*> > _cache_all_vertexes_from_point;
   std::map<PHG4VtxPoint*, SvtxVertex*> _cache_best_vertex_from_point;
   std::map<std::pair<SvtxVertex*, PHG4VtxPoint*>, unsigned int> _cache_get_ntracks_contribution;
+  std::string m_TrackNodeName;
 };
 
 #endif  // G4EVAL_SVTXVERTEXEVAL_H

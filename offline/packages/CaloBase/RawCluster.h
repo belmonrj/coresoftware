@@ -11,9 +11,15 @@
 
 #include <climits>
 #include <cmath>  // def of NAN
+#include <cstddef>
+#include <iostream>
 #include <map>
+#include <string>                        // for string
+#include <utility>
 
-class RawTower;
+#if !defined(__CINT__) || defined(__CLING__)
+#include <type_traits>
+#endif
 
 class RawCluster : public PHObject
 {
@@ -27,12 +33,7 @@ class RawCluster : public PHObject
   virtual ~RawCluster() {}
   virtual void Reset() { PHOOL_VIRTUAL_WARNING; }
 
-  /// make a copy, using TObject::Clone() function instead
-  //  virtual PHObject* clone() const
-  //  {
-  //    PHOOL_VIRTUAL_WARNING;
-  //    return nullptr;
-  //  };
+  virtual PHObject *CloneMe() const {return nullptr;}
 
   virtual int isValid() const
   {

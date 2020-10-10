@@ -6,6 +6,8 @@
 #include <phool/PHObject.h>
 
 #include <cmath>
+#include <cstddef>          // for size_t
+#include <iostream>
 #include <map>
 #include <set>
 
@@ -27,7 +29,7 @@ class JetMap : public PHObject
   virtual void identify(std::ostream& os = std::cout) const;
   virtual void Reset() {}
   virtual int isValid() const { return 0; }
-  virtual JetMap* Clone() const { return nullptr; }
+  virtual PHObject* CloneMe() const { return nullptr; }
 
   // map content info ----------------------------------------------------------
 

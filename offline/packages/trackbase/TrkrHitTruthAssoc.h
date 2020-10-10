@@ -8,12 +8,14 @@
 #define TRACKBASE_TRKRHITTRUTHASSOC_H
 
 #include "TrkrDefs.h"
-#include "g4main/PHG4HitDefs.h"
-#include <g4main/PHG4Hit.h>
+
+#include <g4main/PHG4HitDefs.h>
 
 #include <phool/PHObject.h>
 
+#include <iostream>              // for cout, ostream
 #include <map>
+#include <utility>               // for pair
 
 /**
  * @brief Association object for PHG4Cells contributiong to TrkrHits

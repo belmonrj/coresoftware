@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef G4TPC_PHG4TPCDIGITIZER_H
 #define G4TPC_PHG4TPCDIGITIZER_H
 
@@ -7,16 +9,16 @@
 #include <trackbase/TrkrHitSet.h>
 
 #include <map>
+#include <string>                  // for string
+#include <utility>                 // for pair, make_pair
 #include <vector>
 
 // rootcint barfs with this header so we need to hide it
-#ifndef __CINT__
+#if !defined(__CINT__) || defined(__CLING__)
 #include <gsl/gsl_rng.h>
 #endif
 
-class SvtxHitMap;
-class PHG4Cell;
-class TrkrHit;
+class PHCompositeNode;
 
 class PHG4TpcDigitizer : public SubsysReco
 {
@@ -42,19 +44,18 @@ class PHG4TpcDigitizer : public SubsysReco
     _energy_scale.insert(std::make_pair(layer, energy_per_adc));
   }
 
-  void SetTPCMinLayer(const int minlayer) { TPCMinLayer = minlayer; };
+  void SetTpcMinLayer(const int minlayer) { TpcMinLayer = minlayer; };
   void SetADCThreshold(const float thresh) { ADCThreshold = thresh; };
-  void SetENC(const float enc) { TPCEnc = enc; };
+  void SetENC(const float enc) { TpcEnc = enc; };
 
  private:
   void CalculateCylinderCellADCScale(PHCompositeNode *topNode);
   void DigitizeCylinderCells(PHCompositeNode *topNode);
-  void PrintHits(PHCompositeNode *topNode);
   float added_noise();
 
-  unsigned int TPCMinLayer;
+  unsigned int TpcMinLayer;
   float ADCThreshold;
-  float TPCEnc;
+  float TpcEnc;
   float Pedestal;
   float ChargeToPeakVolts;
 
@@ -72,10 +73,7 @@ class PHG4TpcDigitizer : public SubsysReco
   std::map<int, unsigned int> _max_adc;
   std::map<int, float> _energy_scale;
 
-  // storage
-  SvtxHitMap *_hitmap;
-
-#ifndef __CINT__
+#if !defined(__CINT__) || defined(__CLING__)
   //! random generator that conform with sPHENIX standard
   gsl_rng *RandomGenerator;
 #endif

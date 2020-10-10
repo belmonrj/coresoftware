@@ -13,6 +13,10 @@
 
 #include "PHFieldConfig.h"
 
+#include <iostream>
+
+class PHObject;
+
 /*!
  * \brief PHFieldConfigv2 implements field configuration information for uniform field model*/
 class PHFieldConfigv2 : public PHFieldConfig
@@ -33,8 +37,7 @@ class PHFieldConfigv2 : public PHFieldConfig
   virtual ~PHFieldConfigv2() {}
 
   /// Virtual copy constructor.
-  virtual PHObject*
-  clone() const;
+  virtual PHObject* CloneMe() const { return new PHFieldConfigv2(*this); }
 
   /** identify Function from PHObject
    @param os Output Stream

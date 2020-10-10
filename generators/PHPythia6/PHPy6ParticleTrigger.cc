@@ -1,14 +1,13 @@
 #include "PHPy6ParticleTrigger.h"
 #include "PHPy6GenTrigger.h"
 
-#include <phool/PHCompositeNode.h>
-#include <phool/getClass.h>
-#include <phool/phool.h>
-
-#include <phhepmc/PHHepMCGenEvent.h>
-
 #include <HepMC/GenEvent.h>
+#include <HepMC/GenParticle.h>     // for GenParticle
+#include <HepMC/GenVertex.h>       // for GenVertex, GenVertex::particles_in...
+#include <HepMC/SimpleVector.h>    // for FourVector
 
+#include <cmath>                  // for sqrt
+#include <cstdlib>                // for abs
 #include <iostream>
 
 using namespace std;
@@ -121,7 +120,7 @@ bool PHPy6ParticleTrigger::Apply(const HepMC::GenEvent *evt)
         if (_doPzHighCut && (*p)->momentum().pz() > _thePzHigh) continue;
         if (_doPzLowCut && (*p)->momentum().pz() < _thePzLow) continue;
 
-        if (_verbosity > 5)
+        if (Verbosity() > 5)
         {
           cout << "stable " << (*p)->pdg_id()
                << "  pt: " << p_pT
@@ -142,7 +141,7 @@ bool PHPy6ParticleTrigger::Apply(const HepMC::GenEvent *evt)
             if (abs((*p_parent)->pdg_id()) == abs(_theParents[k]))
             {
               passedParents = true;
-              if (_verbosity > 5) cout << "found parent!" << endl;
+              if (Verbosity() > 5) cout << "found parent!" << endl;
               break;
             }
           }  //moms for loop

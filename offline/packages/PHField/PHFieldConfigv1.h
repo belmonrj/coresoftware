@@ -13,6 +13,11 @@
 
 #include "PHFieldConfig.h"
 
+#include <iostream>
+#include <string>
+
+class PHObject;
+
 /*!
  * \brief PHFieldConfigv1 implements field configuration information for input a field map file */
 class PHFieldConfigv1 : public PHFieldConfig
@@ -32,8 +37,7 @@ class PHFieldConfigv1 : public PHFieldConfig
   virtual ~PHFieldConfigv1() {}
 
   /// Virtual copy constructor.
-  virtual PHObject*
-  clone() const;
+  virtual PHObject* CloneMe() const { return new PHFieldConfigv1(*this); }
 
   /** identify Function from PHObject
    @param os Output Stream

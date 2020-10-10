@@ -11,13 +11,11 @@
 #include <fun4all/SubsysReco.h>
 
 // STL includes
-#include <set>
 #include <string>
 
 // forward declarations
 class PHCompositeNode;
 
-//class SvtxClusterMap;
 class TrkrClusterContainer;
 class SvtxVertexMap;
 class SvtxTrackMap;
@@ -36,6 +34,7 @@ class PHTrackPropagating : public SubsysReco
   int InitRun(PHCompositeNode *topNode);
   int process_event(PHCompositeNode *topNode);
   int End(PHCompositeNode *topNode);
+  void set_track_map_name(const std::string &map_name) { _track_map_name = map_name; }
 
  protected:
   /// setup interface for trackers, called in InitRun, setup things like pointers to nodes.
@@ -49,11 +48,14 @@ class PHTrackPropagating : public SubsysReco
   ///
   virtual int End() = 0;
 
+
   //SvtxClusterMap *_cluster_map;
   TrkrClusterContainer *_cluster_map;
   SvtxVertexMap *_vertex_map;
   SvtxTrackMap *_track_map;
   AssocInfoContainer *_assoc_container;
+
+  std::string _track_map_name;
 
  private:
   /// fetch node pointers

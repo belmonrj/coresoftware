@@ -1,7 +1,12 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef G4MAIN_PHG4TRACKUSERINFOV1_H
 #define G4MAIN_PHG4TRACKUSERINFOV1_H
 
 #include <Geant4/G4VUserTrackInformation.hh>
+#include <Geant4/G4ios.hh>                    // for G4cout
+
+#include <ostream>                            // for operator<<, basic_ostre...
 
 class PHG4Shower;
 
@@ -76,6 +81,6 @@ void SetUserPrimaryId(G4Track* track, const int userprimaryid);
 void SetWanted(G4Track* track, const int wanted);
 void SetKeep(G4Track* track, const int keep);
 void SetShower(G4Track* track, PHG4Shower* ptr);
-};  // namespace PHG4TrackUserInfo
+}  // namespace PHG4TrackUserInfo
 
 #endif

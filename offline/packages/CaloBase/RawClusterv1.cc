@@ -1,6 +1,12 @@
 #include "RawClusterv1.h"
 
+#include <phool/phool.h>
+
+#include <cmath>
+#include <climits>
+#include <cstdlib>
 #include <limits>
+#include <string>
 
 using namespace std;
 
@@ -24,12 +30,6 @@ void RawClusterv1::Reset()
   prop_map.clear();
   towermap.clear();
 }
-
-//PHObject* RawClusterv1::clone() const
-//{
-//  RawClusterv1 * obj = new RawClusterv1(*this);
-//  return obj;
-//}
 
 void RawClusterv1::addTower(const RawClusterDefs::keytype twrid, const float etower)
 {

@@ -13,6 +13,7 @@
 #include "TGeoManager.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <iostream>
 
 using namespace std;
@@ -25,7 +26,11 @@ PHGeomTGeo::PHGeomTGeo()
 PHGeomTGeo::~PHGeomTGeo()
 {
   ConsistencyCheck();
-  Reset();
+  if (_fGeom)
+  {
+    _fGeom->UnlockGeometry();
+  }
+    delete _fGeom;
 }
 
 void PHGeomTGeo::SetGeometry(TGeoManager* g)

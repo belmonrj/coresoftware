@@ -1,9 +1,12 @@
-#ifndef EVENTHEADER_H
-#define EVENTHEADER_H
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef FFAOBJECTS_EVENTHEADER_H
+#define FFAOBJECTS_EVENTHEADER_H
 
 #include <phool/PHObject.h>
 
 #include <ctime>
+#include <iostream>          // for cout, ostream
 
 //! base class for EventHeaders
 class EventHeader: public PHObject
@@ -11,13 +14,14 @@ class EventHeader: public PHObject
  public:
 
   /// dtor
-  virtual ~EventHeader() {}
+  virtual ~EventHeader() = default;
 
   /// Clear Event
   virtual void Reset();
 
-  /** identify Function from PHObject
-      @param os Output Stream 
+  /*
+   * identify Function from PHObject
+   * @param os Output Stream 
    */
   virtual void identify(std::ostream& os = std::cout) const;
 
@@ -41,10 +45,17 @@ class EventHeader: public PHObject
 
   /// get ATP TimeStamp (unix time, convert with ctime()
   virtual time_t get_TimeStamp() const {return 0;}
+  
   /// set TimeStamp
   virtual void set_TimeStamp(const time_t /*evttime*/) {return;}
 
- private: // prevent doc++ from showing ClassDef
+  //! bunch crossing
+  virtual void set_BunchCrossing( int64_t ) {}
+  
+  //! bunch crossing
+  virtual int64_t get_BunchCrossing() const {return 0;}
+
+  private: // prevent doc++ from showing ClassDef
   ClassDef(EventHeader,1)
 
 };

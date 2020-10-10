@@ -1,9 +1,14 @@
-#ifndef PHG4ParticleGeneratorVectorMeson_H__
-#define PHG4ParticleGeneratorVectorMeson_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4MAIN_PHG4PARTICLEGENERATORVECTORMESON_H
+#define G4MAIN_PHG4PARTICLEGENERATORVECTORMESON_H
 
-#include <map>
 #include "PHG4ParticleGeneratorBase.h"
 
+#include <map>
+#include <string>  // for string
+
+class PHCompositeNode;
 class PHG4InEvent;
 class TRandom;
 class TF1;
@@ -18,14 +23,15 @@ class PHG4ParticleGeneratorVectorMeson : public PHG4ParticleGeneratorBase
     Gaus
   };
 
-  explicit PHG4ParticleGeneratorVectorMeson(const std::string &name = "PGUN");
-  virtual ~PHG4ParticleGeneratorVectorMeson() {}
+  explicit PHG4ParticleGeneratorVectorMeson(const std::string &name = "VMESON");
+  virtual ~PHG4ParticleGeneratorVectorMeson();
 
-  int InitRun(PHCompositeNode *topNode);
-  int process_event(PHCompositeNode *topNode);
+  int InitRun(PHCompositeNode *topNode) override;
+  int process_event(PHCompositeNode *topNode) override;
 
   //! interface for adding particles by name
   void add_decay_particles(const std::string &name1, const std::string &name2, const unsigned int decay_id);
+  void add_decay_particles(const std::string &name, const unsigned int decay_id);
 
   void set_decay_vertex_offset(double dx, double dy, double dz, const unsigned int decay_id);
   void set_eta_range(const double eta_min, const double eta_max);
@@ -52,10 +58,13 @@ class PHG4ParticleGeneratorVectorMeson : public PHG4ParticleGeneratorBase
 
   void set_read_vtx_from_hepmc(bool read_vtx) { read_vtx_from_hepmc = read_vtx; }
 
-  void set_mass(const double mass);
-  void set_width(const double width);
+  void set_mass(const double mass_in) { mass = mass_in; }
+  void set_width(const double width_in) { m_Width = width_in; }
   void set_decay_types(const std::string &decay1, const std::string &decay2);
   void set_histrand_init(const int initflag) { _histrand_init = initflag; }
+  void set_upsilon_1s();
+  void set_upsilon_2s();
+  void set_upsilon_3s();
 
  private:
   double smearvtx(const double position, const double width, FUNCTION dist) const;
@@ -67,11 +76,9 @@ class PHG4ParticleGeneratorVectorMeson : public PHG4ParticleGeneratorBase
   std::map<unsigned int, double> decay_vtx_offset_y;
   std::map<unsigned int, double> decay_vtx_offset_z;
 
- protected:
   FUNCTION _vertex_func_x;
   FUNCTION _vertex_func_y;
   FUNCTION _vertex_func_z;
-  double _t0;
   double _vertex_x;         // primary vertex (or mean) x component, cf. vtx_x = track-by-track vertex x component
   double _vertex_y;         // primary vertex (or mean) y component, cf. vtx_y = track-by-track vertex y component
   double _vertex_z;         // primary vertex (or mean)z component, cf. vtx_z = track-by-track vertex z component
@@ -95,7 +102,7 @@ class PHG4ParticleGeneratorVectorMeson : public PHG4ParticleGeneratorBase
   double pt_min;
   double pt_max;
   double mass;
-  double width;
+  double m_Width;
   double m1;
   double m2;
   int _histrand_init;

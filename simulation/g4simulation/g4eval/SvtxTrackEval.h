@@ -3,18 +3,21 @@
 
 #include "SvtxClusterEval.h"
 
+#include <trackbase/TrkrDefs.h>
+
 #include <map>
 #include <set>
+#include <utility>
 
 class PHCompositeNode;
 
 class PHG4Hit;
 class PHG4Particle;
 
-class TrkrCluster;
-class TrkrClusterContainer;
+class SvtxHitEval;
 class SvtxTrack;
 class SvtxTrackMap;
+class SvtxTruthEval;
 
 class SvtxTrackEval
 {
@@ -67,13 +70,14 @@ class SvtxTrackEval
   unsigned int get_nwrongclusters_contribution(SvtxTrack* svtxtrack, PHG4Particle* truthparticle);
   unsigned int get_errors() { return _errors + _clustereval.get_errors(); }
 
+  void set_track_nodename(const std::string& name) { m_TrackNodeName = name; }
+
  private:
   void get_node_pointers(PHCompositeNode* topNode);
   bool has_node_pointers();
 
   SvtxClusterEval _clustereval;
   SvtxTrackMap* _trackmap;
-  TrkrClusterContainer* _clustermap;
 
   bool _strict;
   int _verbosity;
@@ -92,6 +96,7 @@ class SvtxTrackEval
   std::map<std::pair<SvtxTrack*, PHG4Particle*>, unsigned int> _cache_get_nclusters_contribution;
   std::map<std::pair<SvtxTrack*, PHG4Particle*>, unsigned int> _cache_get_nclusters_contribution_by_layer;
   std::map<std::pair<SvtxTrack*, PHG4Particle*>, unsigned int> _cache_get_nwrongclusters_contribution;
+  std::string m_TrackNodeName;
 };
 
 #endif  // G4EVAL_SVTXTRACKEVAL_H

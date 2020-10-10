@@ -1,8 +1,12 @@
 #include "G4RootHitContainer.h"
 
+#include <g4main/PHG4Hit.h>      // for PHG4Hit
 #include <g4main/PHG4HitEval.h>
 
 #include <TClonesArray.h>
+
+#include <cmath>                // for NAN
+#include <ostream>               // for basic_ostream::operator<<, operator<<
 
 using namespace std;
 
@@ -37,7 +41,7 @@ void G4RootHitContainer::Reset()
 }
 
 PHG4Hit *
-G4RootHitContainer::AddHit(const PHG4Hit &g4hit)
+G4RootHitContainer::AddHit(const PHG4Hit *g4hit)
 {
   TClonesArray &cl = *SnglHits;
   int nextindex = SnglHits->GetLast() + 1;

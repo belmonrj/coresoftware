@@ -20,12 +20,16 @@
 #include <g4vertex/GlobalVertex.h>
 #include <g4vertex/GlobalVertexMap.h>
 
+#include <fun4all/Fun4AllBase.h>             // for Fun4AllBase::VERBOSITY_MORE
 #include <fun4all/SubsysReco.h>
 
-#include <phool/PHCompositeNode.h>
 #include <phool/getClass.h>
 
+#include <CLHEP/Vector/ThreeVector.h>
+
 #include <iostream>
+#include <map>
+#include <utility>
 
 /** \Brief Function to get correct tower eta
  *

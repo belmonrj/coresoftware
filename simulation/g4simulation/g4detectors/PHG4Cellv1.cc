@@ -1,8 +1,14 @@
 #include "PHG4Cellv1.h"
 
+#include <g4main/PHG4HitDefs.h>  // for keytype
+
 #include <phool/phool.h>
 
+#include <climits>       // for UINT_MAX, INT_MIN
+#include <cmath>         // for NAN
+#include <cstdlib>       // for exit
 #include <iostream>
+#include <string>         // for operator<<, string
 
 using namespace std;
 
@@ -236,7 +242,7 @@ PHG4Cellv1::Reset()
 
 void PHG4Cellv1::identify(std::ostream& os) const
 {
-  os << "New PHG4Cellv1  0x" << hex << cellid << dec << endl;
+  os << "PHG4Cellv1  0x" << hex << cellid << dec << endl;
 
   os <<"Associated to "<<hitedeps.size()<<" hits"<<endl;
   for (const auto pair :hitedeps)
@@ -249,9 +255,7 @@ void PHG4Cellv1::identify(std::ostream& os) const
   {
     os <<"\t Shower "<<pair.first<<" -> "<<pair.second<<" GeV"<<endl;
   }
-
-//  os <<"Contains to "<<trainOfDigits.size()<<" TPC digitization chain"<<endl;
-
+  os << "Properties:" << endl;
   for (prop_map_t::const_iterator i = prop_map.begin(); i != prop_map.end(); ++i)
   {
     PROPERTY prop_id = static_cast<PROPERTY>(i->first);

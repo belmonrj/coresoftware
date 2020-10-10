@@ -5,16 +5,11 @@
 
 #include <phfield/PHField.h>
 
-// #include <TFile.h>
-// #include <TH2D.h>
-// #include <TNtuple.h>
-// #include <TROOT.h>
-// #include <TStyle.h>
+#include <TVector3.h>                   // for TVector3
 
 #include <CLHEP/Units/SystemOfUnits.h>
 
 #include <cassert>
-#include <iostream>
 #include <limits>
 
 namespace genfit

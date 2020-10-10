@@ -5,6 +5,8 @@ lib_LTLIBRARIES = \
     libg4detectors_io.la \
     libg4detectors.la
 
+AM_CXXFLAGS = `geant4-config --cflags  | sed s/-Woverloaded-virtual// | sed s/-pedantic// | sed s/-Wshadow// | sed s/-W\ //`
+
 AM_CPPFLAGS = \
     -DCGAL_DISABLE_ROUNDING_MATH_CHECK \
     -I$(includedir) \
@@ -36,6 +38,7 @@ libg4detectors_la_LIBADD = \
   -lg4testbench 
 
 pkginclude_HEADERS = \
+  BeamLineMagnetSubsystem.h \
   ePHENIXRICHConstruction.h \
   PHG4BlockCellGeom.h \
   PHG4BlockCellGeomContainer.h \
@@ -44,7 +47,6 @@ pkginclude_HEADERS = \
   PHG4BlockSubsystem.h \
   PHG4Cell.h \
   PHG4Cellv1.h \
-  PHG4Cellv2.h \
   PHG4CellContainer.h \
   PHG4CellDefs.h \
   PHG4EventActionClearZeroEdep.h \
@@ -76,31 +78,24 @@ pkginclude_HEADERS = \
   PHG4ForwardEcalSubsystem.h \
   PHG4ForwardHcalSubsystem.h \
   PHG4FullProjSpacalCellReco.h \
+  PHG4GDMLSubsystem.h \
   PHG4HcalDefs.h \
   PHG4HcalCellReco.h \
+  PHG4HcalSubsystem.h \
   PHG4InnerHcalSubsystem.h \
   PHG4OuterHcalSubsystem.h \
-  PHG4PrototypeHcalDefs.h \
-  PHG4Prototype2HcalCellReco.h \
-  PHG4Prototype2OuterHcalSubsystem.h \
-  PHG4Prototype2InnerHcalSubsystem.h \
-  PHG4Prototype3InnerHcalSubsystem.h \
   PHG4PSTOFSubsystem.h \
   PHG4RICHSubsystem.h \
+  PHG4mRICHSubsystem.h \
   PHG4ScintillatorSlat.h \
+  PHG4ScintillatorSlatv1.h \
   PHG4ScintillatorSlatContainer.h \
   PHG4ScintillatorSlatDefs.h \
   PHG4SectorConstructor.h \
   PHG4SectorSubsystem.h \
   PHG4SpacalSubsystem.h \
-  PHG4SpacalPrototypeSubsystem.h \
   PHG4StepStatusDecode.h 
 
-# I/O dictionaries have to exist for root5 and root6. For ROOT6 we need
-# pcm files in addition. If someone can figure out how to make a list
-# so this list of dictionaries is transformed into a list of pcm files
-# following a simple naming convention, please change this accordingly and
-# let me know
 ROOT_IO_DICTS = \
   PHG4BlockCellGeom_Dict.cc \
   PHG4BlockCellGeomContainer_Dict.cc \
@@ -109,7 +104,6 @@ ROOT_IO_DICTS = \
   PHG4BlockGeomv1_Dict.cc \
   PHG4Cell_Dict.cc \
   PHG4Cellv1_Dict.cc \
-  PHG4Cellv2_Dict.cc \
   PHG4CellContainer_Dict.cc \
   PHG4CylinderGeom_Dict.cc \
   PHG4CylinderGeomv1_Dict.cc \
@@ -131,13 +125,7 @@ ROOT_IO_DICTS = \
   PHG4ScintillatorSlat_Dict.cc \
   PHG4ScintillatorSlatv1_Dict.cc \
   PHG4ScintillatorSlatContainer_Dict.cc
-# for root6 we need pcm and dictionaries but only for
-# i/o classes. For root5 we need only dictionaries but
-# those for i/o and classes available on the cmd line
-# MAKEROOT6 is set in the configure.ac, true for root6
-if MAKEROOT6
-# this is a tweak to install files in $(libdir), automake refuses
-# to install other files in libdir, this construct gets around this
+
 pcmdir = $(libdir)
 nobase_dist_pcm_DATA = \
   PHG4BlockCellGeom_Dict_rdict.pcm \
@@ -147,7 +135,6 @@ nobase_dist_pcm_DATA = \
   PHG4BlockGeomv1_Dict_rdict.pcm \
   PHG4Cell_Dict_rdict.pcm \
   PHG4Cellv1_Dict_rdict.pcm \
-  PHG4Cellv2_Dict_rdict.pcm \
   PHG4CellContainer_Dict_rdict.pcm \
   PHG4CylinderGeom_Dict_rdict.pcm \
   PHG4CylinderGeomv1_Dict_rdict.pcm \
@@ -169,53 +156,9 @@ nobase_dist_pcm_DATA = \
   PHG4ScintillatorSlat_Dict_rdict.pcm \
   PHG4ScintillatorSlatv1_Dict_rdict.pcm \
   PHG4ScintillatorSlatContainer_Dict_rdict.pcm
-else
-  ROOT5_IO_DICTS = \
-  PHG4CellDefs_Dict.cc \
-  PHG4ScintillatorSlatDefs_Dict.cc
-  ROOT5_DICTS = \
-  ePHENIXRICHConstruction_Dict.cc \
-  PHG4GDMLSubsystem_Dict.cc \
-  PHG4BeamlineMagnetSubsystem_Dict.cc \
-  PHG4BlockCellReco_Dict.cc \
-  PHG4BlockSubsystem_Dict.cc \
-  PHG4CEmcTestBeamSubsystem_Dict.cc \
-  PHG4ConeSubsystem_Dict.cc \
-  PHG4CrystalCalorimeterSubsystem_Dict.cc \
-  PHG4CylinderSubsystem_Dict.cc \
-  PHG4CylinderCellReco_Dict.cc \
-  PHG4DetectorGroupSubsystem_Dict.cc \
-  PHG4DetectorSubsystem_Dict.cc \
-  PHG4EnvelopeSubsystem_Dict.cc \
-  PHG4FCalSubsystem_Dict.cc \
-  PHG4ForwardEcalSubsystem_Dict.cc \
-  PHG4ForwardHcalSubsystem_Dict.cc \
-  PHG4ForwardCalCellReco_Dict.cc \
-  PHG4FPbScSubsystem_Dict.cc \
-  PHG4GenHit_Dict.cc \
-  PHG4HcalCellReco_Dict.cc \
-  PHG4HcalSubsystem_Dict.cc \
-  PHG4HcalPrototypeSubsystem_Dict.cc \
-  PHG4InnerHcalSubsystem_Dict.cc \
-  PHG4OuterHcalSubsystem_Dict.cc \
-  PHG4Prototype2InnerHcalSubsystem_Dict.cc \
-  PHG4Prototype2HcalCellReco_Dict.cc \
-  PHG4Prototype2OuterHcalSubsystem_Dict.cc \
-  PHG4Prototype3InnerHcalSubsystem_Dict.cc \
-  PHG4RICHSubsystem_Dict.cc \
-  PHG4SectorConstructor_Dict.cc \
-  PHG4SectorSubsystem_Dict.cc \
-  PHG4PSTOFSubsystem_Dict.cc \
-  PHG4FullProjSpacalCellReco_Dict.cc \
-  PHG4SpacalSubsystem_Dict.cc \
-  PHG4SpacalPrototypeSubsystem_Dict.cc \
-  PHG4mRICHSubsystem_Dict.cc
-
-endif
 
 libg4detectors_io_la_SOURCES = \
   $(ROOT_IO_DICTS) \
-  $(ROOT5_IO_DICTS) \
   PHG4BlockCellGeom.cc \
   PHG4BlockCellGeomContainer.cc \
   PHG4BlockGeom.cc \
@@ -223,7 +166,6 @@ libg4detectors_io_la_SOURCES = \
   PHG4BlockGeomContainer.cc \
   PHG4Cell.cc \
   PHG4Cellv1.cc \
-  PHG4Cellv2.cc \
   PHG4CellContainer.cc \
   PHG4CellDefs.cc \
   PHG4CylinderGeom.cc \
@@ -248,7 +190,10 @@ libg4detectors_io_la_SOURCES = \
   PHG4ScintillatorSlatContainer.cc
 
 libg4detectors_la_SOURCES = \
-  $(ROOT5_DICTS) \
+  BeamLineMagnetDetector.cc \
+  BeamLineMagnetDisplayAction.cc \
+  BeamLineMagnetSubsystem.cc \
+  BeamLineMagnetSteppingAction.cc \
   PHG4GDMLDetector.cc \
   PHG4GDMLSubsystem.cc \
   PHG4BeamlineMagnetDetector.cc \
@@ -266,6 +211,7 @@ libg4detectors_la_SOURCES = \
   PHG4ConeSteppingAction.cc \
   PHG4ConeSubsystem.cc \
   PHG4CrystalCalorimeterDetector.cc \
+  PHG4CrystalCalorimeterDisplayAction.cc \
   PHG4CrystalCalorimeterSteppingAction.cc \
   PHG4CrystalCalorimeterSubsystem.cc \
   PHG4CylinderDetector.cc \
@@ -283,10 +229,12 @@ libg4detectors_la_SOURCES = \
   PHG4FCalSteppingAction.cc \
   PHG4FCalSubsystem.cc \
   PHG4ForwardEcalDetector.cc \
+  PHG4ForwardEcalDisplayAction.cc \
   PHG4EICForwardEcalDetector.cc \
   PHG4ForwardEcalSteppingAction.cc \
   PHG4ForwardEcalSubsystem.cc \
   PHG4ForwardHcalDetector.cc \
+  PHG4ForwardHcalDisplayAction.cc \
   PHG4ForwardHcalSteppingAction.cc \
   PHG4ForwardHcalSubsystem.cc \
   PHG4ForwardCalCellReco.cc \
@@ -299,10 +247,6 @@ libg4detectors_la_SOURCES = \
   PHG4HcalDetector.cc \
   PHG4HcalSteppingAction.cc \
   PHG4HcalSubsystem.cc \
-  PHG4HcalPrototypeDetector.cc \
-  PHG4HcalPrototypeDetectorMessenger.cc \
-  PHG4HcalPrototypeSteppingAction.cc \
-  PHG4HcalPrototypeSubsystem.cc \
   PHG4InnerHcalDetector.cc \
   PHG4InnerHcalDisplayAction.cc \
   PHG4InnerHcalSteppingAction.cc \
@@ -314,22 +258,14 @@ libg4detectors_la_SOURCES = \
   PHG4OuterHcalSteppingAction.cc \
   PHG4OuterHcalSubsystem.cc \
   PHG4ProjCrystalCalorimeterDetector.cc \
-  PHG4Prototype2InnerHcalDetector.cc \
-  PHG4Prototype2InnerHcalSteppingAction.cc \
-  PHG4Prototype2InnerHcalSubsystem.cc \
-  PHG4Prototype2HcalCellReco.cc \
-  PHG4Prototype2OuterHcalDetector.cc \
-  PHG4Prototype2OuterHcalSteppingAction.cc \
-  PHG4Prototype2OuterHcalSubsystem.cc \
-  PHG4Prototype3InnerHcalDetector.cc \
-  PHG4Prototype3InnerHcalSteppingAction.cc \
-  PHG4Prototype3InnerHcalSubsystem.cc \
   PHG4RICHDetector.cc \
+  PHG4RICHDisplayAction.cc \
   PHG4RICHSteppingAction.cc \
   PHG4RICHSubsystem.cc \
   ePHENIXRICHConstruction.cc \
   PHG4SectorConstructor.cc \
   PHG4SectorDetector.cc \
+  PHG4SectorDisplayAction.cc \
   PHG4SectorSteppingAction.cc \
   PHG4SectorSubsystem.cc \
   PHG4StepStatusDecode.cc \
@@ -338,21 +274,22 @@ libg4detectors_la_SOURCES = \
   PHG4PSTOFSteppingAction.cc \
   PHG4PSTOFSubsystem.cc \
   PHG4SpacalDetector.cc \
+  PHG4SpacalDisplayAction.cc \
   PHG4FullProjSpacalDetector.cc \
   PHG4FullProjTiltedSpacalDetector.cc \
   PHG4FullProjSpacalCellReco.cc \
-  PHG4SpacalPrototypeDetector.cc \
   PHG4SpacalSteppingAction.cc \
-  PHG4SpacalPrototypeSteppingAction.cc \
   PHG4SpacalSubsystem.cc \
-  PHG4SpacalPrototypeSubsystem.cc \
   PHG4mRICHDetector.cc \
   PHG4mRICHSteppingAction.cc \
   PHG4mRICHSubsystem.cc
 
+bin_SCRIPTS = \
+  CreateG4Subsystem.pl
+
 # Rule for generating table CINT dictionaries.
 %_Dict.cc: %.h %LinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
+	rootcint -f $@ @CINTDEFS@ $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
 
 #just to get the dependency
 %_Dict_rdict.pcm: %_Dict.cc ;

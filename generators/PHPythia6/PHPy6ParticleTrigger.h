@@ -3,12 +3,13 @@
 
 #include "PHPy6GenTrigger.h"
 
-#include <HepMC/GenEvent.h>
+#include <string>             // for string
+#include <vector>             // for vector
 
 namespace HepMC
 {
-class GenEvent;
-};
+  class GenEvent;
+}
 
 /**
  * Fun4All module based in PHPythia8/PHPy8ParticleTrigger
@@ -27,9 +28,7 @@ class PHPy6ParticleTrigger : public PHPy6GenTrigger
   //! destructor
   ~PHPy6ParticleTrigger(void) {}
 
-#ifndef __CINT__
   bool Apply(const HepMC::GenEvent *evt);
-#endif
 
   void AddParticles(const std::string &particles);
   void AddParticles(int particle);

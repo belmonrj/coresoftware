@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 // $Id: PgPostBankBackupManager.hh,v 1.8 2014/05/19 17:06:23 jinhuang Exp $
 
 /*!
@@ -8,19 +10,18 @@
  * \date $Date: 2014/05/19 17:06:23 $
  */
 
-#ifndef PDBCAL_PG_PGPOSTBANKBACKUPMANAGER_H
-#define PDBCAL_PG_PGPOSTBANKBACKUPMANAGER_H
+#ifndef PDBCALPG_PGPOSTBANKBACKUPMANAGER_H
+#define PDBCALPG_PGPOSTBANKBACKUPMANAGER_H
 
-#include <pdbcalbase/PdbCalChan.h>
 #include <phool/PHTimeStamp.h>
 
 #include <iostream>
 #include <string>
 #include <vector>
 
+class PdbCalChan;
 class PgPostBankBackupStorage;
 class TSQLStatement;
-class ODBCPreparedStatement;
 class TSQLPreparedStatement;
 class TSQLResultSet;
 

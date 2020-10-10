@@ -1,26 +1,17 @@
-#ifndef __QAG4SimulationCalorimeter_H__
-#define __QAG4SimulationCalorimeter_H__
+#ifndef QA_QAG4SIMULATIONCALORIMETER_H
+#define QA_QAG4SIMULATIONCALORIMETER_H
 
 #include <fun4all/SubsysReco.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
-#ifndef __CINT__
-#include <cstdint>
-#else
-#include <stdint.h>
-#endif
 
+class CaloEvalStack;
 class PHCompositeNode;
 class PHG4HitContainer;
 class PHG4TruthInfoContainer;
-class Fun4AllHistoManager;
-class TH1F;
-class PHG4Particle;
-class RawTowerGeom;
-class RawTowerContainer;
-class CaloEvalStack;
 
 /// \class QAG4SimulationCalorimeter
 class QAG4SimulationCalorimeter : public SubsysReco
@@ -37,12 +28,11 @@ class QAG4SimulationCalorimeter : public SubsysReco
 
   QAG4SimulationCalorimeter(const std::string &calo_name, enu_flags flags =
                                                               kDefaultFlag);
-  virtual ~QAG4SimulationCalorimeter();
+  virtual ~QAG4SimulationCalorimeter(){}
 
   int Init(PHCompositeNode *topNode);
   int InitRun(PHCompositeNode *topNode);
   int process_event(PHCompositeNode *topNode);
-  int End(PHCompositeNode *topNode);
 
   uint32_t
   get_flags() const
@@ -88,10 +78,7 @@ class QAG4SimulationCalorimeter : public SubsysReco
   int Init_Cluster(PHCompositeNode *topNode);
   int process_event_Cluster(PHCompositeNode *topNode);
 
-#ifndef __CINT__
-  //CINT is not c++11 compatible
   std::shared_ptr<CaloEvalStack> _caloevalstack;
-#endif
 
   std::string _calo_name;
   uint32_t _flags;
@@ -101,4 +88,4 @@ class QAG4SimulationCalorimeter : public SubsysReco
   PHG4TruthInfoContainer *_truth_container;
 };
 
-#endif  // __CALOEVALUATOR_H__
+#endif  // QA_QAG4SIMULATIONCALORIMETER_H

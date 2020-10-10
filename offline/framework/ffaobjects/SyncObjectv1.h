@@ -1,8 +1,13 @@
-#ifndef __SYNCOBJECTv1_H
-#define __SYNCOBJECTv1_H
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef FFAOBJECTS_SYNCOBJECTV1_H
+#define FFAOBJECTS_SYNCOBJECTV1_H
 
 #include "SyncObject.h"
+
 #include <iostream>
+
+class PHObject;
 
 class SyncObjectv1: public SyncObject
 {
@@ -12,7 +17,7 @@ class SyncObjectv1: public SyncObject
   SyncObjectv1();
   SyncObjectv1(const SyncObject&);
 
-  SyncObjectv1 *clone() const {return new SyncObjectv1(*this);}
+  PHObject *CloneMe() const {return new SyncObjectv1(*this);}
   /// dtor
   virtual ~SyncObjectv1() {}
 

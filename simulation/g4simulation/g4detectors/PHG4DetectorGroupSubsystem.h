@@ -1,5 +1,5 @@
 // Tell emacs that this is a C++ source
-// This file is really -*- C++ -*-.
+//  -*- C++ -*-.
 #ifndef G4DETECTORS_PHG4DETECTORGROUPSUBSYSTEM_H
 #define G4DETECTORS_PHG4DETECTORGROUPSUBSYSTEM_H
 
@@ -8,7 +8,9 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>  // for make_pair, pair
 
+class PHCompositeNode;
 class PHParametersContainer;
 
 class PHG4DetectorGroupSubsystem : public PHG4Subsystem
@@ -23,7 +25,7 @@ class PHG4DetectorGroupSubsystem : public PHG4Subsystem
 
   virtual ~PHG4DetectorGroupSubsystem() {}
 // stupid rootcint does not support final keyword
-#ifndef __CINT__
+#if !defined(__CINT__) || defined(__CLING__)
   int Init(PHCompositeNode *) final;
   int InitRun(PHCompositeNode *) final;
 #else
@@ -70,7 +72,8 @@ class PHG4DetectorGroupSubsystem : public PHG4Subsystem
   const std::string SuperDetector() const { return m_SuperDetector; }
   int GetLayer() const { return m_Layer; }
   virtual void SetDefaultParameters() = 0;  // this one has to be implemented by the daughter
- protected:                                 // those cannot be executed on the cmd line
+
+ protected:  // those cannot be executed on the cmd line
   PHG4DetectorGroupSubsystem(const std::string &name = "GenericSubsystem", const int lyr = 0);
   // these initialize the defaults and add new entries to the
   // list of variables. This should not be possible from the macro to

@@ -5,8 +5,6 @@ AM_CPPFLAGS = \
   -I$(OFFLINE_MAIN)/include \
   -I`root-config --incdir` 
 
-AM_CXXFLAGS = -Werror
-
 lib_LTLIBRARIES = libPHPythia8.la 
 
 pkginclude_HEADERS = \
@@ -18,26 +16,16 @@ pkginclude_HEADERS = \
 libPHPythia8_la_LDFLAGS = \
   -L$(libdir) \
   -L$(OFFLINE_MAIN)/lib \
-  `root-config --libs`
+  `root-config --libs` \
+  `fastjet-config --libs`
 
 libPHPythia8_la_LIBADD = \
   -lSubsysReco \
   -lpythia8 \
   -lphhepmc \
-  -lHepMC \
-  -lfastjet \
-  -lCGAL
-
-if ! MAKEROOT6
-ROOT5_DICTS = \
-  PHPythia8_Dict.cc \
-  PHPy8GenTrigger_Dict.cc \
-  PHPy8JetTrigger_Dict.cc \
-  PHPy8ParticleTrigger_Dict.cc
-endif
+  -lHepMC
 
 libPHPythia8_la_SOURCES = \
-  $(ROOT5_DICTS) \
   PHPythia8.cc \
   PHPy8GenTrigger.cc \
   PHPy8ParticleTrigger.cc \
@@ -62,9 +50,5 @@ testexternals.cc:
 	echo "  return 0;" >> $@
 	echo "}" >> $@
 
-%_Dict.cc: %.h %LinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
-
-
 clean-local:
-	rm -f *Dict* $(BUILT_SOURCES)
+	rm -f $(BUILT_SOURCES)

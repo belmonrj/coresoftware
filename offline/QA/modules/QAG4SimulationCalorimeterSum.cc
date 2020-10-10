@@ -1,46 +1,40 @@
 #include "QAG4SimulationCalorimeterSum.h"
 #include "QAHistManagerDef.h"
 
-#include <fun4all/Fun4AllReturnCodes.h>
-#include <fun4all/Fun4AllServer.h>
-#include <fun4all/PHTFileServer.h>
-#include <fun4all/SubsysReco.h>
-#include <phool/PHCompositeNode.h>
-#include <phool/getClass.h>
-
-#include <phool/PHCompositeNode.h>
+#include <g4eval/CaloEvalStack.h>
+#include <g4eval/CaloRawClusterEval.h>
+#include <g4eval/SvtxEvalStack.h>
 
 #include <g4main/PHG4Particle.h>
 #include <g4main/PHG4TruthInfoContainer.h>
-#include <g4main/PHG4VtxPoint.h>
 
 #include <calobase/RawCluster.h>
-#include <calobase/RawClusterContainer.h>
 #include <calobase/RawTower.h>
 #include <calobase/RawTowerContainer.h>
 #include <calobase/RawTowerGeomContainer.h>
 
-#include <g4eval/CaloEvalStack.h>
-#include <g4eval/SvtxEvalStack.h>
-
-#include <g4hough/PHG4HoughTransform.h>
-
 #include <trackbase_historic/SvtxTrack.h>
 
-#include <TFile.h>
-#include <TH1F.h>
-#include <TH2F.h>
-#include <TLorentzVector.h>
-#include <TString.h>
-#include <TVector3.h>
+#include <g4eval/SvtxTrackEval.h>            // for SvtxTrackEval
 
-#include <algorithm>
+
+#include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/Fun4AllHistoManager.h>
+#include <fun4all/SubsysReco.h>
+
+#include <phool/getClass.h>
+
+#include <TAxis.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TNamed.h>
+#include <TString.h>
+
 #include <cassert>
 #include <cmath>
-#include <exception>
 #include <iostream>
-#include <set>
-#include <stdexcept>
+#include <iterator>                          // for reverse_iterator
+#include <utility>                           // for pair
 #include <vector>
 
 using namespace std;
@@ -48,20 +42,12 @@ using namespace std;
 QAG4SimulationCalorimeterSum::QAG4SimulationCalorimeterSum(
     QAG4SimulationCalorimeterSum::enu_flags flags)
   : SubsysReco("QAG4SimulationCalorimeterSum")
-  ,  //
-  _flags(flags)
-  ,  //
-  _calo_name_cemc("CEMC")
+  , _flags(flags)
+  , _calo_name_cemc("CEMC")
   , _calo_name_hcalin("HCALIN")
-  ,  //
-  _calo_name_hcalout("HCALOUT")
-  ,  //
-  _truth_container(nullptr)
+  , _calo_name_hcalout("HCALOUT")
+  , _truth_container(nullptr)
   , _magField(+1.4)
-{
-}
-
-QAG4SimulationCalorimeterSum::~QAG4SimulationCalorimeterSum()
 {
 }
 
@@ -111,11 +97,6 @@ int QAG4SimulationCalorimeterSum::InitRun(PHCompositeNode *topNode)
       _svtxevalstack->set_verbosity(Verbosity() + 1);
     }
   }
-  return Fun4AllReturnCodes::EVENT_OK;
-}
-
-int QAG4SimulationCalorimeterSum::End(PHCompositeNode *topNode)
-{
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -335,8 +316,6 @@ bool QAG4SimulationCalorimeterSum::eval_trk_proj(const string &detector, SvtxTra
       topNode, towergeonodename.c_str());
   assert(towergeo);
 
-  const double radius = towergeo->get_radius() + towergeo->get_thickness() * 0.5;
-
   if (Verbosity() > 2)
   {
     towergeo->identify();
@@ -359,15 +338,19 @@ bool QAG4SimulationCalorimeterSum::eval_trk_proj(const string &detector, SvtxTra
 
   // curved tracks inside mag field
   // straight projections thereafter
+
   std::vector<double> point;
   point.assign(3, NAN);
-  PHG4HoughTransform::projectToRadius(track, _magField, radius, point);
+
+//  const double radius = towergeo->get_radius() + towergeo->get_thickness() * 0.5;
+
+//  PHG4HoughTransform::projectToRadius(track, _magField, radius, point);
 
   if (std::isnan(point[0]) or std::isnan(point[1]) or std::isnan(point[2]))
   {
-    cout << __PRETTY_FUNCTION__ << "::" << Name()
-         << " - Error - track extrapolation failure:";
-    track->identify();
+    // cout << __PRETTY_FUNCTION__ << "::" << Name()
+    //      << " - Error - track extrapolation failure:";
+    // track->identify();
     return false;
   }
 

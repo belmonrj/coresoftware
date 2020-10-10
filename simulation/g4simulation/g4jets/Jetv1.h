@@ -11,6 +11,13 @@
 
 #include "Jet.h"
 
+#include <cstddef>          // for size_t
+#include <iostream>
+#include <map>
+#include <utility>   // for pair, make_pair
+
+class PHObject;
+
 /*!
  * \brief Jetv1
  */
@@ -25,7 +32,7 @@ class Jetv1 : public Jet
   void identify(std::ostream& os = std::cout) const;
   void Reset();
   int isValid() const;
-  Jet* Clone() const;
+  PHObject* CloneMe() const;
 
   // jet info
 

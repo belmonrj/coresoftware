@@ -1,14 +1,21 @@
-#ifndef PDBCAL_PG_PGPOSTCALBANKITERATOR_H
-#define PDBCAL_PG_PGPOSTCALBANKITERATOR_H
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef PDBCALPG_PGPOSTCALBANKITERATOR_H
+#define PDBCALPG_PGPOSTCALBANKITERATOR_H
 
 #include <pdbcalbase/PdbBankID.h>
 #include <pdbcalbase/PdbCalBankIterator.h>
 
+#include <phool/PHTimeStamp.h>
+
+#include <ctime>
 #include <map>
+#include <iostream>
 #include <string>
 
-class PgPostBankManager;
+class PdbCalBank;
 class PgPostApplication;
+class PgPostBankManager;
 class TSQLResultSet;
 class TSQLStatement;
 

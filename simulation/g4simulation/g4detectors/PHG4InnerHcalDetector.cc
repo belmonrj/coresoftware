@@ -1,34 +1,37 @@
 #include "PHG4InnerHcalDetector.h"
 
+#include "PHG4HcalDefs.h"
 #include "PHG4InnerHcalDisplayAction.h"
 #include "PHG4InnerHcalSubsystem.h"
-#include "PHG4HcalDefs.h"
 
 #include <phparameter/PHParameters.h>
 
+#include <g4main/PHG4Detector.h>
+#include <g4main/PHG4DisplayAction.h>
+#include <g4main/PHG4Subsystem.h>
 #include <g4main/PHG4Utils.h>
 
-#include <phool/PHCompositeNode.h>
-#include <phool/PHIODataNode.h>
-#include <phool/getClass.h>
+#include <phool/phool.h>
 
 #include <TSystem.h>
 
 #include <Geant4/G4AssemblyVolume.hh>
 #include <Geant4/G4Box.hh>
-#include <Geant4/G4Colour.hh>
-#include <Geant4/G4Cons.hh>
 #include <Geant4/G4ExtrudedSolid.hh>
 #include <Geant4/G4IntersectionSolid.hh>
 #include <Geant4/G4LogicalVolume.hh>
 #include <Geant4/G4Material.hh>
 #include <Geant4/G4PVPlacement.hh>
-#include <Geant4/G4SubtractionSolid.hh>
+#include <Geant4/G4RotationMatrix.hh>
+#include <Geant4/G4String.hh>
 #include <Geant4/G4SystemOfUnits.hh>
-#include <Geant4/G4Trap.hh>
+#include <Geant4/G4ThreeVector.hh>
+#include <Geant4/G4Transform3D.hh>
 #include <Geant4/G4Tubs.hh>
 #include <Geant4/G4TwoVector.hh>
+#include <Geant4/G4Types.hh>
 #include <Geant4/G4UserLimits.hh>
+#include <Geant4/G4VSolid.hh>
 
 #include <CGAL/Boolean_set_operations_2.h>
 #include <CGAL/Circular_kernel_intersections.h>
@@ -39,8 +42,14 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <iterator>
 #include <sstream>
+
+class PHCompositeNode;
 
 typedef CGAL::Circle_2<PHG4InnerHcalDetector::Circular_k> Circle_2;
 typedef CGAL::Circular_arc_point_2<PHG4InnerHcalDetector::Circular_k> Circular_arc_point_2;
@@ -54,8 +63,8 @@ using namespace std;
 // scintilator length takes care of this
 static double subtract_from_scinti_x = 0.1 * mm;
 
-PHG4InnerHcalDetector::PHG4InnerHcalDetector(PHG4InnerHcalSubsystem *subsys,PHCompositeNode *Node, PHParameters *parameters, const std::string &dnam)
-  : PHG4Detector(Node, dnam)
+PHG4InnerHcalDetector::PHG4InnerHcalDetector(PHG4Subsystem *subsys, PHCompositeNode *Node, PHParameters *parameters, const std::string &dnam)
+  : PHG4Detector(subsys, Node, dnam)
   , m_DisplayAction(dynamic_cast<PHG4InnerHcalDisplayAction *>(subsys->GetDisplayAction()))
   , m_Params(parameters)
   , m_ScintiMotherAssembly(nullptr)
@@ -397,12 +406,13 @@ void PHG4InnerHcalDetector::ShiftSecantToTangent(Point_2 &lowleft, Point_2 &uple
 
 // Construct the envelope and the call the
 // actual inner hcal construction
-void PHG4InnerHcalDetector::Construct(G4LogicalVolume *logicWorld)
+void PHG4InnerHcalDetector::ConstructMe(G4LogicalVolume *logicWorld)
 {
   G4Material *Air = G4Material::GetMaterial("G4_AIR");
   G4VSolid *hcal_envelope_cylinder = new G4Tubs("InnerHcal_envelope_solid", m_EnvelopeInnerRadius, m_EnvelopeOuterRadius, m_EnvelopeZ / 2., 0, 2 * M_PI);
   m_VolumeEnvelope = hcal_envelope_cylinder->GetCubicVolume();
   G4LogicalVolume *hcal_envelope_log = new G4LogicalVolume(hcal_envelope_cylinder, Air, G4String("Hcal_envelope"), 0, 0, 0);
+
   G4RotationMatrix hcal_rotm;
   hcal_rotm.rotateX(m_Params->get_double_param("rot_x") * deg);
   hcal_rotm.rotateY(m_Params->get_double_param("rot_y") * deg);

@@ -1,35 +1,33 @@
 #include "PHPy6JetTrigger.h"
 #include "PHPy6GenTrigger.h"
 
-#include <phool/PHCompositeNode.h>
-#include <phool/getClass.h>
-#include <phool/phool.h>
-
-#include <phhepmc/PHHepMCGenEvent.h>
-
 #include <HepMC/GenEvent.h>
+#include <HepMC/GenParticle.h>   // for GenParticle
+#include <HepMC/SimpleVector.h>  // for FourVector
 
 // fastjet includes
 #include <fastjet/ClusterSequence.hh>
 #include <fastjet/JetDefinition.hh>
 #include <fastjet/PseudoJet.hh>
-#include <fastjet/SISConePlugin.hh>
+
+#include <cmath>     // for sqrt
+#include <cstdlib>   // for abs
+#include <iostream>  // for operator<<, endl, basic_ostream
+#include <memory>    // for allocator_traits<>::value_type
+#include <utility>   // for swap
+#include <vector>    // for vector
 
 using namespace std;
 
 //__________________________________________________________
 PHPy6JetTrigger::PHPy6JetTrigger(const std::string &name)
   : PHPy6GenTrigger(name)
-  , m_theEtaHigh(4.0)
-  , m_theEtaLow(1.0)
-  , m_minPt(10.0)
-  , m_R(1.0)
 {
 }
 
 PHPy6JetTrigger::~PHPy6JetTrigger()
 {
-  if (_verbosity > 0) PrintConfig();
+  if (Verbosity() > 0) PrintConfig();
 }
 
 bool PHPy6JetTrigger::Apply(const HepMC::GenEvent *evt)
@@ -78,14 +76,17 @@ bool PHPy6JetTrigger::Apply(const HepMC::GenEvent *evt)
 
     if (pt > max_pt) max_pt = pt;
 
-    if (pt > m_minPt)
+    vector<fastjet::PseudoJet> constituents = fastjets[ijet].constituents();
+    const int nconst = constituents.size();
+
+    if (pt > m_minPt && nconst >= m_nconst)
     {
       jetFound = true;
       break;
     }
   }
 
-  if (_verbosity > 2)
+  if (Verbosity() > 2)
   {
     cout << "PHPy6JetTrigger::Apply - max_pt = " << max_pt << ", and jetFound = " << jetFound << endl;
   }

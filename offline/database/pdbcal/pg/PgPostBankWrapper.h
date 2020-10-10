@@ -1,12 +1,20 @@
-#ifndef PDBCAL_PG_PGPOSTBANKWRAPPER_H
-#define PDBCAL_PG_PGPOSTBANKWRAPPER_H
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef PDBCALPG_PGPOSTBANKWRAPPER_H
+#define PDBCALPG_PGPOSTBANKWRAPPER_H
 
 #include "PgPostCalBank.h"
 
+#include <pdbcalbase/PdbBankID.h>
+#include <pdbcalbase/PdbCalBank.h>
+
 #include <phool/PHTimeStamp.h>
 
-#include <iostream>
+#include <cstddef>
 #include <string>
+
+class PdbCalChan;
+class PHObject;
 
 class PgPostBankWrapper : public PgPostCalBank
 {
@@ -14,7 +22,7 @@ class PgPostBankWrapper : public PgPostCalBank
   PgPostBankWrapper();
   PgPostBankWrapper(PdbCalBank *b);
   virtual ~PgPostBankWrapper();
-  virtual PgPostCalBank *clone() const { return new PgPostBankWrapper(*this); }
+  virtual PHObject *CloneMe() const { return new PgPostBankWrapper(*this); }
 
   void printHeader() const;
   void print() { bank->print(); }

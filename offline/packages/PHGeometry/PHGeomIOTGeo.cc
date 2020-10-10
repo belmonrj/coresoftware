@@ -13,10 +13,12 @@
 #include <TGeoManager.h>
 #include <TGeoVolume.h>
 #include <TMemFile.h>
+#include <TObject.h>      // for TObject
 
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -27,14 +29,7 @@ PHGeomIOTGeo::PHGeomIOTGeo()
 
 PHGeomIOTGeo::~PHGeomIOTGeo()
 {
-  Reset();
-}
-
-PHObject*
-PHGeomIOTGeo::clone() const
-{
-  PHGeomIOTGeo* geo = new PHGeomIOTGeo(*this);
-  return geo;
+    Data.resize(0);
 }
 
 void PHGeomIOTGeo::SetGeometry(const TGeoVolume* g)

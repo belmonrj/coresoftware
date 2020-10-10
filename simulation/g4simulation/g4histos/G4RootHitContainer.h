@@ -3,6 +3,8 @@
 
 #include <phool/PHObject.h>
 
+#include <iostream>          // for cout, ostream
+
 class PHG4Hit;
 class TClonesArray;
 
@@ -14,7 +16,7 @@ class G4RootHitContainer : public PHObject
 
   void Reset();
 
-  PHG4Hit* AddHit(const PHG4Hit& g4hit);
+  PHG4Hit* AddHit(const PHG4Hit *g4hit);
   void set_etotal(const float e) { etotal = e; }
   float get_etotal() const { return etotal; }
 

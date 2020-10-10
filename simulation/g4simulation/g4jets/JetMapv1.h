@@ -5,24 +5,24 @@
 
 #include "Jet.h"
 
-#include <phool/PHObject.h>
-
-#include <cmath>
-#include <map>
+#include <cstddef>          // for size_t
+#include <iostream>
 #include <set>
+
+class PHObject;
 
 class JetMapv1 : public JetMap
 {
  public:
   JetMapv1();
-  JetMapv1(const JetMapv1& jets);
+  JetMapv1(const JetMap *jets);
   JetMapv1& operator=(const JetMapv1& jets);
   virtual ~JetMapv1();
 
   void identify(std::ostream& os = std::cout) const;
   void Reset();
   int isValid() const { return 1; }
-  JetMap* Clone() const;
+  PHObject* CloneMe() const;
 
   // map content info ----------------------------------------------------------
 

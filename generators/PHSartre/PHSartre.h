@@ -5,24 +5,16 @@
 #include <phhepmc/PHHepMCGenHelper.h>
 
 #include <cmath>
-#include <iostream>
 #include <string>
 #include <vector>
 
 class PHCompositeNode;
-class PHHepMCGenEvent;
-class PHHepMCFilter;
 
 class Sartre;
 class Event;
 class EventGeneratorSettings;
 class PHSartreGenTrigger;
 class TGenPhaseSpace;
-
-namespace HepMC
-{
-class GenEvent;
-};
 
 class PHSartre : public SubsysReco
 {
@@ -35,9 +27,9 @@ class PHSartre : public SubsysReco
   int ResetEvent(PHCompositeNode *topNode);
   int End(PHCompositeNode *topNode);
 
-  void set_config_file(const char *cfg_file)
+  void set_config_file(const std::string &cfg_file)
   {
-    if (cfg_file) _configFile = cfg_file;
+    _configFile = cfg_file;
   }
 
   void print_config() const;
@@ -107,7 +99,7 @@ class PHSartre : public SubsysReco
 
  private:
   int create_node_tree(PHCompositeNode *topNode);
-  double percent_diff(const double a, const double b) { return abs((a - b) / a); }
+  double percent_diff(const double a, const double b) { return fabs((a - b) / a); }
   void randomlyReverseBeams(Event *myEvent);
   void ReverseBeams(Event *myEvent);
 

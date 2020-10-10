@@ -2,16 +2,22 @@
 #define CALOBASE_RAWCLUSTERV1_H
 
 #include "RawCluster.h"
+#include "RawClusterDefs.h"
 
-#include <cmath>
+#include <CLHEP/Vector/ThreeVector.h>
+
+#include <cstddef>
+#include <iostream>
 #include <map>
-#include <vector>
+#include <utility>
 
-#ifdef __CINT__
-#include <stdint.h>
-#else
+#if !defined(__CINT__) || defined(__CLING__)
 #include <cstdint>
+#else
+#include <stdint.h>
 #endif
+
+class PHObject;
 
 class RawClusterv1 : public RawCluster
 {
@@ -19,7 +25,7 @@ class RawClusterv1 : public RawCluster
   RawClusterv1();
   virtual ~RawClusterv1() {}
   virtual void Reset();
-  //  virtual PHObject* clone() const;
+  virtual PHObject *CloneMe() const {return new RawClusterv1(*this);}
   virtual int isValid() const { return towermap.size() > 0; }
   virtual void identify(std::ostream& os = std::cout) const;
 

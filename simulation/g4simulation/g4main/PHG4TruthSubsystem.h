@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef G4MAIN_PHG4TRUTHSUBSYSTEM_H
 #define G4MAIN_PHG4TRUTHSUBSYSTEM_H
 
@@ -5,6 +7,9 @@
 
 #include <string>
 
+class PHCompositeNode;
+class PHG4EventAction;
+class PHG4TrackingAction;
 class PHG4TruthTrackingAction;
 class PHG4TruthEventAction;
 

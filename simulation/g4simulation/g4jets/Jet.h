@@ -4,6 +4,7 @@
 #include <phool/PHObject.h>
 
 #include <cmath>
+#include <cstddef>          // for size_t
 #include <iostream>
 #include <map>
 
@@ -43,6 +44,9 @@ class Jet : public PHObject
     HCALIN_TOWER_SUB1CS = 18,
     HCALOUT_TOWER_SUB1CS = 19, /* needed for CS subtraction w/ HI jet reco */
     HEPMC_IMPORT = 20,         /*Direct import HEPMC containers, such as sHijing HIJFRG truth jets loaded by JetHepMCLoader*/
+    HCAL_TOPO_CLUSTER = 21,    /* I+HOCal 3-D topoCluster input */
+    EEMC_TOWER = 22,
+    EEMC_CLUSTER = 23,
   };
 
   enum PROPERTY
@@ -61,6 +65,12 @@ class Jet : public PHObject
     //! used to tag as seed jet in 1st or 2nd iteration of UE
     //! determination
     prop_SeedItr = 4,
+
+    //! SoftDrop quantities
+    prop_zg = 5,
+    prop_Rg = 6,
+    prop_mu = 7,
+
   };
 
   Jet() {}
@@ -69,7 +79,7 @@ class Jet : public PHObject
   virtual void identify(std::ostream& os = std::cout) const;
   virtual void Reset() { return; }
   virtual int isValid() const { return 0; }
-  virtual Jet* Clone() const { return nullptr; }
+  virtual PHObject* CloneMe() const { return nullptr; }
 
   // jet info ------------------------------------------------------------------
 

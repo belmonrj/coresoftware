@@ -1,3 +1,5 @@
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
 #ifndef FUN4ALL_FUN4ALLNOSYNCDSTINPUTMANAGER_H
 #define FUN4ALL_FUN4ALLNOSYNCDSTINPUTMANAGER_H
 
@@ -5,7 +7,8 @@
 
 #include "Fun4AllReturnCodes.h"
 
-class PHCompositeNode;
+#include <string>                    // for string
+
 class PHNodeIOManager;
 class SyncObject;
 
@@ -26,6 +29,8 @@ class Fun4AllNoSyncDstInputManager : public Fun4AllDstInputManager
 
   // turn off reading of the runwise TTree to make run mixing for embedding possible
   int NoRunTTree();
+
+  int SkipForThisManager(const int nevents) {return PushBackEvents(nevents);}
 };
 
 #endif /* __FUN4ALLNOSYNCDSTINPUTMANAGER_H__ */

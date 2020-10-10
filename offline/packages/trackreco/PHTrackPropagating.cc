@@ -2,20 +2,18 @@
 
 #include "AssocInfoContainer.h"
 
-//#include <trackbase_historic/SvtxClusterMap.h>
 #include <trackbase_historic/SvtxTrackMap.h>
-#include <trackbase_historic/SvtxTrackMap_v1.h>
 #include <trackbase_historic/SvtxVertexMap.h>
-#include <trackbase_historic/SvtxVertexMap_v1.h>
 
 #include <trackbase/TrkrClusterContainer.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/SubsysReco.h>                // for SubsysReco
 
-#include <phool/PHCompositeNode.h>
-#include <phool/PHIODataNode.h>
-#include <phool/PHNodeIterator.h>
 #include <phool/getClass.h>
+#include <phool/phool.h>                       // for PHWHERE
+
+#include <iostream>                            // for operator<<, basic_ostream
 
 using namespace std;
 
@@ -25,6 +23,7 @@ PHTrackPropagating::PHTrackPropagating(const std::string& name)
   , _vertex_map(nullptr)
   , _track_map(nullptr)
   , _assoc_container(nullptr)
+  , _track_map_name("SvtxTrackMap")
 {
 }
 
@@ -74,10 +73,10 @@ int PHTrackPropagating::GetNodes(PHCompositeNode* topNode)
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 
-  _track_map = findNode::getClass<SvtxTrackMap>(topNode, "SvtxTrackMap");
+  _track_map = findNode::getClass<SvtxTrackMap>(topNode, _track_map_name);
   if (!_track_map)
   {
-    cerr << PHWHERE << " ERROR: Can't find SvtxTrackMap." << endl;
+    cerr << PHWHERE << " ERROR: Can't find SvtxTrackMap: " << _track_map_name << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 

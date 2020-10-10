@@ -2,24 +2,30 @@
 
 #include <calobase/RawCluster.h>
 #include <calobase/RawClusterContainer.h>
-#include <calobase/RawClusterv1.h>
 #include <calobase/RawTower.h>
 #include <calobase/RawTowerContainer.h>
 #include <calobase/RawTowerDeadMap.h>
 #include <calobase/RawTowerGeomContainer.h>
 
+#include <fun4all/Fun4AllBase.h>
 #include <fun4all/Fun4AllReturnCodes.h>
-#include <fun4all/Fun4AllServer.h>
-#include <phool/PHCompositeNode.h>
+#include <fun4all/SubsysReco.h>
+
 #include <phool/getClass.h>
-#include <phool/phool.h>
+#include <phool/PHCompositeNode.h>
+#include <phool/PHNode.h>
+#include <phool/PHNodeIterator.h>
 
 #include <cassert>
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <utility>                           // for pair
+#include <vector>
 
 using namespace std;
 
@@ -236,12 +242,12 @@ void RawClusterDeadAreaMask::CreateNodeTree(PHCompositeNode *topNode)
   }
 
   string towergeomnodename = "TOWERGEOM_" + m_detector;
-  m_geometry = findNode::getClass<RawTowerGeomContainer>(topNode, towergeomnodename.c_str());
+  m_geometry = findNode::getClass<RawTowerGeomContainer>(topNode, towergeomnodename);
   if (!m_geometry)
   {
     cout << Name() << "::" << m_detector << "::"
          << "CreateNodeTree"
-         << ": Could not find node " << towergeomnodename.c_str() << endl;
+         << ": Could not find node " << towergeomnodename << endl;
     throw std::runtime_error("failed to find TOWERGEOM node in RawClusterDeadAreaMask::CreateNodeTree");
   }
 

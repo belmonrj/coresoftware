@@ -20,10 +20,6 @@ pkginclude_HEADERS = \
   Fun4AllHepMCOutputManager.h \
   Fun4AllOscarInputManager.h \
   HepMCFlowAfterBurner.h \
-  PHGenEvent.h \
-  PHGenEventv1.h \
-  PHGenEventList.h \
-  PHGenEventListv1.h \
   PHGenIntegral.h \
   PHGenIntegralv1.h \
   PHHepMCGenEvent.h \
@@ -45,41 +41,21 @@ libphhepmc_la_LIBADD = \
   -lgslcblas
 
 ROOT_DICTS = \
-  PHGenEvent_Dict.cc \
-  PHGenEventv1_Dict.cc \
-  PHGenEventList_Dict.cc \
-  PHGenEventListv1_Dict.cc \
   PHGenIntegral_Dict.cc \
   PHGenIntegralv1_Dict.cc \
   PHHepMC_io_Dict.cc \
   PHHepMCGenEvent_Dict.cc \
   PHHepMCGenEventMap_Dict.cc
-if MAKEROOT6
+
 pcmdir = $(libdir)
 nobase_dist_pcm_DATA = \
-  PHGenEvent_Dict_rdict.pcm \
-  PHGenEventv1_Dict_rdict.pcm \
-  PHGenEventList_Dict_rdict.pcm \
-  PHGenEventListv1_Dict_rdict.pcm \
   PHGenIntegral_Dict_rdict.pcm \
   PHGenIntegralv1_Dict_rdict.pcm \
   PHHepMC_io_Dict_rdict.pcm \
   PHHepMCGenEvent_Dict_rdict.pcm \
   PHHepMCGenEventMap_Dict_rdict.pcm
-else
-ROOT5_DICTS = \
-  Fun4AllHepMCInputManager_Dict.cc \
-  Fun4AllHepMCPileupInputManager_Dict.cc \
-  Fun4AllHepMCOutputManager_Dict.cc \
-  Fun4AllOscarInputManager_Dict.cc \
-  HepMCFlowAfterBurner_Dict.cc \
-  PHHepMCGenHelper_Dict.cc \
-  PHHepMCParticleSelectorDecayProductChain_Dict.cc
-
-endif
 
 libphhepmc_la_SOURCES = \
-  $(ROOT5_DICTS) \
   Fun4AllHepMCInputManager.cc \
   Fun4AllHepMCPileupInputManager.cc \
   Fun4AllHepMCOutputManager.cc \
@@ -90,8 +66,6 @@ libphhepmc_la_SOURCES = \
 
 libphhepmc_io_la_SOURCES = \
   $(ROOT_DICTS) \
-  PHGenEventv1.cc \
-  PHGenEventListv1.cc \
   PHHepMCGenEvent.cc \
   PHHepMCGenEventMap.cc \
   PHGenIntegral.cc \
@@ -129,7 +103,7 @@ testexternals.cc:
 # Rule for generating table CINT dictionaries.
 
 %_Dict.cc: %.h %LinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
+	rootcint -f $@ @CINTDEFS@ $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
 
 #just to get the dependency
 %_Dict_rdict.pcm: %_Dict.cc ;
@@ -137,7 +111,7 @@ testexternals.cc:
 PHHepMC_io_Dict.cc: \
   $(OFFLINE_MAIN)/include/HepMC/*.h \
   PHHepMC_ioLinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
+	rootcint -f $@ @CINTDEFS@ $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
 
 clean-local:
 	rm -f *Dict* $(BUILT_SOURCES) *.pcm 

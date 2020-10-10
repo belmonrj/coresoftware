@@ -7,6 +7,7 @@
 //  Author: Chris Pinkenburg
 
 #include <TObject.h>
+
 #include <iostream>
 
 class PHObject : public TObject
@@ -18,7 +19,11 @@ class PHObject : public TObject
   /// dtor
   virtual ~PHObject() {}
   /// Virtual copy constructor.
-  virtual PHObject* clone() const;
+  virtual PHObject* CloneMe() const;
+
+  virtual PHObject* clone() const final;
+  virtual PHObject *Clone(const char *newname = "") const final;
+  virtual void 	Copy(TObject &object) const final;
 
   /** identify Function from PHObject
       @param os Output Stream 
@@ -42,10 +47,7 @@ class PHObject : public TObject
 
   virtual int Integrate() const { return 0; }
   virtual int Integrate(PHObject* obj) { return -1; }
-  virtual void CopyContent(PHObject* obj);
-
-  int SplitLevel() const { return 99; }
-  int BufferSize() const { return 32000; }
+  virtual void CopyFrom(const PHObject *obj);
 
  private:
   ClassDef(PHObject, 0)  // no I/O

@@ -12,6 +12,7 @@
 #define PHHEPMC_PHGENINTEGRAL_H
 
 #include <phool/PHObject.h>
+
 #include <string>
 
 /*!
@@ -20,8 +21,8 @@
 class PHGenIntegral : public PHObject
 {
  public:
-  PHGenIntegral();
-  virtual ~PHGenIntegral();
+  PHGenIntegral(){}
+  virtual ~PHGenIntegral(){}
 
   //! Integrated luminosity in pb^-1
   virtual Double_t get_Integrated_Lumi() const

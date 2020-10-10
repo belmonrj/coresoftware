@@ -1,4 +1,6 @@
-// $Id: $                                                                                             
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+// $Id: $
 
 /*!
  * \file PHG4HitEval.h
@@ -8,25 +10,27 @@
  * \date $Date: $
  */
 
-#ifndef PHG4HITEVAL_H_
-#define PHG4HITEVAL_H_
+#ifndef G4MAIN_PHG4HITEVAL_H
+#define G4MAIN_PHG4HITEVAL_H
 
 #include "PHG4Hitv1.h"
+
+class PHG4Hit;
+class PHObject;
 
 /*!
  * \brief PHG4HitEval for evaluating PHG4Hitv1 in CINT readable evaluation trees
  */
 class PHG4HitEval : public PHG4Hitv1
 {
-public:
+ public:
   PHG4HitEval();
 
-  PHG4HitEval(const PHG4Hit& g4hit);
+  PHG4HitEval(const PHG4Hit *g4hit);
 
-  virtual
-  ~PHG4HitEval();
+  virtual ~PHG4HitEval() {}
 
-  virtual void Copy(PHG4Hit const &g4hit);
+  virtual void CopyFrom(const PHObject *phobj);
 
   float
   get_eion() const
@@ -39,8 +43,7 @@ public:
     eion = f;
   }
 
-  int
-  get_scint_id() const
+  int get_scint_id() const
   {
     return scint_id;
   }
@@ -75,8 +78,7 @@ public:
     path_length = pathLength;
   }
 
-protected:
-
+ protected:
   float eion;
 
   int scint_id;
@@ -87,7 +89,7 @@ protected:
   //! path length of the track to the hit
   float path_length;
 
-ClassDef(PHG4HitEval,1)
+  ClassDef(PHG4HitEval, 1)
 };
 
 #endif /* PHG4HITEVAL_H_ */
