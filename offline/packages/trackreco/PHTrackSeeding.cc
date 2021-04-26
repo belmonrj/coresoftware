@@ -7,7 +7,8 @@
 #include <trackbase_historic/SvtxVertexMap.h>
 
 #include <trackbase/TrkrClusterContainer.h>
-#include <trackbase/TrkrClusterHitAssoc.h>
+#include <trackbase/TrkrClusterHitAssocv2.h>
+#include <trackbase/TrkrHitSetContainer.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <fun4all/SubsysReco.h>                  // for SubsysReco
@@ -113,8 +114,11 @@ int PHTrackSeeding::GetNodes(PHCompositeNode* topNode)
   //---------------------------------
   // Get Objects off of the Node Tree
   //---------------------------------
+  if(_use_truth_clusters)
+    _cluster_map = findNode::getClass<TrkrClusterContainer>(topNode, "TRKR_CLUSTER_TRUTH");
+  else
+    _cluster_map = findNode::getClass<TrkrClusterContainer>(topNode, "TRKR_CLUSTER");
 
-  _cluster_map = findNode::getClass<TrkrClusterContainer>(topNode, "TRKR_CLUSTER");
   if (!_cluster_map)
   {
     cerr << PHWHERE << " ERROR: Can't find node TRKR_CLUSTER" << endl;
@@ -145,6 +149,13 @@ int PHTrackSeeding::GetNodes(PHCompositeNode* topNode)
   if (!_assoc_container)
   {
     cerr << PHWHERE << " ERROR: Can't find AssocInfoContainer." << endl;
+    return Fun4AllReturnCodes::ABORTEVENT;
+  }
+
+  _hitsets = findNode::getClass<TrkrHitSetContainer>(topNode, "TRKR_HITSET");
+  if (!_hitsets)
+  {
+    cerr << PHWHERE << " ERROR: Can't find TrkrHitSetContainer." << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 

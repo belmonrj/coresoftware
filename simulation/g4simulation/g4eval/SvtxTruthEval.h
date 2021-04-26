@@ -49,6 +49,7 @@ class SvtxTruthEval
   bool is_primary(PHG4Particle* particle);
   PHG4Particle* get_primary_particle(PHG4Hit* g4hit);
   PHG4Particle* get_primary_particle(PHG4Particle* particle);
+  PHG4Particle* get_particle(const int trackid); 
 
   std::map<unsigned int, std::shared_ptr<TrkrCluster> > all_truth_clusters(PHG4Particle* particle);
 
@@ -73,16 +74,20 @@ class SvtxTruthEval
 
   void G4ClusterSize(unsigned int layer, std::vector<std::vector<double>> contributing_hits_entry,std::vector<std::vector<double>> contributing_hits_exit, float &g4phisize, float &g4zsize);
 
+  unsigned int getAdcValue(double gedep);
+
   BaseTruthEval _basetrutheval;
 
-  PHG4TruthInfoContainer* _truthinfo;
-  PHG4HitContainer* _g4hits_svtx;
-  PHG4HitContainer* _g4hits_tracker;
-  PHG4HitContainer* _g4hits_maps;
+  PHG4TruthInfoContainer* _truthinfo{nullptr};
+  PHG4HitContainer* _g4hits_svtx{nullptr};
+  PHG4HitContainer* _g4hits_mms{nullptr};
+  PHG4HitContainer* _g4hits_tracker{nullptr};
+  PHG4HitContainer* _g4hits_maps{nullptr};
 
   PHG4CylinderCellGeomContainer* _tpc_geom_container;
   PHG4CylinderGeomContainer *_intt_geom_container;
   PHG4CylinderGeomContainer* _mvtx_geom_container;
+  PHG4CylinderGeomContainer* _mms_geom_container;
 
   bool _strict;
   int _verbosity;
@@ -92,6 +97,7 @@ class SvtxTruthEval
   const unsigned int _nlayers_maps = 3;
   const unsigned int _nlayers_intt = 4;
   const unsigned int _nlayers_tpc = 48;
+  const unsigned int _nlayers_mms = 2;
 
   std::multimap<TrkrDefs::cluskey, PHG4Hit*> _truth_cluster_truth_hit_map;
 

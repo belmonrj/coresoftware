@@ -2,7 +2,7 @@
 #define TRACKRECO_PHACTSTRKPROP_H
 
 #include "PHTrackPropagating.h"
-#include "PHActsSourceLinks.h"
+#include <trackbase/ActsTrackingGeometry.h>
 #include "ActsTrack.h"
 
 #include <fun4all/SubsysReco.h>
@@ -23,6 +23,8 @@
 #include <ActsExamples/EventData/TrkrClusterMultiTrajectory.hpp>
 
 #include <ActsExamples/TrackFinding/TrkrClusterFindingAlgorithm.hpp>
+
+#include <boost/bimap.hpp>
 
 #include <memory>
 #include <string>
@@ -61,6 +63,8 @@ using Measurement = Acts::Measurement<ActsExamples::TrkrClusterSourceLink,
                                       Acts::BoundIndices,
                                       Acts::eBoundLoc0,
                                       Acts::eBoundLoc1>;
+
+typedef boost::bimap<TrkrDefs::cluskey, unsigned int> CluskeyBimap;
 
 class PHActsTrkProp : public PHTrackPropagating
 {
@@ -155,7 +159,7 @@ class PHActsTrkProp : public PHTrackPropagating
     std::map<const size_t, const unsigned int>> *m_actsTrackKeyMap;
 
   /// Map of cluster keys to hit ids, for identifying clusters belonging to track
-  std::map<TrkrDefs::cluskey, unsigned int> *m_hitIdClusKey;
+  CluskeyBimap *m_hitIdClusKey;
 
   /// Acts source links created by PHActsSourceLinks
   /// SourceLink is defined as TrkrClusterSourceLink elsewhere

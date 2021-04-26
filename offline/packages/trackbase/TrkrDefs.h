@@ -7,11 +7,7 @@
 #ifndef TRACKBASE_TRKRDEFUTIL_H
 #define TRACKBASE_TRKRDEFUTIL_H
 
-#if defined(__CINT__) && !defined(__CLING__)
-#include <stdint.h>
-#else
 #include <cstdint>
-#endif
 #include <iostream>
 
 /**
@@ -19,19 +15,23 @@
  */
 namespace TrkrDefs
 {
+  static double EdepScaleFactor __attribute__((unused)) = 0.25;
+  static double MvtxEnergyScaleup __attribute__((unused)) = 5.0e8;
+  static double InttEnergyScaleup __attribute__((unused)) = 5.0e7;
+
   /// Key types
   typedef uint32_t hitkey;      // 32 bit TrkrHit key type
   typedef uint32_t hitsetkey;   // 32 bit TrkrHitSet key type
   typedef uint64_t cluskey;     // 64 but TrkrCluster id type
   typedef uint32_t clushitkey;  // 32 bit hit id type in TrkrCluster
-
-#if !defined(__CINT__) || defined(__CLING__)
+  typedef uint16_t subsurfkey;    // 16 bit sub surface key type
 
   /// Max values for keys (used as defaults or invalid values)
   static hitkey HITKEYMAX __attribute__((unused)) = UINT32_MAX;
   static hitsetkey HITSETKEYMAX __attribute__((unused)) = UINT32_MAX;
   static cluskey CLUSKEYMAX __attribute__((unused)) = UINT64_MAX;
   static clushitkey CLUSHITKEYMAX __attribute__((unused)) = UINT32_MAX;
+  static subsurfkey SUBSURFKEYMAX __attribute__((unused)) = UINT16_MAX;
 
   // hitsetkey layout:
   //  common upper 16 bits
@@ -45,7 +45,6 @@ namespace TrkrDefs
   //  cluster id lower 32 bits
   static const unsigned int kBitShiftClusId __attribute__((unused)) = 32;
 
-#endif
 
   /// Enumeration for tracker id to easily maintain consistency
   enum TrkrId
@@ -90,6 +89,14 @@ namespace TrkrDefs
   TrkrDefs::cluskey getClusKeyHi(const TrkrDefs::TrkrId trkrId);
   TrkrDefs::cluskey getClusKeyLo(const TrkrDefs::TrkrId trkrId, const uint8_t lyr);
   TrkrDefs::cluskey getClusKeyHi(const TrkrDefs::TrkrId trkrId, const uint8_t lyr);
+
+  static const unsigned int kBitShiftPhiElement __attribute__((unused)) = 8;//sector
+  static const unsigned int kBitShiftZElement __attribute__((unused)) = 0;//side
+
+  uint8_t getPhiElement(TrkrDefs::hitsetkey key);//sector
+  uint8_t getZElement(TrkrDefs::hitsetkey key);//side
+  uint8_t getPhiElement(TrkrDefs::cluskey key);//sector
+  uint8_t getZElement(TrkrDefs::cluskey key);//side
 
 }
 

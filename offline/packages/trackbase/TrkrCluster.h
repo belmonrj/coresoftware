@@ -11,14 +11,10 @@
 
 #include <phool/PHObject.h>
 
+#include <climits>
 #include <cmath>
 #include <iostream>
-
-#if defined(__CINT__) && !defined(__CLING__)
-#include <limits.h>
-#else
-#include <climits>
-#endif
+#include <memory>
 
 
 /**
@@ -43,6 +39,7 @@ class TrkrCluster : public PHObject
   //
   virtual TrkrDefs::cluskey getClusKey() const { return TrkrDefs::CLUSKEYMAX; }
   virtual void setClusKey(TrkrDefs::cluskey id) {}
+ 
   //
   // cluster position
   //
@@ -57,6 +54,10 @@ class TrkrCluster : public PHObject
   virtual void setGlobal() {}
   virtual void setLocal() {}
   virtual bool isGlobal() { return true; }
+  virtual float getLocalX() const { return NAN; }
+  virtual void setLocalX(float x) {}
+  virtual float getLocalY() const { return NAN; }
+  virtual void setLocalY(float y) {}
   //
   // cluster info
   //
@@ -74,6 +75,13 @@ class TrkrCluster : public PHObject
   virtual float getPhiError() const { return NAN; }
   virtual float getRPhiError() const { return NAN; }
   virtual float getZError() const { return NAN; }
+
+  /// Acts functions, for Acts modules use only
+  virtual void setActsLocalError(unsigned int i, unsigned int j, float value){}
+  virtual float getActsLocalError(unsigned int i, unsigned int j) const { return NAN; }
+  virtual TrkrDefs::subsurfkey getSubSurfKey() const { return TrkrDefs::SUBSURFKEYMAX; }
+  virtual void setSubSurfKey(TrkrDefs::subsurfkey id) {}
+
  protected:
   TrkrCluster() {}
   ClassDef(TrkrCluster, 1)

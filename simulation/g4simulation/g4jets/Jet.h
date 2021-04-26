@@ -45,8 +45,9 @@ class Jet : public PHObject
     HCALOUT_TOWER_SUB1CS = 19, /* needed for CS subtraction w/ HI jet reco */
     HEPMC_IMPORT = 20,         /*Direct import HEPMC containers, such as sHijing HIJFRG truth jets loaded by JetHepMCLoader*/
     HCAL_TOPO_CLUSTER = 21,    /* I+HOCal 3-D topoCluster input */
-    EEMC_TOWER = 22,
-    EEMC_CLUSTER = 23,
+    ECAL_TOPO_CLUSTER = 22,    /* EMCal 3-D topoCluster input */
+    EEMC_TOWER = 23,
+    EEMC_CLUSTER = 24,
   };
 
   enum PROPERTY
@@ -135,17 +136,17 @@ class Jet : public PHObject
   virtual void erase_comp(Iter iter) { return; }
   virtual void erase_comp(Iter first, Iter last) { return; }
 
-  virtual ConstIter begin_comp() const { return typ_comp_ids().end(); }
-  virtual ConstIter lower_bound_comp(Jet::SRC source) const { return typ_comp_ids().end(); }
-  virtual ConstIter upper_bound_comp(Jet::SRC source) const { return typ_comp_ids().end(); }
-  virtual ConstIter find(Jet::SRC source) const { return typ_comp_ids().end(); }
-  virtual ConstIter end_comp() const { return typ_comp_ids().end(); }
+  virtual ConstIter begin_comp() const;
+  virtual ConstIter lower_bound_comp(Jet::SRC source) const;
+  virtual ConstIter upper_bound_comp(Jet::SRC source) const;
+  virtual ConstIter find(Jet::SRC source) const;
+  virtual ConstIter end_comp() const;
 
-  virtual Iter begin_comp() { return typ_comp_ids().end(); }
-  virtual Iter lower_bound_comp(Jet::SRC source) { return typ_comp_ids().end(); }
-  virtual Iter upper_bound_comp(Jet::SRC source) { return typ_comp_ids().end(); }
-  virtual Iter find(Jet::SRC source) { return typ_comp_ids().end(); }
-  virtual Iter end_comp() { return typ_comp_ids().end(); }
+  virtual Iter begin_comp();
+  virtual Iter lower_bound_comp(Jet::SRC source);
+  virtual Iter upper_bound_comp(Jet::SRC source);
+  virtual Iter find(Jet::SRC source);
+  virtual Iter end_comp();
 
   ClassDef(Jet, 1);
 };

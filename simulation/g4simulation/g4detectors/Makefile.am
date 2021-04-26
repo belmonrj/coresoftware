@@ -39,7 +39,7 @@ libg4detectors_la_LIBADD = \
 
 pkginclude_HEADERS = \
   BeamLineMagnetSubsystem.h \
-  ePHENIXRICHConstruction.h \
+  PHG4BbcSubsystem.h \
   PHG4BlockCellGeom.h \
   PHG4BlockCellGeomContainer.h \
   PHG4BlockGeom.h \
@@ -51,7 +51,6 @@ pkginclude_HEADERS = \
   PHG4CellDefs.h \
   PHG4EventActionClearZeroEdep.h \
   PHG4ConeSubsystem.h \
-  PHG4CrystalCalorimeterSubsystem.h \
   PHG4CylinderCell.h \
   PHG4CylinderCellv1.h \
   PHG4CylinderCellv2.h \
@@ -74,9 +73,6 @@ pkginclude_HEADERS = \
   PHG4CylinderSubsystem.h \
   PHG4DetectorSubsystem.h \
   PHG4DetectorGroupSubsystem.h \
-  PHG4ForwardCalCellReco.h \
-  PHG4ForwardEcalSubsystem.h \
-  PHG4ForwardHcalSubsystem.h \
   PHG4FullProjSpacalCellReco.h \
   PHG4GDMLSubsystem.h \
   PHG4HcalDefs.h \
@@ -85,8 +81,6 @@ pkginclude_HEADERS = \
   PHG4InnerHcalSubsystem.h \
   PHG4OuterHcalSubsystem.h \
   PHG4PSTOFSubsystem.h \
-  PHG4RICHSubsystem.h \
-  PHG4mRICHSubsystem.h \
   PHG4ScintillatorSlat.h \
   PHG4ScintillatorSlatv1.h \
   PHG4ScintillatorSlatContainer.h \
@@ -176,7 +170,6 @@ libg4detectors_io_la_SOURCES = \
   PHG4CylinderGeom_Spacalv1.cc \
   PHG4CylinderGeom_Spacalv2.cc \
   PHG4CylinderGeom_Spacalv3.cc \
-  PHG4CylinderGeom_Spacalv3_2015.cc \
   PHG4CylinderGeomContainer.cc \
   PHG4CylinderCellv1.cc \
   PHG4CylinderCellv2.cc \
@@ -196,6 +189,9 @@ libg4detectors_la_SOURCES = \
   BeamLineMagnetSteppingAction.cc \
   PHG4GDMLDetector.cc \
   PHG4GDMLSubsystem.cc \
+  PHG4BbcDetector.cc \
+  PHG4BbcSteppingAction.cc \
+  PHG4BbcSubsystem.cc \
   PHG4BeamlineMagnetDetector.cc \
   PHG4BeamlineMagnetSubsystem.cc \
   PHG4BlockCellReco.cc \
@@ -207,13 +203,9 @@ libg4detectors_la_SOURCES = \
   PHG4CEmcTestBeamSteppingAction.cc \
   PHG4CEmcTestBeamSubsystem.cc \
   PHG4ConeDetector.cc \
-  PHG4ConeRegionSteppingAction.cc \
+  PHG4ConeDisplayAction.cc \
   PHG4ConeSteppingAction.cc \
   PHG4ConeSubsystem.cc \
-  PHG4CrystalCalorimeterDetector.cc \
-  PHG4CrystalCalorimeterDisplayAction.cc \
-  PHG4CrystalCalorimeterSteppingAction.cc \
-  PHG4CrystalCalorimeterSubsystem.cc \
   PHG4CylinderDetector.cc \
   PHG4CylinderDisplayAction.cc \
   PHG4CylinderSubsystem.cc \
@@ -225,23 +217,6 @@ libg4detectors_la_SOURCES = \
   PHG4EnvelopeSteppingAction.cc \
   PHG4EnvelopeSubsystem.cc \
   PHG4EventActionClearZeroEdep.cc \
-  PHG4FCalDetector.cc \
-  PHG4FCalSteppingAction.cc \
-  PHG4FCalSubsystem.cc \
-  PHG4ForwardEcalDetector.cc \
-  PHG4ForwardEcalDisplayAction.cc \
-  PHG4EICForwardEcalDetector.cc \
-  PHG4ForwardEcalSteppingAction.cc \
-  PHG4ForwardEcalSubsystem.cc \
-  PHG4ForwardHcalDetector.cc \
-  PHG4ForwardHcalDisplayAction.cc \
-  PHG4ForwardHcalSteppingAction.cc \
-  PHG4ForwardHcalSubsystem.cc \
-  PHG4ForwardCalCellReco.cc \
-  PHG4FPbScDetector.cc \
-  PHG4FPbScSteppingAction.cc \
-  PHG4FPbScRegionSteppingAction.cc \
-  PHG4FPbScSubsystem.cc \
   PHG4GenHit.cc \
   PHG4HcalCellReco.cc \
   PHG4HcalDetector.cc \
@@ -257,12 +232,6 @@ libg4detectors_la_SOURCES = \
   PHG4OuterHcalFieldSetup.cc \
   PHG4OuterHcalSteppingAction.cc \
   PHG4OuterHcalSubsystem.cc \
-  PHG4ProjCrystalCalorimeterDetector.cc \
-  PHG4RICHDetector.cc \
-  PHG4RICHDisplayAction.cc \
-  PHG4RICHSteppingAction.cc \
-  PHG4RICHSubsystem.cc \
-  ePHENIXRICHConstruction.cc \
   PHG4SectorConstructor.cc \
   PHG4SectorDetector.cc \
   PHG4SectorDisplayAction.cc \
@@ -279,11 +248,7 @@ libg4detectors_la_SOURCES = \
   PHG4FullProjTiltedSpacalDetector.cc \
   PHG4FullProjSpacalCellReco.cc \
   PHG4SpacalSteppingAction.cc \
-  PHG4SpacalSubsystem.cc \
-  PHG4mRICHDetector.cc \
-  PHG4mRICHSteppingAction.cc \
-  PHG4mRICHSubsystem.cc
-
+  PHG4SpacalSubsystem.cc 
 bin_SCRIPTS = \
   CreateG4Subsystem.pl
 

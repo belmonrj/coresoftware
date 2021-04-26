@@ -1,18 +1,18 @@
 #ifndef TRACKRECO_PHPATTERNRECO_H
 #define TRACKRECO_PHPATTERNRECO_H
 
+#include "VertexFitter.h"
+
 #include <trackbase/TrkrDefs.h>
 
 // Helix Hough includes
-#if !defined(__CINT__) || defined (__CLING__)
-#include "VertexFitter.h"
 #include <HelixHough/SimpleHit3D.h>
 #include <HelixHough/SimpleTrack3D.h>
 #include <HelixHough/HelixKalmanState.h>
-#include <Eigen/Core>            // for Matrix
-#endif
 
 #include <fun4all/SubsysReco.h>
+
+#include <Eigen/Core>            // for Matrix
 
 #include <map>
 #include <string>                // for string
@@ -28,6 +28,7 @@ class HelixHoughFuncs;
 class PHCompositeNode;
 class PHTimer;
 class TrkrClusterContainer;
+class TrkrHitSetContainer;
 class SvtxTrackMap;
 class SvtxVertexMap;
 
@@ -143,7 +144,6 @@ public:
 	void set_nzooms() {nzooms = zooms_vec.size();}
 	void reset_zooms() {zooms_vec.clear();}
 
-#if !defined(__CINT__) || defined(__CLING__)
 
 private:
 
@@ -276,6 +276,7 @@ private:
 	// node pointers
 	BbcVertexMap* _bbc_vertexes;
 	TrkrClusterContainer* _clustermap;
+	TrkrHitSetContainer  *_hitsets;
 	SvtxTrackMap* _trackmap;
 	SvtxVertexMap* _vertexmap;
 	VertexFitter _vertex_finder;
@@ -320,7 +321,6 @@ private:
 	int helicity;
 	int n_vtx_tracks;
 	
-#endif // __CINT__
 };
 
 #endif // __PHPATTERNRECO_H__

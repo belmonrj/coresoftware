@@ -19,6 +19,7 @@ class PHCompositeNode;
 //class SvtxClusterMap;
 class TrkrClusterContainer;
 class TrkrClusterHitAssoc;
+class TrkrHitSetContainer;
 class SvtxVertexMap;
 class SvtxTrackMap;
 class AssocInfoContainer;
@@ -37,10 +38,7 @@ class PHTrackSeeding : public SubsysReco
   int process_event(PHCompositeNode *topNode);
   int End(PHCompositeNode *topNode);
   void set_track_map_name(const std::string &map_name) { _track_map_name = map_name; }
-
-  //virtual const std::set<unsigned int>& get_seeding_layers() const = 0;
-
-  //virtual void set_seeding_layers(const unsigned int a[], const unsigned int n) = 0;
+  void SetUseTruthClusters(bool setit){_use_truth_clusters = setit;}
 
  protected:
   /// setup interface for trackers, called in InitRun, setup things like pointers to nodes.
@@ -59,10 +57,13 @@ class PHTrackSeeding : public SubsysReco
   SvtxVertexMap *_vertex_map = nullptr;
   SvtxTrackMap *_track_map = nullptr;
   AssocInfoContainer *_assoc_container = nullptr;
-
+  TrkrHitSetContainer  *_hitsets = nullptr;
   std::string _track_map_name = "SvtxTrackMap";
 
+  bool _use_truth_clusters = false;
+
  private:
+
   /// create new node output pointers
   int CreateNodes(PHCompositeNode *topNode);
 

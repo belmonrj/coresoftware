@@ -3,6 +3,7 @@
 
 #include "DumpBbcVertexMap.h"
 #include "DumpCaloTriggerInfo.h"
+#include "DumpEventHeader.h"
 #include "DumpGlobalVertexMap.h"
 #include "DumpJetMap.h"
 #include "DumpPHG4BlockCellGeomContainer.h"
@@ -27,6 +28,7 @@
 #include "DumpSyncObject.h"
 #include "DumpTowerBackground.h"
 #include "DumpTrkrClusterContainer.h"
+#include "DumpTrkrClusterHitAssoc.h"
 #include "DumpTrkrHitSetContainer.h"
 #include "DumpVariableArray.h"
 
@@ -175,6 +177,10 @@ int PHNodeDump::AddDumpObject(const string &NodeName, PHNode *node)
       {
         newdump = new DumpCaloTriggerInfo(NodeName);
       }
+      else if (tmp->InheritsFrom("EventHeader"))
+      {
+        newdump = new DumpEventHeader(NodeName);
+      }
       else if (tmp->InheritsFrom("GlobalVertexMap"))
       {
         newdump = new DumpGlobalVertexMap(NodeName);
@@ -270,6 +276,10 @@ int PHNodeDump::AddDumpObject(const string &NodeName, PHNode *node)
       else if (tmp->InheritsFrom("TrkrClusterContainer"))
       {
         newdump = new DumpTrkrClusterContainer(NodeName);
+      }
+      else if (tmp->InheritsFrom("TrkrClusterHitAssoc"))
+      {
+        newdump = new DumpTrkrClusterHitAssoc(NodeName);
       }
       else if (tmp->InheritsFrom("TrkrHitSetContainer"))
       {

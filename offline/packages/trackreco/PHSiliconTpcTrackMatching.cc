@@ -1,30 +1,35 @@
 #include "PHSiliconTpcTrackMatching.h"
 
-#include <fun4all/Fun4AllReturnCodes.h>
-
-#include <phool/PHCompositeNode.h>
-#include <phool/getClass.h>
-#include <phool/phool.h>
+#include "AssocInfoContainer.h"
 
 /// Tracking includes
-#include <trackbase/TrkrClusterv1.h>
-#include <trackbase/TrkrClusterContainer.h>
-#include <trackbase/TrkrClusterHitAssoc.h>
-#include <trackbase/TrkrHitTruthAssoc.h>
-#include <trackbase_historic/SvtxTrack_v1.h>
+#include <trackbase/TrkrDefs.h>                // for cluskey, getTrkrId, tpcId
+#include <trackbase_historic/SvtxTrack_v2.h>
 #include <trackbase_historic/SvtxTrackMap.h>
+#include <trackbase_historic/SvtxVertex.h>     // for SvtxVertex
 #include <trackbase_historic/SvtxVertexMap.h>
 
 #include <g4main/PHG4Hit.h>  // for PHG4Hit
 #include <g4main/PHG4Particle.h>  // for PHG4Particle
-#include <g4main/PHG4HitContainer.h>
 #include <g4main/PHG4HitDefs.h>  // for keytype
-#include <g4main/PHG4TruthInfoContainer.h>
 
-#include "AssocInfoContainer.h"
+#include <fun4all/Fun4AllReturnCodes.h>
+
+#include <phool/getClass.h>
+#include <phool/phool.h>
+
+#if __cplusplus < 201402L
+#include <boost/make_unique.hpp>
+#endif
 
 #include <TF1.h>
 
+#include <climits>                            // for UINT_MAX
+#include <iostream>                            // for operator<<, basic_ostream
+#include <cmath>                              // for fabs, sqrt
+#include <set>                                 // for _Rb_tree_const_iterator
+#include <utility>                             // for pair
+#include <memory>
 using namespace std;
 
 //____________________________________________________________________________..
@@ -45,15 +50,27 @@ PHSiliconTpcTrackMatching::~PHSiliconTpcTrackMatching()
 int PHSiliconTpcTrackMatching::Setup(PHCompositeNode *topNode)
 {
   // put these in the output file
-  cout << PHWHERE << " p0 " << _par0 << " p1 " << _par1 << " p2 " 
-       << _par2 << " Search windows: phi " << _phi_search_win << " eta " 
+  cout << PHWHERE "_is_ca_seeder " << _is_ca_seeder << " Search windows: phi " << _phi_search_win << " eta " 
        << _eta_search_win << endl;
 
+  // corrects the PHTpcTracker phi bias
   fdphi = new TF1("f1", "[0] + [1]/x^[2]");
   fdphi->SetParameter(0, _par0);
   fdphi->SetParameter(1, _par1);
   fdphi->SetParameter(2, _par2);
-		  
+
+  // corrects the space charge distortion phi bias
+  if(!_is_ca_seeder)
+    {
+      // PHTpcTracker correction is opposite in sign
+      // and different in magnitude - why?
+      _parsc0 *= -1.0 * 0.7;
+      _parsc1 *= -1.0 * 0.7;
+    }
+  fscdphi = new TF1("f2","[0] + [1]*x^2");
+  fscdphi->SetParameter(0, _parsc0 * _collision_rate / _reference_collision_rate);
+  fscdphi->SetParameter(1, _parsc1 * _collision_rate / _reference_collision_rate);
+
   int ret = PHTrackPropagating::Setup(topNode);
   if (ret != Fun4AllReturnCodes::EVENT_OK) return ret;
 
@@ -72,11 +89,28 @@ int PHSiliconTpcTrackMatching::Process()
   // We will have to expand the number of tracks whenever we find multiple matches to the silicon
 
   if(Verbosity() > 0)
-    cout << PHWHERE << " TPC track map size " << _track_map->size() << " Silicon track map size " << _track_map->size() << endl;
+    cout << PHWHERE << " TPC track map size " << _track_map->size() << " Silicon track map size " << _track_map_silicon->size() << endl;
 
- // We remember the original size of the TPC track map here
+  if(Verbosity() > 2)
+    {
+      // list silicon tracks
+      for (auto phtrk_iter_si = _track_map_silicon->begin();
+	   phtrk_iter_si != _track_map_silicon->end(); 
+	   ++phtrk_iter_si)
+	{
+	  _tracklet_si = phtrk_iter_si->second;	  
+	  
+	  double si_phi = atan2(_tracklet_si->get_py(), _tracklet_si->get_px());
+	  double si_eta = _tracklet_si->get_eta();
+	  
+	  cout << " Si track " << _tracklet_si->get_id()  << " si_phi " << si_phi  << " si_eta " << si_eta << endl;
+	}  
+    }
+  
+  
+  // We remember the original size of the TPC track map here
   const unsigned int original_track_map_lastkey = _track_map->end()->first;
-
+  
   // loop over the original TPC tracks
   for (auto phtrk_iter = _track_map->begin();
        phtrk_iter != _track_map->end(); 
@@ -97,26 +131,13 @@ int PHSiliconTpcTrackMatching::Process()
 	    << ": phi: " << _tracklet_tpc->get_phi()
 	    << endl;
 	}
-      /*
-      // if the vertex id from the seeder is nonsense, use vertex 0
-      unsigned int vertexId = _tracklet_tpc->get_vertex_id();
-      if(vertexId == UINT_MAX)
-	vertexId = 0;
-      _tracklet_tpc->set_vertex_id(vertexId);
-
-      // set the track position to the vertex position
-      const SvtxVertex *svtxVertex = _vertex_map->get(vertexId);      
-      _tracklet_tpc->set_x(svtxVertex->get_x());
-      _tracklet_tpc->set_y(svtxVertex->get_y());
-      _tracklet_tpc->set_z(svtxVertex->get_z());
-      */
 
       double tpc_phi = atan2(_tracklet_tpc->get_py(), _tracklet_tpc->get_px());
       double tpc_eta = _tracklet_tpc->get_eta();
       double tpc_pt = sqrt( pow(_tracklet_tpc->get_px(),2) + pow(_tracklet_tpc->get_py(),2) );
 
-      // phi correction for TPC tracks is charge dependent
-      double sign_phi_correction = _tracklet_tpc->get_charge(); 
+      // phi correction for PHTpcTracker tracklets is charge dependent
+      double sign_phi_correction = _tracklet_tpc->get_charge();
 
       /// Correct the correction for the field direction
       /// Kludge to get the phi matching correct based on the field
@@ -129,10 +150,10 @@ int PHSiliconTpcTrackMatching::Process()
       // hard code this here for now
       // this factor will increase the window size at low pT
       // otherwise the matching efficiency drops off at low pT
-      // not well optimized yet - smaller may work
+      // it would be better if this was a smooth function
       double mag = 1.0;
-      if(tpc_pt < 5) mag = 2.0;
-      if(tpc_pt < 2) mag = 4.0;
+      if(tpc_pt < 6.0) mag = 2;
+      if(tpc_pt < 3.0)  mag = 4.0;
 
       if(Verbosity() > 3)
 	{
@@ -140,8 +161,20 @@ int PHSiliconTpcTrackMatching::Process()
 	  _tracklet_tpc->identify();
 	}
 
+      // correct the TPC tracklet phi for the space charge offset, if this is the calib pass
+      // this is done just to let us tighten up the matching window
+
+      if(_sc_calib_flag)
+	{
+	  tpc_phi -= fscdphi->Eval(tpc_eta);
+	}
+      // the distortion correction can push tpc_phi outside +/- M_PI
+      if(tpc_phi < - M_PI) tpc_phi += 2.0*M_PI;
+      if(tpc_phi > M_PI) tpc_phi -= 2.0*M_PI;
+
+
       // Now search the silicon track list for a match in eta and phi
-      // NOTE: what about tracks from different vertex locations? This should be done vertex by vertex, right?
+      // NOTE: we will take the combined track vertex from the vertex associated with the silicon stub, once the match is made
 
       std::set<unsigned int> si_matches;
       for (auto phtrk_iter_si = _track_map_silicon->begin();
@@ -152,23 +185,44 @@ int PHSiliconTpcTrackMatching::Process()
 
 	  double si_phi = atan2(_tracklet_si->get_py(), _tracklet_si->get_px());
 	  double si_eta = _tracklet_si->get_eta();
-	  double si_pt = sqrt( pow(_tracklet_si->get_px(),2) + pow(_tracklet_si->get_py(),2) );
-	  double phi_search_win_lo = fdphi->Eval(si_pt) * sign_phi_correction -  _phi_search_win * mag;
-	  double phi_search_win_hi = fdphi->Eval(si_pt) * sign_phi_correction +  _phi_search_win * mag;
+	  //double si_pt = sqrt(pow(_tracklet_si->get_px(), 2) + pow(_tracklet_si->get_py(), 2) );
 
-	  if(Verbosity() >= 10)
+	  if(Verbosity() >= 2)
 	    {
 	      cout << " testing for a match for TPC track " << _tracklet_tpc->get_id() << " with Si track " << _tracklet_si->get_id() << endl;	  
-	      cout << "      tpc_phi " << tpc_phi << " si_phi " << si_phi << " tpc_eta " << tpc_eta << " si_eta " << si_eta << endl;
+	      cout << " tpc_phi " << tpc_phi << " si_phi " << si_phi << " dphi " <<   tpc_phi-si_phi << " phi search " << _phi_search_win  << " tpc_eta " << tpc_eta 
+		   << " si_eta " << si_eta << " deta " << tpc_eta-si_eta << " eta search " << _eta_search_win << endl;
 	    }
 
 	  bool eta_match = false;
 	  bool phi_match = false;
 	  if(  fabs(tpc_eta - si_eta) < _eta_search_win * mag) eta_match = true;
-	  if(  (tpc_phi - si_phi) > phi_search_win_lo && (tpc_phi - si_phi) < phi_search_win_hi) phi_match = true;
-	  // NOTE: have to guard against change of sign in either angle at +/- pi
-	  if( (fabs(tpc_phi - si_phi) - 2.0*M_PI) > phi_search_win_lo &&  (fabs(tpc_phi - si_phi) - 2.0*M_PI) < phi_search_win_hi )  phi_match = true; 
 
+	  // PHTpcTracker has a bias in the tracklet phi that depends on charge sign, PHCASeeding does not
+	  if(_is_ca_seeder)
+	    {
+	      if(  fabs(tpc_phi - si_phi)  < _phi_search_win * mag) phi_match = true;
+	    }
+	  else
+	    {
+	      // PHTpcTracker
+	      //double si_pt = sqrt( pow(_tracklet_si->get_px(),2) + pow(_tracklet_si->get_py(),2) );
+	      double phi_search_win_lo = fdphi->Eval(tpc_pt) * sign_phi_correction -  _phi_search_win * mag;
+	      double phi_search_win_hi = fdphi->Eval(tpc_pt) * sign_phi_correction +  _phi_search_win * mag;
+
+	      if(Verbosity() > 10) 
+		cout << " phi_search_win_lo " << phi_search_win_lo << " phi_search_win_hi " << phi_search_win_hi << endl;
+
+	      if(  (tpc_phi - si_phi) > phi_search_win_lo && (tpc_phi - si_phi) < phi_search_win_hi) phi_match = true;	      
+	    }
+
+	  /*
+	  // temporary for debugging!
+	  if(_test_windows)
+	    cout << " Try_silicon:  pt " << tpc_pt << " tpc_phi " << tpc_phi << " si_phi " << si_phi << " dphi " << tpc_phi-si_phi  
+		 << " tpc_eta " << tpc_eta << " si_eta " << si_eta << " deta " << tpc_eta-si_eta << endl;
+	  */	  
+	  
 	  if(eta_match && phi_match)
 	    {
 	      // got a match, add to the list
@@ -178,6 +232,12 @@ int PHSiliconTpcTrackMatching::Process()
 		  cout << "          tpc_phi " << tpc_phi << " si_phi " <<  si_phi << " phi_match " << phi_match 
 		       << " tpc_eta " << tpc_eta << " si_eta " << si_eta << " eta_match " << eta_match << endl;
 		}
+
+	      // temporary!
+	      if(_test_windows)
+		cout << " Try_silicon:  pt " << tpc_pt << " tpc_phi " << tpc_phi << " si_phi " << si_phi << " dphi " << tpc_phi-si_phi  
+		     << " tpc_eta " << tpc_eta << " si_eta " << si_eta << " deta " << tpc_eta-si_eta << endl;
+
 	      si_matches.insert(_tracklet_si->get_id());
 	    }
 	  else
@@ -195,21 +255,40 @@ int PHSiliconTpcTrackMatching::Process()
 	{
 	  if(Verbosity() >= 1)
 	    {
-	      cout << " Did NOT find a match for TPC track " << _tracklet_tpc->get_id()  << "  tpc_phi " << tpc_phi << " tpc_eta " << tpc_eta  << endl;
+	      cout << PHWHERE << " Did NOT find a match for TPC track " << _tracklet_tpc->get_id()  << "  tpc_phi " << tpc_phi << " tpc_eta " << tpc_eta  << endl;
 	    }
 
-	  // set the track vertex arbitrarily to vertex 0 if one does not exist already
+	  // we did not get a silicon track match, so set the track vertex arbitrarily to vertex 0 if one does not exist already
 	  unsigned int vertexId = _tracklet_tpc->get_vertex_id();
 	  if(vertexId == UINT_MAX)  vertexId = 0;
 	  _tracklet_tpc->set_vertex_id(vertexId);
 	  
 	  // set the track position to the vertex position
 	  const SvtxVertex *svtxVertex = _vertex_map->get(vertexId);      
-	  _tracklet_tpc->set_x(svtxVertex->get_x());
-	  _tracklet_tpc->set_y(svtxVertex->get_y());
-	  _tracklet_tpc->set_z(svtxVertex->get_z());
+	  if(svtxVertex)
+	    {
+	      _tracklet_tpc->set_x(svtxVertex->get_x());
+	      _tracklet_tpc->set_y(svtxVertex->get_y());
+	      _tracklet_tpc->set_z(svtxVertex->get_z());
+	    }
+	  else
+	    {
+	      std::cout << PHWHERE << "Failed to find vertex object for vertex ID " << vertexId 
+			<< " associated with TPC tracklet " << _tracklet_tpc->get_id() 
+			<< " si tracklet " << _tracklet_si->get_id()
+			<< " set vertex to (0,0,0)"
+			<< std::endl; 
+	      std::cout << " ---------- Silicon track --------------" << std::endl;
+	      _tracklet_si->identify();
+	      std::cout << " ---------- TPC track -----------------" << std::endl;
+	      _tracklet_tpc->identify();
+
+	      _tracklet_tpc->set_x(0.0);
+	      _tracklet_tpc->set_y(0.0);
+	      _tracklet_tpc->set_z(0.0);
+	    }
 	}
- 
+
       // Add the silicon clusters to the track
       unsigned int isi = 0;
       for(auto si_it = si_matches.begin(); si_it != si_matches.end(); ++si_it)
@@ -217,7 +296,7 @@ int PHSiliconTpcTrackMatching::Process()
 	  // get the si tracklet for this id
 	  _tracklet_si = _track_map_silicon->get(*si_it);
 
-	  if(Verbosity() > 3)
+	  if(Verbosity() > 0)
 	    cout << "   isi = " << isi << " si tracklet " << _tracklet_si->get_id() << " was matched to TPC tracklet " << _tracklet_tpc->get_id() << endl;
 
 	  // get the silicon clusters
@@ -241,10 +320,28 @@ int PHSiliconTpcTrackMatching::Process()
 
 	      // set the track position to the vertex position
 	      const SvtxVertex *svtxVertex = _vertex_map->get(vertexId);      
-	      _tracklet_tpc->set_x(svtxVertex->get_x());
-	      _tracklet_tpc->set_y(svtxVertex->get_y());
-	      _tracklet_tpc->set_z(svtxVertex->get_z());
-	      
+	      if(svtxVertex)
+		{
+		  _tracklet_tpc->set_x(svtxVertex->get_x());
+		  _tracklet_tpc->set_y(svtxVertex->get_y());
+		  _tracklet_tpc->set_z(svtxVertex->get_z());
+		}
+	      else
+		{
+		  std::cout << PHWHERE << "Failed to find vertex object for vertex ID " << vertexId 
+			    << " associated with TPC tracklet " << _tracklet_tpc->get_id() 
+			    << " si tracklet " << _tracklet_si->get_id()
+			    << " set vertex to (0,0,0)"
+			    << std::endl; 
+		  std::cout << " ---------- Silicon track --------------" << std::endl;
+		  _tracklet_si->identify();
+		  std::cout << " ---------- TPC track -----------------" << std::endl;
+		  _tracklet_tpc->identify();
+
+		  _tracklet_tpc->set_x(0.0);
+		  _tracklet_tpc->set_y(0.0);
+		  _tracklet_tpc->set_z(0.0);
+		}
 	      for(auto clus_iter=si_clusters.begin(); clus_iter != si_clusters.end(); ++clus_iter)
 		{
 		  if(Verbosity() >= 1) cout << "   inserting si cluster key " << *clus_iter << " into exisiting TPC track " << _tracklet_tpc->get_id() << endl;
@@ -259,8 +356,11 @@ int PHSiliconTpcTrackMatching::Process()
 	    {
 	      // more than one si stub matches
 	      // make a copy of the TPC track, update it and add it to the end of the node tree 
-	      
-	      SvtxTrack *newTrack = new SvtxTrack_v1();
+	      #if __cplusplus < 201402L
+	      auto newTrack = boost::make_unique<SvtxTrack_v2>();
+	      #else
+	      auto newTrack = std::make_unique<SvtxTrack_v2>();
+	      #endif
 	      const unsigned int lastTrackKey = _track_map->end()->first; 
 	      if(Verbosity() >= 1) cout << "Extra match, add a new track to node tree with key " <<  lastTrackKey << endl;
 	      
@@ -271,10 +371,24 @@ int PHSiliconTpcTrackMatching::Process()
 
 	      // set the track position to the vertex position
 	      const SvtxVertex *svtxVertex = _vertex_map->get(vertexId);      
-	      newTrack->set_x(svtxVertex->get_x());
-	      newTrack->set_y(svtxVertex->get_y());
-	      newTrack->set_z(svtxVertex->get_z());
-	      
+	      if(svtxVertex)
+		{
+		  newTrack->set_x(svtxVertex->get_x());
+		  newTrack->set_y(svtxVertex->get_y());
+		  newTrack->set_z(svtxVertex->get_z());
+		}
+	      else
+		{
+		  std::cout << PHWHERE << "Failed to find vertex object for vertex ID " << vertexId << " associated with TPC tracklet " << _tracklet_tpc->get_id() << std::endl; 
+		  std::cout << " ---------- Silicon track --------------" << std::endl;
+		  _tracklet_si->identify();
+		  std::cout << " ---------- TPC track -----------------" << std::endl;
+		  _tracklet_tpc->identify();
+		  newTrack->set_x(0.0);
+		  newTrack->set_y(0.0);
+		  newTrack->set_z(0.0);
+		}
+		      
 	      newTrack->set_charge(_tracklet_tpc->get_charge());
 	      newTrack->set_px(_tracklet_tpc->get_px());
 	      newTrack->set_py(_tracklet_tpc->get_py());
@@ -312,13 +426,14 @@ int PHSiliconTpcTrackMatching::Process()
 		  _assoc_container->SetClusterTrackAssoc(*clus_iter, newTrack->get_id());
 		}
 
-	      _track_map->insert(newTrack);
-
 	      if(Verbosity() > 3)
 		{
 		  cout << "  -- inserting new track with id " << newTrack->get_id() << " into trackmap " << endl;
 		  newTrack->identify();
 		}
+
+	      _track_map->insert(newTrack.get());
+	 
 	    }
 	  
 	  isi++;

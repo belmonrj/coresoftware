@@ -46,6 +46,7 @@ class PHG4TruthInfoContainer : public PHObject
   //! Add a particle that the user has created
   ConstIterator AddParticle(const int particleid, PHG4Particle* newparticle);
   void delete_particle(Iterator piter);
+  void delete_particle(int trackid);
 
   PHG4Particle* GetParticle(const int trackid);
   PHG4Particle* GetPrimaryParticle(const int trackid);
@@ -106,6 +107,7 @@ class PHG4TruthInfoContainer : public PHObject
   //! Add a vertex and return an iterator to the user
   ConstVtxIterator AddVertex(const int vtxid, PHG4VtxPoint* vertex);
   void delete_vtx(VtxIterator viter);
+  void delete_vtx(int vtxid);
 
   PHG4VtxPoint* GetVtx(const int vtxid);
   PHG4VtxPoint* GetPrimaryVtx(const int vtxid);
@@ -228,5 +230,31 @@ class PHG4TruthInfoContainer : public PHObject
 
   ClassDef(PHG4TruthInfoContainer, 1)
 };
+
+
+/**
+ * Equality operators for the types used in the publicly accessible internal
+ * containers of PHG4TruthInfoContainer.
+ */
+///@{
+bool operator==(const PHG4TruthInfoContainer::Map::value_type& lhs, const PHG4TruthInfoContainer::Map::value_type& rhs);
+bool operator==(const PHG4TruthInfoContainer::VtxMap::value_type& lhs, const PHG4TruthInfoContainer::VtxMap::value_type& rhs);
+bool operator==(const PHG4TruthInfoContainer::ShowerMap::value_type& lhs, const PHG4TruthInfoContainer::ShowerMap::value_type& rhs);
+///@}
+
+/**
+ * Equality operators for PHG4TruthInfoContainer. Note that the comparison is
+ * performed only on the publicly accessible internal containers, i.e.
+ * PHG4TruthInfoContainer::particlemap, PHG4TruthInfoContainer::vtxmap, and
+ * PHG4TruthInfoContainer::showermap.
+ */
+///@{
+inline bool operator==(const PHG4TruthInfoContainer& lhs, const PHG4TruthInfoContainer& rhs)
+{
+  return lhs.GetMap() == rhs.GetMap() && lhs.GetVtxMap() == rhs.GetVtxMap() && lhs.GetShowerMap() == rhs.GetShowerMap();
+}
+
+inline bool operator!=(const PHG4TruthInfoContainer& lhs, const PHG4TruthInfoContainer& rhs) { return !(lhs == rhs); }
+///@}
 
 #endif

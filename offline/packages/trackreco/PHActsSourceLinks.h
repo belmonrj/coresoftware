@@ -1,6 +1,8 @@
-
 #ifndef TRACKRECO_PHACTSSOURCELINKS_H
 #define TRACKRECO_PHACTSSOURCELINKS_H
+
+#include <trackbase/ActsTrackingGeometry.h>
+#include <trackbase/ActsSurfaceMaps.h>
 
 #include <fun4all/SubsysReco.h>
 #include <trackbase/TrkrDefs.h>
@@ -9,6 +11,8 @@
 #include <map>
 #include <string>
 #include <vector>
+
+#include <boost/bimap.hpp>
 
 /// Acts includes to create all necessary definitions
 #include <Acts/Utilities/BinnedArray.hpp>
@@ -24,13 +28,16 @@
 #include <ActsExamples/EventData/TrkrClusterSourceLink.hpp>
 #include <ActsExamples/Plugins/BField/BFieldOptions.hpp>
 
+
 class PHCompositeNode;
 class TrkrClusterContainer;
+class TrkrHitSetContainer;
+
 class TrkrCluster;
 class TGeoNode;
 class PHG4CylinderGeomContainer;
 class PHG4CylinderCellGeomContainer;
-class MakeActsGeometry;
+
 
 namespace ActsExamples
 {
@@ -45,32 +52,7 @@ namespace Acts
 using Surface = std::shared_ptr<const Acts::Surface>;
 using SourceLink = ActsExamples::TrkrClusterSourceLink;
 
-/**
- * A struct to carry around Acts geometry on node tree, so as to not put 
- * all of the MakeActsGeometry tree
- */
-struct ActsTrackingGeometry{
-  ActsTrackingGeometry(){}
-  ActsTrackingGeometry(std::shared_ptr<const Acts::TrackingGeometry> tGeo,
-		       ActsExamples::Options::BFieldVariant mag,
-		       Acts::CalibrationContext calib,
-		       Acts::GeometryContext geoCtxt,
-		       Acts::MagneticFieldContext magFieldCtxt)
-  : tGeometry(tGeo)
-  , magField(mag)
-  , calibContext(calib)
-  , geoContext(geoCtxt)
-  , magFieldContext(magFieldCtxt)
-  {}
-  /// Tracking geometry and magnetic field, for fitter function
-  std::shared_ptr<const Acts::TrackingGeometry> tGeometry;
-  ActsExamples::Options::BFieldVariant magField;
-
-  /// Acts context, for Kalman options
-  Acts::CalibrationContext calibContext;
-  Acts::GeometryContext geoContext;
-  Acts::MagneticFieldContext magFieldContext;
-};
+typedef boost::bimap<TrkrDefs::cluskey, unsigned int> CluskeyBimap;
 
 /**
  * This class is responsible for creating Acts TrkrClusterSourceLinks from
@@ -97,11 +79,13 @@ class PHActsSourceLinks : public SubsysReco
   int ResetEvent(PHCompositeNode *topNode);
   void useVertexAsMeasurement(bool useVertexMeasurement)
     {m_useVertexMeasurement = useVertexMeasurement;}
-  void setMagField(std::string magField)
+  void setMagField(const std::string &magField)
     {m_magField = magField;}
   void setMagFieldRescale(double magFieldRescale)
     {m_magFieldRescale = magFieldRescale;}
 
+  void SetUseTruthClusters(bool setit){_use_truth_clusters = setit;}
+ 
  private:
   /**
    * Functions
@@ -113,7 +97,7 @@ class PHActsSourceLinks : public SubsysReco
   int getNodes(PHCompositeNode *topNode);
 
   /// Get a TGeoNode from the m_clusterNodeMap
-  TGeoNode *getNodeFromClusterMap(TrkrDefs::hitsetkey hitSetKey);
+  TGeoNode* getNodeFromClusterMap(TrkrDefs::hitsetkey hitSetKey);
 
   /// Get a Surface from the m_surfaceNodeMap;
   Surface getSurfaceFromClusterMap(TrkrDefs::hitsetkey hitSetKey);
@@ -154,39 +138,52 @@ class PHActsSourceLinks : public SubsysReco
                             const TrkrCluster *cluster,
                             const TrkrDefs::cluskey clusKey);
 
+  Surface getMmLocalCoords(Acts::Vector2D &local2D,
+                                             Acts::BoundMatrix &localErr,
+                                             const TrkrCluster *cluster,
+			   const TrkrDefs::cluskey clusKey);
+
   void addVerticesAsSourceLinks(PHCompositeNode *topNode,
 				unsigned int &hitId);
+
+  /// Gets tpc surface from a cluster coordinate and hitsetkey. Necessary
+  /// since there are many tpc surfaces per read out module
+  Surface getTpcSurfaceFromCoords(TrkrDefs::hitsetkey hitsetkey, 
+    std::vector<double> &world);
+
+  Surface getMmSurfaceFromCoords(TrkrDefs::hitsetkey hitsetkey, 
+    std::vector<double> &world);
+
 
   /**
    * Member variables
    */
 
-  bool m_useVertexMeasurement;
+  bool m_useVertexMeasurement = false;
+  bool _use_truth_clusters = false;
 
   /// SvtxCluster node
-  TrkrClusterContainer *m_clusterMap;
-
-  /// Geometry object to create all acts geometry
-  MakeActsGeometry *m_actsGeometry;
+  TrkrClusterContainer *m_clusterMap = nullptr;
+  TrkrHitSetContainer  *m_hitsets = nullptr;
 
   /// Map relating arbitrary hitid to TrkrDef::cluskey for SourceLink, to be put
   /// on node tree by this module
-  std::map<TrkrDefs::cluskey, unsigned int> *m_hitIdClusKey;
+  CluskeyBimap *m_hitIdClusKey;
 
   /// Map for source hitid:sourcelink, to be put on node tree by this module
   std::map<unsigned int, SourceLink> *m_sourceLinks;
 
   /// Magnetic field components to set Acts magnetic field
-  std::string m_magField;
-  double m_magFieldRescale;
+  std::string m_magField = "1.4";
+  double m_magFieldRescale = -1.;
 
   /// Tracking geometry objects
-  PHG4CylinderGeomContainer *m_geomContainerMvtx;
-  PHG4CylinderGeomContainer *m_geomContainerIntt;
-  PHG4CylinderCellGeomContainer *m_geomContainerTpc;
+  PHG4CylinderGeomContainer *m_geomContainerMvtx = nullptr;
+  PHG4CylinderGeomContainer *m_geomContainerIntt = nullptr;
+  PHG4CylinderCellGeomContainer *m_geomContainerTpc = nullptr;
 
-  ActsTrackingGeometry *m_tGeometry;
-
+  ActsTrackingGeometry *m_tGeometry = nullptr;
+  ActsSurfaceMaps *m_surfMaps = nullptr;
 };
 
 #endif
