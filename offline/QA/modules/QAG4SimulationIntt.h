@@ -13,8 +13,10 @@ class PHG4Hit;
 class PHG4HitContainer;
 class TrkrClusterContainer;
 class TrkrClusterHitAssoc;
-class TrkrHitSetContainer;
 class TrkrHitTruthAssoc;
+
+struct ActsSurfaceMaps;
+struct ActsTrackingGeometry;
 
 /// \class QAG4SimulationIntt
 class QAG4SimulationIntt : public SubsysReco
@@ -43,14 +45,17 @@ class QAG4SimulationIntt : public SubsysReco
   /// true if histograms are initialized
   bool m_initialized = false;
 
+  /// Acts surface maps for surface lookup
+  ActsSurfaceMaps* m_surfmaps = nullptr;
+
+  /// Acts tracking geometry for surface lookup
+  ActsTrackingGeometry* m_tGeometry = nullptr;
+
   /// cluster map
   TrkrClusterContainer* m_cluster_map = nullptr;
 
   /// clusters to hit association
   TrkrClusterHitAssoc* m_cluster_hit_map = nullptr;
-
-  /// hitsets
-  TrkrHitSetContainer  *m_hitsets = nullptr;
 
   /// hit to g4hit association
   TrkrHitTruthAssoc* m_hit_truth_map = nullptr;

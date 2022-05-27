@@ -13,7 +13,6 @@ AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include \
   -I$(ROOTSYS)/include \
-  -I$(OFFLINE_MAIN)/include/eigen3 \
   -DHomogeneousField
 
 
@@ -40,7 +39,6 @@ libkfparticle_sphenix_io_la_SOURCES = \
   KFParticle_Container.cc
 
 libkfparticle_sphenix_la_SOURCES = \
-  KFParticle_Container.cc \
   KFParticle_DST.cc \
   KFParticle_truthAndDetTools.cc \
   KFParticle_nTuple.cc \
@@ -59,7 +57,8 @@ libkfparticle_sphenix_la_LIBADD = \
   -lcalo_io \
   -lfun4all \
   -lg4eval \
-  -lTMVA
+  -lTMVA \
+  -lphhepmc
 
 # Rule for generating table CINT dictionaries.
 %_Dict.cc: %.h %LinkDef.h

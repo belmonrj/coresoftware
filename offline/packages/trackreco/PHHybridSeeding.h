@@ -14,7 +14,7 @@
 
 #include <trackbase/TrkrDefs.h>  // for cluskey
 #include <trackbase/TrkrCluster.h>
-#include <trackbase_historic/SvtxTrack_v2.h>
+#include <trackbase_historic/SvtxTrack_v3.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -53,7 +53,7 @@ class PHHybridSeeding : public PHTrackSeeding
       size_t nthreads = 1
       );
 
-  virtual ~PHHybridSeeding()
+  ~PHHybridSeeding() override
   {
   }
   
@@ -76,10 +76,10 @@ class PHHybridSeeding : public PHTrackSeeding
   void setMinFitTrackSize(size_t s) {_min_fit_track_size = s;}
 
  protected:
-  virtual int Setup(PHCompositeNode *topNode);
-  virtual int Process(PHCompositeNode *topNode);
+  int Setup(PHCompositeNode *topNode) override;
+  int Process(PHCompositeNode *topNode) override;
   int InitializeGeometry(PHCompositeNode *topNode);
-  virtual int End();
+  int End() override;
 
  private:
   /// fetch node pointers
@@ -100,7 +100,7 @@ class PHHybridSeeding : public PHTrackSeeding
   std::map<int, unsigned int> _layer_ilayer_map_all;
   std::map<int, unsigned int> _layer_ilayer_map;
 
-  void publishSeeds(std::vector<SvtxTrack_v2> seeds);
+  void publishSeeds(std::vector<SvtxTrack_v3> seeds);
 
   double _max_sin_phi;
   double _fieldDir;

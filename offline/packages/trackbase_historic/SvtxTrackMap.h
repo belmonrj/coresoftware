@@ -15,25 +15,25 @@ class SvtxTrackMap : public PHObject
   typedef std::map<unsigned int, SvtxTrack*>::const_iterator ConstIter;
   typedef std::map<unsigned int, SvtxTrack*>::iterator Iter;
 
-  virtual ~SvtxTrackMap() {}
+  ~SvtxTrackMap() override {}
 
-  virtual void identify(std::ostream& os = std::cout) const
+  void identify(std::ostream& os = std::cout) const override
   {
     os << "SvtxTrackMap base class" << std::endl;
   }
-  virtual void Reset() {}
-  virtual int isValid() const { return 0; }
-  virtual PHObject* CloneMe() const { return nullptr; }
+  int isValid() const override { return 0; }
+  PHObject* CloneMe() const override { return nullptr; }
 
   virtual bool empty() const { return true; }
   virtual size_t size() const { return 0; }
-  virtual size_t count(unsigned int idkey) const { return 0; }
+  virtual size_t count(unsigned int /*idkey*/) const { return 0; }
   virtual void clear() {}
 
-  virtual const SvtxTrack* get(unsigned int idkey) const { return nullptr; }
-  virtual SvtxTrack* get(unsigned int idkey) { return nullptr; }
-  virtual SvtxTrack* insert(const SvtxTrack* cluster) { return nullptr; }
-  virtual size_t erase(unsigned int idkey) { return 0; }
+  virtual const SvtxTrack* get(unsigned int /*idkey*/) const { return nullptr; }
+  virtual SvtxTrack* get(unsigned int /*idkey*/) { return nullptr; }
+  virtual SvtxTrack* insert(const SvtxTrack* /*cluster*/) { return nullptr; }
+  virtual SvtxTrack* insertWithKey(const SvtxTrack*, unsigned int) { return nullptr; }
+  virtual size_t erase(unsigned int /*idkey*/) { return 0; }
 
   virtual ConstIter begin() const;
   virtual ConstIter find(unsigned int idkey) const;
@@ -47,7 +47,7 @@ class SvtxTrackMap : public PHObject
   SvtxTrackMap() {}
 
  private:
-  ClassDef(SvtxTrackMap, 1);
+  ClassDefOverride(SvtxTrackMap, 1);
 };
 
 #endif

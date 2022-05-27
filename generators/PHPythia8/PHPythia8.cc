@@ -45,6 +45,7 @@ PHPythia8::PHPythia8(const std::string &name)
   , m_Pythia8(nullptr)
   , m_ConfigFileName("phpythia8.cfg")
   , m_Pythia8ToHepMC(nullptr)
+  , m_SaveEventWeightFlag(true)
   , m_SaveIntegratedLuminosityFlag(true)
   , m_IntegralNode(nullptr)
 {
@@ -112,7 +113,7 @@ int PHPythia8::Init(PHCompositeNode *topNode)
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-int PHPythia8::End(PHCompositeNode *topNode)
+int PHPythia8::End(PHCompositeNode */*topNode*/)
 {
   if (Verbosity() >= VERBOSITY_MORE) cout << "PHPythia8::End - I'm here!" << endl;
 
@@ -170,7 +171,7 @@ void PHPythia8::print_config() const
   m_Pythia8->info.list();
 }
 
-int PHPythia8::process_event(PHCompositeNode *topNode)
+int PHPythia8::process_event(PHCompositeNode */*topNode*/)
 {
   if (Verbosity() >= VERBOSITY_MORE) cout << "PHPythia8::process_event - event: " << m_EventCount << endl;
 
@@ -236,6 +237,11 @@ int PHPythia8::process_event(PHCompositeNode *topNode)
 
   HepMC::GenEvent *genevent = new HepMC::GenEvent(HepMC::Units::GEV, HepMC::Units::MM);
   m_Pythia8ToHepMC->fill_next_event(*m_Pythia8, genevent, m_EventCount);
+  // Enable continuous reweighting by storing additional reweighting factor
+  if (m_SaveEventWeightFlag)
+  {
+    genevent->weights().push_back(m_Pythia8->info.weight());
+  }
 
   /* pass HepMC to PHNode*/
   PHHepMCGenEvent *success = PHHepMCGenHelper::insert_event(genevent);

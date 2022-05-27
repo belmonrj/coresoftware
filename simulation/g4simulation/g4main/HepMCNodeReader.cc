@@ -66,6 +66,7 @@ static IsStateFinal isfinal;
 
 HepMCNodeReader::HepMCNodeReader(const std::string &name)
   : SubsysReco(name)
+  , is_pythia(false)
   , use_seed(0)
   , seed(0)
   , vertex_pos_x(0.0)
@@ -140,7 +141,7 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
   float worldsizex = rc->get_FloatFlag("WorldSizex");
   float worldsizey = rc->get_FloatFlag("WorldSizey");
   float worldsizez = rc->get_FloatFlag("WorldSizez");
-  string worldshape = rc->get_CharFlag("WorldShape");
+  string worldshape = rc->get_StringFlag("WorldShape");
 
   enum
   {
@@ -187,6 +188,8 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
       cout << __PRETTY_FUNCTION__ << " : L" << __LINE__ << " Found PHHepMCGenEvent:" << endl;
       genevt->identify();
     }
+
+    const auto collisionVertex = genevt->get_collision_vertex();
 
     HepMC::GenEvent *evt = genevt->getEvent();
     if (!evt)
@@ -259,17 +262,21 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
         }
         if (isfinal(*p))
         {
-	  if(Verbosity()>1){
-	    cout<<__PRETTY_FUNCTION__<<" "<<__LINE__<<endl;
-	    cout<<"\tparticle passed "<<endl;
-	  }
+          if (Verbosity() > 1)
+          {
+            cout << __PRETTY_FUNCTION__ << " " << __LINE__ << endl;
+            cout << "\tparticle passed " << endl;
+          }
           finalstateparticles.push_back(*p);
-        }else{
-	  if(Verbosity()>1){
-	    cout<<__PRETTY_FUNCTION__<<" "<<__LINE__<<endl;
-	    cout<<"\tparticle failed "<<endl;
-	  }
-	}
+        }
+        else
+        {
+          if (Verbosity() > 1)
+          {
+            cout << __PRETTY_FUNCTION__ << " " << __LINE__ << endl;
+            cout << "\tparticle failed " << endl;
+          }
+        }
       }
 
       if (!finalstateparticles.empty())
@@ -278,6 +285,20 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
                                           (*v)->position().y(),
                                           (*v)->position().z(),
                                           (*v)->position().t());
+	if(is_pythia)
+	  {
+	    lv_vertex.setX(collisionVertex.x());
+	    lv_vertex.setY(collisionVertex.y());
+	    lv_vertex.setZ(collisionVertex.z());
+	    lv_vertex.setT(collisionVertex.t());
+	    if (Verbosity() > 1)
+	      {
+		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ 
+			  << std::endl;
+		std::cout << "\t vertex reset to collision vertex: " 
+			  << lv_vertex << std::endl;
+	      }
+	  }
 
         // event gen frame to lab frame
         lv_vertex = lortentz_rotation(lv_vertex);
@@ -289,7 +310,7 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
 
         if (Verbosity() > 1)
         {
-	  cout<<__PRETTY_FUNCTION__<<" "<<__LINE__<<endl;
+          cout << __PRETTY_FUNCTION__ << " " << __LINE__ << endl;
           cout << "Vertex : " << endl;
           (*v)->print();
           cout << "id: " << (*v)->barcode() << endl;
@@ -337,10 +358,11 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
              fiter != finalstateparticles.end();
              ++fiter)
         {
-          if (Verbosity() > 1){
-	    cout<<__PRETTY_FUNCTION__<<" "<<__LINE__<<endl;
-	    (*fiter)->print();
-	  }
+          if (Verbosity() > 1)
+          {
+            cout << __PRETTY_FUNCTION__ << " " << __LINE__ << endl;
+            (*fiter)->print();
+          }
 
           CLHEP::HepLorentzVector lv_momentum((*fiter)->momentum().px(),
                                               (*fiter)->momentum().py(),
@@ -414,7 +436,7 @@ void HepMCNodeReader::SmearVertex(const double s_x, const double s_y,
   return;
 }
 
-void HepMCNodeReader::Embed(const int i)
+void HepMCNodeReader::Embed(const int)
 {
   cout << "HepMCNodeReader::Embed - WARNING - this function is depreciated. "
        << "Embedding IDs are controlled for individually HEPMC subevents in Fun4AllHepMCInputManagers and event generators."

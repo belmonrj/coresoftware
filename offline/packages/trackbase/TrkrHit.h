@@ -18,7 +18,7 @@
 /**
  * @brief Base class for hit object
  *
- * This is the empyt virtual base class for a hit object.
+ * This is the empty virtual base class for a hit object.
  * Each subsystem should implement an inherited version
  * which contains the actual storage information.
  */
@@ -27,26 +27,30 @@ class TrkrHit : public PHObject
  public:
 
   //! dtor
-  virtual ~TrkrHit() {}
+  ~TrkrHit() override {}
   // PHObject virtual overloads
-  virtual void identify(std::ostream& os = std::cout) const
+  void identify(std::ostream& os = std::cout) const override
   {
     os << "TrkrHit base class" << std::endl;
   }
-  virtual void Reset() {}
-  virtual int isValid() const { return 0; }
+  void Reset() override {}
+  int isValid() const override { return 0; }
 
   // these set and get the energy before digitization
-  virtual void addEnergy(const double edep){}
+  virtual void addEnergy(const double){}
   virtual double getEnergy() {return 0;}
 
   // after digitization, these are the adc values
-  virtual void setAdc(const unsigned int adc) {}
+  virtual void setAdc(const unsigned int) {}
   virtual unsigned int getAdc() { return 0;}
+  /*
+  virtual void setCrossing(const short int) {}
+  virtual short int getCrossing() { return 0;}
+  */
 
  protected:
 
-  ClassDef(TrkrHit, 1);
+  ClassDefOverride(TrkrHit, 1);
 };
 
 #endif //TRACKBASE_TRKRHIT_H

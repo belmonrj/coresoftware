@@ -37,7 +37,9 @@ SvtxTrack_v2::~SvtxTrack_v2()
 
 void SvtxTrack_v2::CopyFrom( const SvtxTrack& source )
 {
-
+  // do nothing if copying onto oneself
+  if( this == &source ) return;
+  
   // parent class method
   SvtxTrack::CopyFrom( source );
   
@@ -84,13 +86,13 @@ void SvtxTrack_v2::CopyFrom( const SvtxTrack& source )
 
   for( const auto& type: { SvtxTrack::PRES, SvtxTrack::CEMC, SvtxTrack::HCALIN, SvtxTrack::HCALOUT } )
   {
-    if(!isnan(source.get_cal_dphi(type))) set_cal_dphi(type, source.get_cal_dphi(type));
-    if(!isnan(source.get_cal_deta(type))) set_cal_deta(type, source.get_cal_deta(type));
-    if(!isnan(source.get_cal_energy_3x3(type))) set_cal_energy_3x3(type, source.get_cal_energy_3x3(type));
-    if(!isnan(source.get_cal_energy_5x5(type))) set_cal_energy_5x5(type, source.get_cal_energy_5x5(type));
+    if(!std::isnan(source.get_cal_dphi(type))) set_cal_dphi(type, source.get_cal_dphi(type));
+    if(!std::isnan(source.get_cal_deta(type))) set_cal_deta(type, source.get_cal_deta(type));
+    if(!std::isnan(source.get_cal_energy_3x3(type))) set_cal_energy_3x3(type, source.get_cal_energy_3x3(type));
+    if(!std::isnan(source.get_cal_energy_5x5(type))) set_cal_energy_5x5(type, source.get_cal_energy_5x5(type));
     if(source.get_cal_cluster_id(type) != UINT_MAX) set_cal_cluster_id(type, source.get_cal_cluster_id(type));
     if(source.get_cal_cluster_key(type) != UINT_MAX) set_cal_cluster_key(type, source.get_cal_cluster_key(type));
-    if(!isnan(source.get_cal_cluster_e(type))) set_cal_cluster_e(type, source.get_cal_cluster_e(type));
+    if(!std::isnan(source.get_cal_cluster_e(type))) set_cal_cluster_e(type, source.get_cal_cluster_e(type));
   }
 
 }
@@ -166,10 +168,18 @@ SvtxTrackState* SvtxTrack_v2::get_state(float pathlength)
 
 SvtxTrackState* SvtxTrack_v2::insert_state(const SvtxTrackState* state)
 {
-  const auto copy =  static_cast<SvtxTrackState*> (state->CloneMe());
-  const auto [iterator, inserted] = _states.insert(std::make_pair(state->get_pathlength(),copy));
-  if( !inserted ) delete copy;
-  return iterator->second;  
+  // find closest iterator
+  const auto pathlength = state->get_pathlength();
+  auto iterator = _states.lower_bound( pathlength );
+  if( iterator == _states.end() || pathlength < iterator->first )
+  {
+    // pathlength not found. Make a copy and insert
+    const auto copy =  static_cast<SvtxTrackState*> (state->CloneMe());
+    iterator = _states.insert(iterator, std::make_pair( pathlength, copy ));
+  }
+
+  // return matching state
+  return iterator->second;
 }
 
 size_t SvtxTrack_v2::erase_state(float pathlength)

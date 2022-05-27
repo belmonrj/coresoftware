@@ -28,7 +28,6 @@ class HelixHoughFuncs;
 class PHCompositeNode;
 class PHTimer;
 class TrkrClusterContainer;
-class TrkrHitSetContainer;
 class SvtxTrackMap;
 class SvtxVertexMap;
 
@@ -44,12 +43,12 @@ public:
 
 	PHPatternReco(unsigned int nlayers = 7, unsigned int min_nlayers = 7,
 			const std::string &name = "PHPatternReco");
-	virtual ~PHPatternReco() ;
+	~PHPatternReco() override ;
 
-	int Init(PHCompositeNode *topNode);
-	int InitRun(PHCompositeNode *topNode);
-	int process_event(PHCompositeNode *topNode);
-	int End(PHCompositeNode *topNode);
+	int Init(PHCompositeNode *topNode) override;
+	int InitRun(PHCompositeNode *topNode) override;
+	int process_event(PHCompositeNode *topNode) override;
+	int End(PHCompositeNode *topNode) override;
 
 
 	void set_file_name(const std::string &fname){_fname = fname;}
@@ -276,7 +275,6 @@ private:
 	// node pointers
 	BbcVertexMap* _bbc_vertexes;
 	TrkrClusterContainer* _clustermap;
-	TrkrHitSetContainer  *_hitsets;
 	SvtxTrackMap* _trackmap;
 	SvtxVertexMap* _vertexmap;
 	VertexFitter _vertex_finder;

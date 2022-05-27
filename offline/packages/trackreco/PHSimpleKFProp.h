@@ -1,86 +1,78 @@
 /*!
- *  \file		  PHTrackPropagating.h
- *  \brief		Base class for track seeding
- *  \author		Haiwang Yu <yuhw@nmsu.edu>
+ *  \file PHSimpleKFProp.h
+ *  \brief		kalman filter based propagator
+ *  \author Michael Peters & Christof Roland
  */
 
 #ifndef TRACKRECO_PHSIMPLEKFPROP_H
 #define TRACKRECO_PHSIMPLEKFPROP_H
 
-// PHENIX includes
-#include "PHTrackPropagating.h"
-#include <trackbase/TrkrDefs.h>
-#include <trackbase_historic/SvtxTrack_v2.h>
-#include <phfield/PHField.h>
-#include "nanoflann.hpp"
 #include "ALICEKF.h"
+#include "nanoflann.hpp"
 
-// STL includes
-#include <string>
-#include <vector>
-#include <memory>
+// PHENIX includes
+#include <fun4all/SubsysReco.h>
+#include <tpc/TpcDistortionCorrection.h>
+#include <trackbase/TrkrDefs.h>
+#include <trackbase_historic/ActsTransformations.h>
+#include <Acts/MagneticField/MagneticFieldProvider.hpp>
 
 #include <Eigen/Core>
 
+// STL includes
+#include <memory>
+#include <string>
+#include <vector>
+
 // forward declarations
+struct ActsSurfaceMaps;
+struct ActsTrackingGeometry;
+
 class PHCompositeNode;
-
+class PHField;
+class TpcDistortionCorrectionContainer;
 class TrkrClusterContainer;
-class SvtxVertexMap;
+class TrkrClusterIterationMapv1;
 class SvtxTrackMap;
-class AssocInfoContainer;
+class TrackSeedContainer;
+class TrackSeed;
 
-/// \class PHTrackPropagating
-///
-/// \brief Base class for track seeding
-///
-class PHSimpleKFProp : public PHTrackPropagating
+using PositionMap = std::map<TrkrDefs::cluskey, Acts::Vector3>;
+
+class PHSimpleKFProp : public SubsysReco
 {
  public:
   PHSimpleKFProp(const std::string &name = "PHSimpleKFProp");
-  virtual ~PHSimpleKFProp() {}
+  ~PHSimpleKFProp() override = default;
 
-  //int InitRun(PHCompositeNode *topNode) override;
-  //int process_event(PHCompositeNode *topNode) override;
-  //int End(PHCompositeNode *topNode) override;
-  //void set_track_map_name(const std::string &map_name) { _track_map_name = map_name; }
-  //void SetUseTruthClusters(bool setit){_use_truth_clusters = setit;}
+  int InitRun(PHCompositeNode *topNode) override;
+  int process_event(PHCompositeNode *topNode) override;
+  int End(PHCompositeNode *topNode) override;
+
   void set_field_dir(const double rescale)
   {
-    std::cout << "rescale: " << rescale << std::endl;
     _fieldDir = 1;
     if(rescale > 0)
-      _fieldDir = -1;
+      { _fieldDir = -1; }
   }
   void set_max_window(double s){_max_dist = s;}
   void useConstBField(bool opt){_use_const_field = opt;}
   void useFixedClusterError(bool opt){_use_fixed_clus_err = opt;}
   void setFixedClusterError(int i, double val){_fixed_clus_err.at(i) = val;}
- protected:
-  /// setup interface for trackers, called in InitRun, setup things like pointers to nodes.
-  /// overrided in derived classes
-  int Setup(PHCompositeNode *topNode) override;
-
-  /// process event interface for trackers, called in process_event.
-  /// implemented in derived classes
-  int Process() override;
-
-  ///
-  int End() override;
-
-
-  //SvtxClusterMap *_cluster_map;
-  //TrkrClusterContainer *_cluster_map;
-  //SvtxVertexMap *_vertex_map;
-  //SvtxTrackMap *_track_map;
-  //AssocInfoContainer *_assoc_container;
-  PHField* _field_map;
-
-  //std::string _track_map_name;
-
-  //bool _use_truth_clusters = false;
+  void use_truth_clusters(bool truth)
+  { _use_truth_clusters = truth; }
+  void SetIteration(int iter){_n_iteration = iter;}
 
  private:
+
+  /// acts transformation object
+  ActsTransformations m_transform;
+
+  /// tpc distortion correction utility class
+  TpcDistortionCorrection m_distortionCorrection;
+
+  bool _use_truth_clusters = false;
+  
   /// fetch node pointers
   int get_nodes(PHCompositeNode *topNode);
   std::vector<double> radii;
@@ -97,8 +89,35 @@ class PHSimpleKFProp : public PHTrackPropagating
   size_t _min_clusters_per_track = 20;
   double _fieldDir = -1;
   double _max_sin_phi = 1.;
-  void PrepareKDTrees();
-  std::vector<TrkrDefs::cluskey> PropagateTrack(SvtxTrack* track);
+  double _rz_outlier_threshold = .1;
+  double _xy_outlier_threshold = .1;
+
+  TrkrClusterContainer *_cluster_map = nullptr;
+
+  TrackSeedContainer *_track_map = nullptr;
+
+  PHField* _field_map = nullptr;
+  
+  /// acts geometry
+  ActsTrackingGeometry *_tgeometry = nullptr;
+
+  /// acts surface map
+  ActsSurfaceMaps *_surfmaps = nullptr;
+
+  /// distortion correction container
+  TpcDistortionCorrectionContainer* m_dcc = nullptr;
+
+  /// get global position for a given cluster
+  /**
+   * uses ActsTransformation to convert cluster local position into global coordinates
+   * incorporates TPC distortion correction, if present
+   */
+  Acts::Vector3 getGlobalPosition(TrkrDefs::cluskey, TrkrCluster*) const;
+
+  PositionMap PrepareKDTrees();
+
+  std::vector<TrkrDefs::cluskey> PropagateTrack(TrackSeed* track, Eigen::Matrix<double,6,6>& xyzCov, const PositionMap& globalPositions) const;
+  std::vector<std::vector<TrkrDefs::cluskey>> RemoveBadClusters(const std::vector<std::vector<TrkrDefs::cluskey>>& seeds, const PositionMap& globalPositions) const;
   template <typename T>
   struct KDPointCloud
   {
@@ -131,21 +150,19 @@ class PHSimpleKFProp : public PHTrackPropagating
     }
   };
   std::vector<std::shared_ptr<KDPointCloud<double>>> _ptclouds;
-  std::vector<std::shared_ptr<nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, KDPointCloud<double>>,
-                                                KDPointCloud<double>,3>>> _kdtrees;
-  
-  std::shared_ptr<ALICEKF> fitter;
-  double get_Bz(double x, double y, double z);
-  void publishSeeds(std::vector<SvtxTrack_v2>);
-  void publishSeeds(std::vector<SvtxTrack>);
-  void MoveToVertex();
-  void MoveToFirstTPCCluster();
-  void line_fit(std::vector<std::pair<double,double>> points, double &A, double &B);
-  void line_fit_clusters(std::vector<TrkrCluster*> clusters, double &A, double &B);
-  void CircleFitByTaubin(std::vector<std::pair<double,double>> points, double &R, double &X0, double &Y0);
+  std::vector<std::shared_ptr<nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, KDPointCloud<double>>, KDPointCloud<double>,3>>> _kdtrees;
+  std::unique_ptr<ALICEKF> fitter;
+  double get_Bz(double x, double y, double z) const;
+  void publishSeeds(std::vector<TrackSeed_v1>& seeds, PositionMap &positions);
+  void publishSeeds(const std::vector<TrackSeed>&);
+//   void MoveToVertex();
+
   bool _use_const_field = false;
   bool _use_fixed_clus_err = false;
   std::array<double,3> _fixed_clus_err = {.1,.1,.1};
+  TrkrClusterIterationMapv1* _iteration_map = nullptr;
+  int _n_iteration = 0;
+
 };
 
 #endif

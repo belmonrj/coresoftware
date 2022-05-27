@@ -14,7 +14,7 @@
 
 // trackbase_historic includes
 #include <trackbase_historic/SvtxTrackMap.h>
-#include <trackbase_historic/SvtxTrack_v2.h>
+#include <trackbase_historic/SvtxTrack_v3.h>
 #include <trackbase_historic/SvtxTrack.h>
 #include <trackbase_historic/SvtxVertex.h>
 #include <trackbase_historic/SvtxVertexMap.h>
@@ -230,7 +230,7 @@ int PHHybridSeeding::InitializeGeometry(PHCompositeNode *topNode)
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-int PHHybridSeeding::Process(PHCompositeNode *topNode)
+int PHHybridSeeding::Process(PHCompositeNode */*topNode*/)
 {
   // wipe previous vertex coordinates
   _vertex_x.clear();
@@ -304,13 +304,13 @@ int PHHybridSeeding::Process(PHCompositeNode *topNode)
       if(Verbosity()>1) cout << (int)TrkrDefs::getLayer(c) << endl;
     }
   }
-  vector<SvtxTrack_v2> seeds = fitter->ALICEKalmanFilter(clusterLists,false);
+  vector<SvtxTrack_v3> seeds = fitter->ALICEKalmanFilter(clusterLists,false);
   if(Verbosity()>0) cout << "nseeds: " << seeds.size() << "\n";
   publishSeeds(seeds);
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-void PHHybridSeeding::publishSeeds(vector<SvtxTrack_v2> seeds)
+void PHHybridSeeding::publishSeeds(vector<SvtxTrack_v3> seeds)
 {
   for(size_t i=0;i<seeds.size();i++)
   {
@@ -323,8 +323,31 @@ int PHHybridSeeding::Setup(PHCompositeNode *topNode)
   if(Verbosity()>0) cout << "Called Setup" << endl;
   if(Verbosity()>0) cout << "topNode:" << topNode << endl;
   PHTrackSeeding::Setup(topNode);
+
+  _vertex_map = findNode::getClass<SvtxVertexMap>(topNode, "SvtxVertexMap");
+  if (!_vertex_map)
+    {
+      cerr << PHWHERE << " ERROR: Can't find SvtxVertexMap." << endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
+    }
+  
+  auto surfmaps = findNode::getClass<ActsSurfaceMaps>(topNode, "ActsSurfaceMaps");
+  if(!surfmaps)
+    {
+      std::cout << "No Acts surface maps, bailing." << std::endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
+    }
+
+  auto tGeometry = findNode::getClass<ActsTrackingGeometry>(topNode,"ActsTrackingGeometry");
+  if(!tGeometry)
+    {
+      std::cout << "No Acts tracking geometry, exiting." << std::endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
+    }
+
   InitializeGeometry(topNode);
-  fitter = std::make_shared<ALICEKF>(topNode,_cluster_map,_fieldDir,_min_fit_track_size,_max_sin_phi,Verbosity()); 
+  fitter = std::make_shared<ALICEKF>(topNode,_cluster_map,surfmaps, tGeometry,
+				     _fieldDir,_min_fit_track_size,_max_sin_phi,Verbosity()); 
   return Fun4AllReturnCodes::EVENT_OK;
 }
 

@@ -1,7 +1,5 @@
 #include "PHTrackFitting.h"
 
-#include "AssocInfoContainer.h"
-
 #include <trackbase_historic/SvtxTrackMap.h>
 #include <trackbase_historic/SvtxVertexMap.h>
 
@@ -26,12 +24,11 @@ PHTrackFitting::PHTrackFitting(const std::string& name)
   , _hitsets(nullptr)
   , _vertex_map(nullptr)
   , _track_map(nullptr)
-  , _assoc_container(nullptr)
   , _track_map_name("SvtxTrackMap")
 {
 }
 
-int PHTrackFitting::Init(PHCompositeNode* topNode)
+int PHTrackFitting::Init(PHCompositeNode* /*topNode*/)
 {
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -41,7 +38,7 @@ int PHTrackFitting::InitRun(PHCompositeNode* topNode)
   return Setup(topNode);
 }
 
-int PHTrackFitting::process_event(PHCompositeNode* topNode)
+int PHTrackFitting::process_event(PHCompositeNode* /*topNode*/)
 {
   return Process();
 }
@@ -86,13 +83,6 @@ int PHTrackFitting::GetNodes(PHCompositeNode* topNode)
   if (!_track_map)
   {
     cout << PHWHERE << " ERROR: Can't find SvtxTrackMap." << endl;
-    return Fun4AllReturnCodes::ABORTEVENT;
-  }
-
-  _assoc_container = findNode::getClass<AssocInfoContainer>(topNode, "AssocInfoContainer");
-  if (!_assoc_container)
-  {
-    cout << PHWHERE << " ERROR: Can't find AssocInfoContainer." << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 

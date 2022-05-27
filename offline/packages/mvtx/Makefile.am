@@ -10,8 +10,7 @@ lib_LTLIBRARIES = \
 AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include  \
-  -I$(ROOTSYS)/include \
-  -I$(OFFLINE_MAIN)/include/eigen3
+  -I$(ROOTSYS)/include
 
 AM_LDFLAGS = \
   -L$(libdir) \
@@ -19,7 +18,6 @@ AM_LDFLAGS = \
   -L$(OFFLINE_MAIN)/lib
 
 pkginclude_HEADERS = \
-  MvtxDefs.h \
   MvtxClusterizer.h \
   CylinderGeom_Mvtx.h \
   SegmentationAlpide.h
@@ -46,7 +44,6 @@ libmvtx_la_LIBADD = \
 libmvtx_io_la_SOURCES = \
   $(ROOTDICTS) \
   CylinderGeom_Mvtx.cc \
-  MvtxDefs.cc \
   SegmentationAlpide.cc
 
 libmvtx_io_la_LIBADD = \

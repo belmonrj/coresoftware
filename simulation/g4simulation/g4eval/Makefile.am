@@ -34,6 +34,7 @@ libg4eval_la_LIBADD = \
   -lmvtx_io \
   -lintt_io \
   -lmicromegas_io \
+  -lphhepmc_io \
   -lphg4hit
 
 pkginclude_HEADERS = \
@@ -57,10 +58,16 @@ pkginclude_HEADERS = \
   SvtxClusterEval.h \
   SvtxTrackEval.h \
   SvtxTruthEval.h \
+  SvtxTruthRecoTableEval.h \
   SvtxVertexEval.h \
   TrackEvaluation.h \
+  TrackSeedTrackMapConverter.h \
+  DSTEmulator.h \
   TrackEvaluationContainer.h \
-  TrackEvaluationContainerv1.h
+  TrackEvaluationContainerv1.h  \
+  DSTCompressor.h \
+  compressor_generator.h
+
 
 ROOTDICTS = \
   TrackEvaluationContainer_Dict.cc \
@@ -95,9 +102,12 @@ libg4eval_la_SOURCES = \
   SvtxHitEval.cc \
   SvtxClusterEval.cc \
   SvtxTrackEval.cc \
+  SvtxTruthRecoTableEval.cc \
   SvtxVertexEval.cc \
   SvtxEvaluator.cc \
-  TrackEvaluation.cc
+  TrackEvaluation.cc \
+  TrackSeedTrackMapConverter.cc \
+  DSTEmulator.cc
 
 # Rule for generating table CINT dictionaries.
 %_Dict.cc: %.h %LinkDef.h

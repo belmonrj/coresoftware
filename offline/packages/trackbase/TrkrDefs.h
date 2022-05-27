@@ -53,6 +53,7 @@ namespace TrkrDefs
     inttId = 1,
     tpcId = 2,
     micromegasId = 3,
+    ttl = 4,
   };
 
 
@@ -75,6 +76,9 @@ namespace TrkrDefs
   /// generate the common upper 16 bits for hitsetkey
   TrkrDefs::hitsetkey genHitSetKey(const TrkrDefs::TrkrId trkrId, const uint8_t lyr);
 
+  /// generate cluster key from hitset key and cluster index
+  TrkrDefs::cluskey genClusKey(const TrkrDefs::hitsetkey hskey, const uint32_t clusid);
+  
   /// Get the upper 32 bits from cluster keys
   uint32_t getHitSetKeyFromClusKey(const TrkrDefs::cluskey key);
 

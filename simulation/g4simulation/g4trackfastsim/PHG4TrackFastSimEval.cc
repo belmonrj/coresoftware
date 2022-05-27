@@ -72,7 +72,7 @@ PHG4TrackFastSimEval::PHG4TrackFastSimEval(const string &name, const string &fil
 //-- Init():
 //--   Intialize all histograms, trees, and ntuples
 //----------------------------------------------------------------------------//
-int PHG4TrackFastSimEval::Init(PHCompositeNode *topNode)
+int PHG4TrackFastSimEval::Init(PHCompositeNode */*topNode*/)
 {
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -83,52 +83,6 @@ int PHG4TrackFastSimEval::Init(PHCompositeNode *topNode)
 //----------------------------------------------------------------------------//
 int PHG4TrackFastSimEval::InitRun(PHCompositeNode *topNode)
 {
-  for (map<string, unsigned int>::const_iterator iter = m_ProjectionNameMap.begin(); iter != m_ProjectionNameMap.end(); ++iter)
-  {
-    for (int i = 0; i < 4; i++)
-    {
-      string bname = iter->first + "_proj_" + xyzt[i];
-      string bdef = bname + "/F";
-
-      // fourth element is the path length
-      if (i == 3)
-      {
-        bdef = iter->first + "_proj_path_length" + "/F";
-      }
-
-      m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_proj_vec[iter->second][i], bdef.c_str());
-    }
-
-    for (int i = 0; i < 3; i++)
-    {
-      string bname = iter->first + "_proj_p" + xyzt[i];
-      string bdef = bname + "/F";
-      m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_proj_p_vec[iter->second][i], bdef.c_str());
-    }
-    string nodename = "G4HIT_" + iter->first;
-    PHG4HitContainer *hits = findNode::getClass<PHG4HitContainer>(topNode, nodename);
-    if (hits)
-    {
-      for (int i = 0; i < 4; i++)
-      {
-        string bname = iter->first + "_" + xyzt[i];
-        string bdef = bname + "/F";
-        m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_ref_vec[iter->second][i], bdef.c_str());
-      }
-      for (int i = 0; i < 3; i++)
-      {
-        string bname = iter->first + "_p" + xyzt[i];
-        string bdef = bname + "/F";
-
-        m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_ref_p_vec[iter->second][i], bdef.c_str());
-      }
-    }
-    if (!hits && Verbosity() > 0)
-    {
-      cout << "InitRun: could not find " << nodename << endl;
-    }
-  }
-
   if (Verbosity())
     cout << PHWHERE << " Openning file " << m_OutFileName << endl;
   PHTFileServer::get().open(m_OutFileName, "RECREATE");
@@ -217,6 +171,52 @@ int PHG4TrackFastSimEval::InitRun(PHCompositeNode *topNode)
   m_VertexEvalTree->Branch("ntracks", &m_TTree_nTracks, "ntracks/I");
   m_VertexEvalTree->Branch("n_from_truth", &m_TTree_nFromTruth, "n_from_truth/I");
 
+  for (map<string, unsigned int>::const_iterator iter = m_ProjectionNameMap.begin(); iter != m_ProjectionNameMap.end(); ++iter)
+  {
+    for (int i = 0; i < 4; i++)
+    {
+      string bname = iter->first + "_proj_" + xyzt[i];
+      string bdef = bname + "/F";
+
+      // fourth element is the path length
+      if (i == 3)
+      {
+        bdef = iter->first + "_proj_path_length" + "/F";
+      }
+
+      m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_proj_vec[iter->second][i], bdef.c_str());
+    }
+
+    for (int i = 0; i < 3; i++)
+    {
+      string bname = iter->first + "_proj_p" + xyzt[i];
+      string bdef = bname + "/F";
+      m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_proj_p_vec[iter->second][i], bdef.c_str());
+    }
+    string nodename = "G4HIT_" + iter->first;
+    PHG4HitContainer *hits = findNode::getClass<PHG4HitContainer>(topNode, nodename);
+    if (hits)
+    {
+      for (int i = 0; i < 4; i++)
+      {
+        string bname = iter->first + "_" + xyzt[i];
+        string bdef = bname + "/F";
+        m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_ref_vec[iter->second][i], bdef.c_str());
+      }
+      for (int i = 0; i < 3; i++)
+      {
+        string bname = iter->first + "_p" + xyzt[i];
+        string bdef = bname + "/F";
+
+        m_TracksEvalTree->Branch(bname.c_str(), &m_TTree_ref_p_vec[iter->second][i], bdef.c_str());
+      }
+    }
+    if (!hits && Verbosity() > 0)
+    {
+      cout << "InitRun: could not find " << nodename << endl;
+    }
+  }
+
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -246,7 +246,7 @@ int PHG4TrackFastSimEval::process_event(PHCompositeNode *topNode)
 //-- End():
 //--   End method, wrap everything up
 //----------------------------------------------------------------------------//
-int PHG4TrackFastSimEval::End(PHCompositeNode *topNode)
+int PHG4TrackFastSimEval::End(PHCompositeNode */*topNode*/)
 {
   PHTFileServer::get().cd(m_OutFileName);
 
@@ -440,7 +440,7 @@ void PHG4TrackFastSimEval::fill_track_tree(PHCompositeNode *topNode)
 //-- fill_tree():
 //--   Fill the trees with truth, track fit, and cluster information
 //----------------------------------------------------------------------------//
-void PHG4TrackFastSimEval::fill_vertex_tree(PHCompositeNode *topNode)
+void PHG4TrackFastSimEval::fill_vertex_tree(PHCompositeNode */*topNode*/)
 {
   if (!m_TruthInfoContainer)
   {
@@ -491,9 +491,9 @@ void PHG4TrackFastSimEval::fill_vertex_tree(PHCompositeNode *topNode)
     PHG4VtxPoint *best_vtx = nullptr;
     int best_n_match = -1;
     map<PHG4VtxPoint *, int> vertex_match_map;
-    for (auto iter = vertex->begin_tracks(); iter != vertex->end_tracks(); ++iter)
+    for (auto iterA = vertex->begin_tracks(); iterA != vertex->end_tracks(); ++iterA)
     {
-      const auto &trackid = *iter;
+      const auto &trackid = *iterA;
       const auto trackIter = m_TrackMap->find(trackid);
 
       if (trackIter == m_TrackMap->end()) continue;
@@ -577,6 +577,7 @@ void PHG4TrackFastSimEval::reset_variables()
   for (auto &elem : m_TTree_proj_p_vec) std::fill(elem.begin(), elem.end(), -9999);
   for (auto &elem : m_TTree_ref_vec) std::fill(elem.begin(), elem.end(), -9999);
   for (auto &elem : m_TTree_ref_p_vec) std::fill(elem.begin(), elem.end(), -9999);
+  for (auto &pair : m_TTree_HitContainerID_nHits_map) pair.second=0;
 }
 
 //----------------------------------------------------------------------------//

@@ -1,5 +1,6 @@
 #include "PHActsInitialVertexFinder.h"
-#include "ActsTransformations.h"
+
+#include <trackbase_historic/ActsTransformations.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <phool/PHCompositeNode.h>
@@ -7,6 +8,7 @@
 #include <phool/PHObject.h>
 #include <phool/getClass.h>
 #include <phool/phool.h>
+#include <phool/PHRandomSeed.h>
 
 #if __cplusplus < 201402L
 #include <boost/make_unique.hpp>
@@ -59,32 +61,52 @@ int PHActsInitialVertexFinder::Setup(PHCompositeNode *topNode)
   if(createNodes(topNode) != Fun4AllReturnCodes::EVENT_OK)
     return Fun4AllReturnCodes::ABORTEVENT;
   
+  m_seed = PHRandomSeed();
+  m_random_number_generator.seed(m_seed);
+
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-int PHActsInitialVertexFinder::Process(PHCompositeNode *topNode)
+int PHActsInitialVertexFinder::Process(PHCompositeNode */*topNode*/)
 {
   if(Verbosity() > 0)
     std::cout << "PHActsInitialVertexFinder processing event " 
 	      << m_event << std::endl;
 
-  InitKeyMap keyMap;
-  auto trackPointers = getTrackPointers(keyMap);
-
-  auto vertices = findVertices(trackPointers);
-
-  fillVertexMap(vertices, keyMap);
-
-  /// Need to check that silicon stubs which may have been
-  /// skipped over still have a vertex association
-  checkTrackVertexAssociation();
-
-  for(auto track : trackPointers)
+  if(m_trackMap->size() == 0)
     {
-      delete track;
+      std::cout << PHWHERE 
+		<< "No silicon track seeds found. Can't run initial vertexing, setting dummy vertex of (0,0,0)" 
+		<< std::endl;
+      createDummyVertex(0,0,0);
+    }
+  else if(m_trackMap->size() == 1)
+    {
+      auto track = m_trackMap->get(0);
+      createDummyVertex(track->get_x(),
+			track->get_y(),
+			track->get_z());
+    }
+  else
+    {
+      InitKeyMap keyMap;
+      auto trackPointers = getTrackPointers(keyMap);
+      
+      auto vertices = findVertices(trackPointers);
+      
+      fillVertexMap(vertices, keyMap);
+      
+      /// Need to check that silicon stubs which may have been
+      /// skipped over still have a vertex association
+      checkTrackVertexAssociation();
+      
+      for(auto track : trackPointers)
+	{
+	  delete track;
+	}
     }
 
-  if(Verbosity() > 0)
+ if(Verbosity() > 0)
     std::cout << "PHActsInitialVertexFinder processed event "
 	      << m_event << std::endl;
 
@@ -93,12 +115,12 @@ int PHActsInitialVertexFinder::Process(PHCompositeNode *topNode)
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-int PHActsInitialVertexFinder::ResetEvent(PHCompositeNode *topNode)
+int PHActsInitialVertexFinder::ResetEvent(PHCompositeNode */*topNode*/)
 {
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-int PHActsInitialVertexFinder::End(PHCompositeNode *topNode)
+int PHActsInitialVertexFinder::End(PHCompositeNode */*topNode*/)
 {
 
   std::cout << "Acts IVF succeeded " << m_successFits 
@@ -135,8 +157,10 @@ void PHActsInitialVertexFinder::checkTrackVertexAssociation()
 	    }
 
 	}
+      
+      auto vertex = m_vertexMap->get(vertId);
+      vertex->insert_track(trackKey);
       track->set_vertex_id(vertId);	
-
     }
 
 }
@@ -151,7 +175,7 @@ void PHActsInitialVertexFinder::fillVertexMap(VertexVector& vertices,
   /// don't return a vertex
   if(vertices.size() == 0)
     {
-      createDummyVertex();
+      createDummyVertex(0,0,0);
       if(Verbosity() > 1)
 	std::cout << "No vertices found. Adding a dummy vertex"
 		  << std::endl;
@@ -193,7 +217,7 @@ void PHActsInitialVertexFinder::fillVertexMap(VertexVector& vertices,
       svtxVertex->set_t0(vertex.time());
       svtxVertex->set_id(vertexId);
           
-      for(const auto track : vertex.tracks())
+      for(const auto& track : vertex.tracks())
 	{
 	  const auto originalParams = track.originalParams;
 
@@ -221,10 +245,12 @@ void PHActsInitialVertexFinder::fillVertexMap(VertexVector& vertices,
   return;
 }
 
-void PHActsInitialVertexFinder::createDummyVertex()
+void PHActsInitialVertexFinder::createDummyVertex(const float x,
+						  const float y,
+						  const float z)
 {
 
-  /// If the Acts IVF finds 0 vertices, there weren't enough tracks
+  /// If the Acts IVF finds 0 vertices or there weren't enough tracks
   /// for it to properly identify a good vertex. So just create
   /// a dummy vertex with large covariance for rest of track
   /// reconstruction to avoid seg faults
@@ -235,9 +261,9 @@ void PHActsInitialVertexFinder::createDummyVertex()
   auto svtxVertex = std::make_unique<SvtxVertex_v1>();
   #endif
 
-  svtxVertex->set_x(0);  
-  svtxVertex->set_y(0);
-  svtxVertex->set_z(0);
+  svtxVertex->set_x(x);  
+  svtxVertex->set_y(y);
+  svtxVertex->set_z(z);
   
   for(int i = 0; i < 3; ++i) 
     for(int j = 0; j < 3; ++j)
@@ -247,6 +273,7 @@ void PHActsInitialVertexFinder::createDummyVertex()
 	else 
 	  svtxVertex->set_error(i,j, 0);
       }
+
   float nan = NAN;
   svtxVertex->set_chisq(nan);
   svtxVertex->set_ndof(nan);
@@ -254,7 +281,8 @@ void PHActsInitialVertexFinder::createDummyVertex()
   svtxVertex->set_id(0);
 
   m_vertexMap->insert(svtxVertex.release());
-  
+  std::cout << "Created dummy vertex at " << x << ", " << y << ", " << z
+	    << std::endl;
   for(auto& [key, track] : *m_trackMap)
     track->set_vertex_id(0);
 
@@ -264,6 +292,8 @@ VertexVector PHActsInitialVertexFinder::findVertices(TrackParamVec& tracks)
 {
 
   m_totVertexFits++;
+
+  auto field = m_tGeometry->magField;
 
   /// Determine the input mag field type from the initial geometry
   /// and run the vertex finding with the determined mag field
@@ -377,15 +407,295 @@ VertexVector PHActsInitialVertexFinder::findVertices(TrackParamVec& tracks)
       return vertexVector;
       
     } /// end lambda
-    , m_tGeometry->magField
+    , field
     ); /// end std::visit call
 
 }
+
+std::vector<SvtxTrack*> PHActsInitialVertexFinder::sortTracks()
+{
+
+  /// Implement a simple k-means clustering algorithm. Randomly select
+  /// m_nCentroid track z PCAs (centroids), assign all tracks to 
+  /// a centroid based on which they are closest to, and then iterate
+  /// to update clusters and centroids
+
+  std::vector<Acts::Vector3D> centroids(m_nCentroids);
+  std::uniform_int_distribution<int> indices(0,m_trackMap->size() - 1);
+  std::vector<int> usedIndices;
+
+  /// Get the original centroids
+  for(auto& centroid : centroids) 
+    {
+      auto index = indices(m_random_number_generator);
+      for(const auto used : usedIndices)
+	if(index == used)
+	  index = indices(m_random_number_generator);
+
+      usedIndices.push_back(index);
+      
+      centroid = Acts::Vector3D(m_trackMap->get(index)->get_x(),
+				m_trackMap->get(index)->get_y(),
+				m_trackMap->get(index)->get_z());
+      
+      if(Verbosity() > 3)
+	{
+	  std::cout << "Centroid is (" << centroid(0) 
+		    << ", " << centroid(1) << ", " 
+		    << centroid(2) << ")" << std::endl;
+	}
+    }
+  
+  /// This map holds the centroid index as the key and a
+  /// vector of SvtxTracks that correspond to that centroid
+  auto clusters = createCentroidMap(centroids);
+
+  /// Take the map and identified centroids and remove tracks
+  /// that aren't compatible
+  auto sortedTracks = getIVFTracks(clusters, centroids);
+
+  return sortedTracks;
+}
+
+std::vector<SvtxTrack*> PHActsInitialVertexFinder::getIVFTracks(
+		        CentroidMap& clusters, 
+			std::vector<Acts::Vector3D>& centroids)
+{
+  
+  std::vector<SvtxTrack*> sortedTracks;
+
+  if(Verbosity() > 2)
+    {
+      std::cout << "Final centroids are : " << std::endl;
+      for(const auto& [centroidIndex, trackVec] : clusters)
+	{
+	  std::cout << "Centroid: " << centroids.at(centroidIndex).transpose()
+		    << " has tracks " << std::endl;
+	  for(const auto& track : trackVec)
+	    {
+	      std::cout << "(" << track->get_x() << ", "
+			<< track->get_y() << ", " << track->get_z()
+			<< ")" << std::endl;
+	    }
+	}
+    }
+
+  /// Note the centroid that has the most tracks
+  int maxTrackCentroid = 0;
+  std::vector<Acts::Vector3D> stddev(m_nCentroids);
+
+  for(const auto& [centroidIndex, trackVec] : clusters)
+    {
+      Acts::Vector3D sum = Acts::Vector3D::Zero();
+      if(trackVec.size() > maxTrackCentroid)
+	{
+	  maxTrackCentroid = trackVec.size();
+	}
+
+      for(const auto& track : trackVec)
+	{
+	  for(int i = 0; i < sum.rows(); i++)
+	    {
+	      sum(i) += pow(track->get_pos(i) - centroids.at(centroidIndex)(i), 2);
+	    }
+	}
+      for(int i = 0; i < 3; i++)
+	{ 
+	  stddev.at(centroidIndex)(i) = sqrt(sum(i) / trackVec.size()); 
+	}
+    }
+  
+  for(const auto& [centroidIndex, trackVec] : clusters)
+    {
+      /// skip centroids that have a very small number of tracks
+      /// compared to the largest centroid, as these are most likely
+      /// composed of only a few (bad) stubs
+      if(trackVec.size() < 0.2 * maxTrackCentroid)
+	continue;
+
+      /// Skip large transverse PCA centroids
+      float centroidR = sqrt(pow(centroids.at(centroidIndex)(0), 2) +
+			     pow(centroids.at(centroidIndex)(1), 2));
+    
+      if(Verbosity() > 2)
+	{
+	  std::cout << "Checking to add tracks from centroid " 
+		    << centroids.at(centroidIndex).transpose() << std::endl;
+	}
+
+      if(centroidR > m_pcaCut)
+	{
+	  continue;
+	}
+    
+      for(const auto& track : trackVec)
+	{
+	  Acts::Vector3D pulls = Acts::Vector3D::Zero();
+	  for(int i = 0; i < 3; i++)
+	    {
+	      pulls(i) = fabs(track->get_pos(i) - centroids.at(centroidIndex)(i)) / stddev.at(centroidIndex)(i);
+	    }
+	  
+	  if(Verbosity() > 3)
+	    {
+	      std::cout << "Track pos is (" << track->get_x() << ", " 
+			<< track->get_y() << ", " << track->get_z() 
+			<< ") and pull is " << pulls.transpose() << std::endl;
+	    }
+	 
+	  if ((pulls(0) < 2 and pulls(1) < 2 and pulls(2) < 2))
+	    {
+	      sortedTracks.push_back(track);
+	    }
+	  else
+	    {
+	      if(m_removeSeeds)
+		{
+		  m_trackMap->erase(track->get_id());
+		}
+
+	      if(Verbosity() > 3)
+		{
+		  std::cout << "Not adding track with pos (" << track->get_x()
+			    << ", " << track->get_y() << ", " << track->get_z() 
+			    << ") as it is incompatible with centroid " 
+			    << centroids.at(centroidIndex).transpose() 
+			    << " with std dev " 
+			    << stddev.at(centroidIndex).transpose() << std::endl;
+		}
+	    }
+	}
+    }
+
+  return sortedTracks;
+
+}
+
+CentroidMap PHActsInitialVertexFinder::createCentroidMap(std::vector<Acts::Vector3D>& centroids)
+{
+  CentroidMap clusters;
+  
+  for(int niter = 0; niter < m_nIterations; niter++)
+    {
+      /// reset the centroid-track map
+      clusters.clear();
+      for(unsigned int i = 0; i<m_nCentroids; i++)
+	{
+	  std::vector<SvtxTrack*> vec;
+	  clusters.insert(std::make_pair(i, vec));
+	}  
+      
+      if(Verbosity() > 3)
+	{
+	  for(int i =0; i< m_nCentroids; i++)
+	    std::cout << "Starting centroid is : " 
+		      << centroids.at(i).transpose() << std::endl;
+	}
+      for(const auto& [key, track] : *m_trackMap)
+	{
+	  Acts::Vector3D trackPos(track->get_x(),
+				  track->get_y(),
+				  track->get_z());
+	      
+	  double minDist = std::numeric_limits<double>::max();
+	  unsigned int centKey = std::numeric_limits<unsigned int>::max();
+	  for(int i = 0; i < centroids.size(); i++)
+	    {
+	      double dist = sqrt(pow(trackPos(0) - centroids.at(i)(0), 2) +
+				 pow(trackPos(1) - centroids.at(i)(1), 2) +
+				 pow(trackPos(2) - centroids.at(i)(2), 2));
+	      if(dist < minDist)
+		{
+		  minDist = dist;
+		  centKey = i;
+		  if(Verbosity() > 3)
+		    {
+		      std::cout << "mindist and centkey are " 
+				<< minDist << ", " << centKey 
+				<< std::endl;
+		    }
+		}
+	    }
+	  
+	  /// Add this track to the map that associates centroids with tracks
+	  if(Verbosity() > 3)
+	    {
+	      std::cout << "adding track with " << trackPos.transpose() 
+			<< " to centroid " 
+			<< centroids.at(centKey).transpose() << std::endl;
+	    }
+
+	  clusters.find(centKey)->second.push_back(track);	  
+	}
+      
+      /// Update pos centroids
+      std::vector<Acts::Vector3D> newCentroids(m_nCentroids);
+      for(auto& centroid : newCentroids)
+	centroid = Acts::Vector3D(0,0,0);
+
+      for(const auto& [centroidVal, trackVec] : clusters)
+	{
+	  for(const auto& track : trackVec)
+	    {
+	      for(int i = 0; i < 3; i++)
+		newCentroids.at(centroidVal)(i) += track->get_pos(i);
+	    }
+
+	  /// Sets the centroid as the average value
+	  centroids.at(centroidVal) = 
+	    newCentroids.at(centroidVal) / trackVec.size();
+	}
+      
+      if(Verbosity() > 3)
+	{
+	  for(int i = 0; i < m_nCentroids; i++)
+	    std::cout << "new centroids " << centroids.at(i).transpose() 
+		      << std::endl;
+   
+	  for(const auto& [centKey, trackVec] : clusters)
+	    {
+	      std::cout << "cent key : " << centKey << " has " << trackVec.size() 
+			<< "tracks" << std::endl;
+	      for(const auto track : trackVec) 
+		{
+		  std::cout << "track id : " << track->get_id() 
+			    << " with pos (" << track->get_x() << ", "
+			    << track->get_y() << ", " <<  track->get_z()
+			    << ")" << std::endl;
+		  
+		}
+	    }
+	}
+    }
+
+  return clusters;
+
+}
+
 TrackParamVec PHActsInitialVertexFinder::getTrackPointers(InitKeyMap& keyMap)
 {
   TrackParamVec tracks;
 
-  for(auto& [key,track] : *m_trackMap)
+  /// If there are fewer tracks than centroids, just one with 1 centroid
+  /// Otherwise algorithm does not converge. nCentroids should only be
+  /// a handful, so this only affects small nTrack events.
+  if(m_trackMap->size() < m_nCentroids) 
+    {
+      m_nCentroids = 1;
+    }
+
+  std::vector<SvtxTrack*> sortedTracks;
+  if(m_svtxTrackMapName.find("Silicon") != std::string::npos)
+    {
+      sortedTracks = sortTracks();
+    }
+  else
+    {
+      for(const auto& [key, track] : *m_trackMap)
+	sortedTracks.push_back(track);
+    }
+
+  for(const auto& track : sortedTracks)
     {
       if(Verbosity() > 3)
 	{
@@ -393,7 +703,16 @@ TrackParamVec PHActsInitialVertexFinder::getTrackPointers(InitKeyMap& keyMap)
 		    << std::endl;
 	  track->identify();
 	}
-
+      
+      /// Only vertex with stubs that have five clusters
+      if(m_svtxTrackMapName.find("Silicon") != std::string::npos)
+	{
+	  if(track->size_cluster_keys() < 5)
+	    {
+	      continue;
+	    }
+	}
+    
       const Acts::Vector4D stubVec(
                   track->get_x() * Acts::UnitConstants::cm,
 		  track->get_y() * Acts::UnitConstants::cm,
@@ -403,17 +722,26 @@ TrackParamVec PHActsInitialVertexFinder::getTrackPointers(InitKeyMap& keyMap)
       const Acts::Vector3D stubMom(track->get_px(),
 				   track->get_py(),
 				   track->get_pz());
-      const int trackQ = track->get_charge() * Acts::UnitConstants::e;
+      int trackQ = track->get_charge() * Acts::UnitConstants::e;
+      
+      /// The vertexing has an expectation about the field direction
+      /// and associated charge. For the 3D map, to work with the 
+      /// required swap of the field for the silicon seeds, we need
+      /// to flip the charge
+      if(m_magField.find("3d") != std::string::npos)
+	trackQ *= -1;
+
       const double p = track->get_p();
       
-      /// Make a dummy loose covariance matrix for Acts
+      /// Make a dummy covariance matrix for Acts that corresponds
+      /// to the resolutions of the silicon seeds
       Acts::BoundSymMatrix cov;
       if(m_resetTrackCovariance)
-	cov << 1000 * Acts::UnitConstants::um, 0., 0., 0., 0., 0.,
-	       0., 1000 * Acts::UnitConstants::um, 0., 0., 0., 0.,
-	       0., 0., 0.05, 0., 0., 0.,
-	       0., 0., 0., 0.05, 0., 0.,
-	       0., 0., 0., 0., 0.1 , 0.,
+	cov << 50 * Acts::UnitConstants::um, 0., 0., 0., 0., 0.,
+	       0., 30 * Acts::UnitConstants::um, 0., 0., 0., 0.,
+	       0., 0., 0.005, 0., 0., 0.,
+	       0., 0., 0., 0.001, 0., 0.,
+	       0., 0., 0., 0., 0.3 , 0.,
 	       0., 0., 0., 0., 0., 1.;
       
       else 
@@ -424,11 +752,11 @@ TrackParamVec PHActsInitialVertexFinder::getTrackPointers(InitKeyMap& keyMap)
 						   m_tGeometry->geoContext);
 	}
 
-      /// Make a dummy perigeee surface to bound the track to
+      /// Make a dummy perigee surface to bound the track to
       auto perigee = Acts::Surface::makeShared<Acts::PerigeeSurface>(
-		 Acts::Vector3D(track->get_x() * Acts::UnitConstants::cm,
-				track->get_y() * Acts::UnitConstants::cm,
-				track->get_z() * Acts::UnitConstants::cm));
+				    Acts::Vector3D(stubVec(0),
+						   stubVec(1),
+						   stubVec(2)));
 								     
 
       const auto param = new Acts::BoundTrackParameters(
@@ -438,7 +766,7 @@ TrackParamVec PHActsInitialVertexFinder::getTrackPointers(InitKeyMap& keyMap)
 				   p, trackQ, cov);
 
       tracks.push_back(param);
-      keyMap.insert(std::make_pair(param, key));
+      keyMap.insert(std::make_pair(param, track->get_id()));
     }
 
   return tracks;

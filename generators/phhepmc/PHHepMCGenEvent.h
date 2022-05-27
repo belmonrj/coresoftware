@@ -5,8 +5,9 @@
 
 #include <phool/phool.h>
 
-#include <CLHEP/Vector/LorentzRotation.h>
 #include <HepMC/SimpleVector.h>
+
+#include <CLHEP/Vector/LorentzRotation.h>
 
 #include <iostream>  // for cout, ostream
 
@@ -22,15 +23,15 @@ class PHHepMCGenEvent : public PHObject
 
   PHHepMCGenEvent(const PHHepMCGenEvent& event);
   PHHepMCGenEvent& operator=(const PHHepMCGenEvent& event);
-  virtual ~PHHepMCGenEvent();
+  ~PHHepMCGenEvent() override;
 
-  virtual void identify(std::ostream& os = std::cout) const;
-  virtual void Reset();
-  virtual int isValid() const
+  void identify(std::ostream& os = std::cout) const override;
+  void Reset() override;
+  int isValid() const override
   {
     return (getEvent() != nullptr) ? 1 : 0;
   }
-  virtual PHObject* CloneMe() const { return new PHHepMCGenEvent(*this); }
+  PHObject* CloneMe() const override { return new PHHepMCGenEvent(*this); }
 
   HepMC::GenEvent* getEvent();
   const HepMC::GenEvent* getEvent() const;
@@ -68,7 +69,7 @@ class PHHepMCGenEvent : public PHObject
   }
 
   //! boost beta vector for Lorentz Transform, part of composition of a LorentzRotation to translate from hepmc event frame to lab frame
-  virtual void set_boost_beta_vector(const HepMC::ThreeVector& v) { PHOOL_VIRTUAL_WARNING; }
+  virtual void set_boost_beta_vector(const HepMC::ThreeVector&) { PHOOL_VIRTUAL_WARNING; }
 
   //! rotation axis vector, part of composition of a LorentzRotation to translate from hepmc event frame to lab frame
   virtual const HepMC::ThreeVector& get_rotation_vector() const
@@ -79,7 +80,7 @@ class PHHepMCGenEvent : public PHObject
   }
 
   //! rotation axis vector, part of composition of a LorentzRotation to translate from hepmc event frame to lab frame
-  virtual void set_rotation_vector(const HepMC::ThreeVector& v) { PHOOL_VIRTUAL_WARNING; }
+  virtual void set_rotation_vector(const HepMC::ThreeVector&) { PHOOL_VIRTUAL_WARNING; }
 
   //! rotation angle, part of composition of a LorentzRotation to translate from hepmc event frame to lab frame
   virtual double get_rotation_angle() const
@@ -89,7 +90,7 @@ class PHHepMCGenEvent : public PHObject
   }
 
   //! rotation angle, part of composition of a LorentzRotation to translate from hepmc event frame to lab frame
-  virtual void set_rotation_angle(const double a) { PHOOL_VIRTUAL_WARNING; }
+  virtual void set_rotation_angle(const double) { PHOOL_VIRTUAL_WARNING; }
 
   //!LorentzRotation to translate from hepmc event frame to lab frame
   virtual CLHEP::HepLorentzRotation get_LorentzRotation_EvtGen2Lab() const { return CLHEP::HepLorentzRotation::IDENTITY; }
@@ -130,7 +131,7 @@ class PHHepMCGenEvent : public PHObject
   //! The HEP MC record from event generator. Note the units are recorded in GenEvent
   HepMC::GenEvent* _theEvt;
 
-  ClassDef(PHHepMCGenEvent, 5)
+  ClassDefOverride(PHHepMCGenEvent, 5)
 };
 
 #endif  // PHHEPMC_PHHEPMCEVENT_H

@@ -7,24 +7,27 @@
 #include <phool/phool.h>
 
 /// Tracking includes
-#include <trackbase/TrkrClusterv2.h>
+#include <trackbase/ActsTrackingGeometry.h>
+#include <trackbase/ActsSurfaceMaps.h>
+#include <trackbase/TrkrClusterv3.h>
 #include <trackbase/TrkrClusterContainer.h>
+#include <trackbase/TrkrClusterHitAssoc.h>
 #include <trackbase/TrkrHitSet.h>
-#include <trackbase/TrkrHitSetContainer.h>
 #include <trackbase/TrkrDefs.h>
-#include <trackbase/TrkrClusterHitAssocv2.h>
 #include <trackbase/TrkrHitTruthAssoc.h>
-#include <trackbase_historic/SvtxTrack_v2.h>
-#include <trackbase_historic/SvtxTrackMap.h>
+#include <trackbase_historic/TrackSeed_v1.h>
+#include <trackbase_historic/SvtxTrackSeed_v1.h>
+#include <trackbase_historic/TrackSeedContainer_v1.h>
 #include <trackbase_historic/SvtxVertexMap.h>
+#include <trackbase/TpcSeedTrackMapv1.h>    
+#include <trackbase/TrkrClusterCrossingAssoc.h> 
 
 #include <g4main/PHG4Hit.h>  // for PHG4Hit
 #include <g4main/PHG4Particle.h>  // for PHG4Particle
 #include <g4main/PHG4HitContainer.h>
 #include <g4main/PHG4HitDefs.h>  // for keytype
 #include <g4main/PHG4TruthInfoContainer.h>
-
-#include "AssocInfoContainer.h"
+#include <g4main/PHG4VtxPoint.h>
 
 using namespace std;
 
@@ -32,17 +35,10 @@ using namespace std;
 PHTruthSiliconAssociation::PHTruthSiliconAssociation(const std::string &name):
  SubsysReco(name)
 {
-  //cout << "PHTruthSiliconAssociation::PHTruthSiliconAssociation(const std::string &name) Calling ctor" << endl;
 }
 
 //____________________________________________________________________________..
-PHTruthSiliconAssociation::~PHTruthSiliconAssociation()
-{
-
-}
-
-//____________________________________________________________________________..
-int PHTruthSiliconAssociation::Init(PHCompositeNode *topNode)
+int PHTruthSiliconAssociation::Init(PHCompositeNode */*topNode*/)
 {
 
   return Fun4AllReturnCodes::EVENT_OK;
@@ -57,7 +53,7 @@ int PHTruthSiliconAssociation::InitRun(PHCompositeNode *topNode)
 }
 
 //____________________________________________________________________________..
-int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
+int PHTruthSiliconAssociation::process_event(PHCompositeNode */*topNode*/)
 {
   if (Verbosity() >= 1) 
     cout << "PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode) Processing Event" << endl;
@@ -65,41 +61,30 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
   // Loop over all SvtxTracks from the CA seeder
   // These should contain all TPC clusters already
 
-  const unsigned int original_track_map_lastkey = _track_map->end()->first;
-  std::cout << " track map last key = " <<  original_track_map_lastkey << std::endl;
+  const unsigned int original_track_map_lastkey = _track_map->empty() ? 0 : _track_map->size() - 1;
+  if(Verbosity() > 0) std::cout << " track map last key = " <<  original_track_map_lastkey << std::endl;
 
-  for (auto phtrk_iter = _track_map->begin();
-       phtrk_iter != _track_map->end(); 
+  for (unsigned int phtrk_iter = 0;
+       phtrk_iter < _track_map->size();
        ++phtrk_iter)
     {
       // we may add tracks to the map, so we stop at the last original track
-      if(phtrk_iter->first >= original_track_map_lastkey)  break;
+      if(phtrk_iter > original_track_map_lastkey)  break;
 
-      _tracklet = phtrk_iter->second;
+      _tracklet = _track_map->get(phtrk_iter);
       if (Verbosity() >= 1)
 	{
 	  std::cout
 	    << __LINE__
-	    << ": Processing seed itrack: " << phtrk_iter->first
+	    << ": Processing seed itrack: " << phtrk_iter
 	    << ": nhits: " << _tracklet-> size_cluster_keys()
 	    << ": Total tracks: " << _track_map->size()
-	    << ": phi: " << _tracklet->get_phi()
 	    << endl;
 	}
 
-      unsigned int vertexId = _tracklet->get_vertex_id();
-      // if the vertex id from the seeder is nonsense, use vertex 0
-      if(vertexId == UINT_MAX)
-	vertexId = 0;
-      _tracklet->set_vertex_id(vertexId);
+      // this one is always there
+      _seed_track_map->addAssoc(phtrk_iter, phtrk_iter );
 
-      // set the track position to the vertex position
-      const SvtxVertex *svtxVertex = _vertex_map->get(vertexId);
-      
-      _tracklet->set_x(svtxVertex->get_x());
-      _tracklet->set_y(svtxVertex->get_y());
-      _tracklet->set_z(svtxVertex->get_z());
-      
       // identify the best truth track match(es) for this seed track       
       std::vector<PHG4Particle*> g4particle_vec = getG4PrimaryParticle(_tracklet);
       if(Verbosity() > 0)  std::cout << " g4particle_vec.size() " << g4particle_vec.size() << std::endl;
@@ -118,44 +103,30 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 	      double si_eta = asinh(g4particle_vec[0]->get_pz() / sqrt( pow(g4particle_vec[0]->get_px(),2)+pow( g4particle_vec[0]->get_py(),2)));
 	      double si_pt = sqrt(pow(g4particle_vec[0]->get_px(),2)+pow( g4particle_vec[0]->get_py(),2));
 	      
-	      double tpc_phi = atan2(_tracklet->get_py(), _tracklet->get_px());
+	      double tpc_phi = _tracklet->get_phi(_cluster_map, _surfmaps, _tgeometry) ;
 	      double tpc_eta = _tracklet->get_eta();
 	      
-	      cout << "         Try: " << "  pt " << si_pt << " tpc_phi " << tpc_phi << " si_phi " <<  si_phi 
+	      if(Verbosity() > 0)
+		{ 
+		  cout << "         Try: " << "  pt " << si_pt << " tpc_phi " << tpc_phi << " si_phi " <<  si_phi 
 		   << " tpc_eta " << tpc_eta << " si_eta " << si_eta << endl;
-	      
+		}
 	    }
 	}
       
       // make copies of the original track for later use
-      std::vector<SvtxTrack*> extraTrack; 
+      std::vector<TrackSeed*> extraTrack; 
       for(unsigned int ig4=0;ig4 < g4particle_vec.size()-1; ++ig4)
 	{      
-	  SvtxTrack *newTrack = new SvtxTrack_v2();
-	  // Not the first g4particle in the list, we need to add a new copy of the track to the track map and add the silicon clusters to that
-	  const unsigned int lastTrackKey = _track_map->end()->first + ig4;
-	  //std::cout << "   extra track key " << lastTrackKey << std::endl;
-	 	  
-	  newTrack->set_id(lastTrackKey);
-	  newTrack->set_vertex_id(vertexId);
+	  //	  float time = g4particle_vec[ig4]->
 
-	  newTrack->set_charge(_tracklet->get_charge());
-	  newTrack->set_px(_tracklet->get_px());
-	  newTrack->set_py(_tracklet->get_py());
-	  newTrack->set_pz(_tracklet->get_pz());
-	  newTrack->set_x(_tracklet->get_x());
-	  newTrack->set_y(_tracklet->get_y());
-	  newTrack->set_z(_tracklet->get_z());
-	  for(int i = 0; i < 6; ++i)
-	    {
-	      for(int j = 0; j < 6; ++j)
-		{
-		  newTrack->set_error(i,j, _tracklet->get_error(i,j));
-		}
-	    }
+	  auto newTrack = std::make_unique<TrackSeed_v1>(*_tracklet);
+	  // Not the first g4particle in the list, we need to add a new copy of the track to the track map and add the silicon clusters to that
+
+	  _seed_track_map->addAssoc(phtrk_iter, phtrk_iter) ;
 
 	  // loop over associated clusters to get hits for original TPC track, copy to new track
-	  for (SvtxTrack::ConstClusterKeyIter iter = _tracklet->begin_cluster_keys();
+	  for (auto iter = _tracklet->begin_cluster_keys();
 	       iter != _tracklet->end_cluster_keys();
 	       ++iter)
 	    {
@@ -163,9 +134,7 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 	      newTrack->insert_cluster_key(cluster_key);
 	    }
 	  
-	  extraTrack.push_back(newTrack);
-	  //std::cout << "  added new copy of track " << lastTrackKey << " g4particle_vec.zize " << g4particle_vec.size() << std::endl;
-	  //extraTrack[ig4]->identify();
+	  extraTrack.push_back(newTrack.get());
 	}
 
       // we just add the silicon clusters to the original track for the first returned g4particle
@@ -194,7 +163,6 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 	    {
 	      if (Verbosity() >= 1)  std::cout << "            cluster belongs to MVTX or INTT, add to track " << std::endl;
 	      _tracklet->insert_cluster_key(cluster_key);
-	      _assoc_container->SetClusterTrackAssoc(cluster_key, _tracklet->get_id());
 	    }
 	}
       
@@ -203,7 +171,7 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 	  std::cout << " updated original track:" << std::endl;
 	  _tracklet->identify(); 
 	  std::cout << " new cluster keys size " << _tracklet->size_cluster_keys() << endl;
-	  std::cout << "Done with original track " << phtrk_iter->first << std::endl;
+	  std::cout << "Done with original track " << phtrk_iter << std::endl;
 	}
       
       // now add any extra copies of the track      
@@ -212,7 +180,7 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 	  for(unsigned int ig4=0;ig4 < g4particle_vec.size()-1; ++ ig4)
 	    {      
 	      PHG4Particle* g4particle = g4particle_vec[ig4];
-	      
+
 	      if (Verbosity() >= 1)
 		std::cout << "   ig4  " << ig4 << " g4particleID " << g4particle->get_track_id() 
 			  << " px " <<  g4particle->get_px() 
@@ -224,11 +192,8 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 	      std::set<TrkrDefs::cluskey> clusters = getSiliconClustersFromParticle(g4particle);
 	      	
 	      // Not the first g4particle in the list, we need to add a new copy of the track to the track map and add the silicon clusters to that
-	      const unsigned int lastTrackKey = _track_map->end()->first;
-	      //std::cout << "   lastTrackKey " << lastTrackKey << std::endl;
-	      
-	      extraTrack[ig4]->set_id(lastTrackKey);
-	      
+	      const unsigned int lastTrackKey =  _track_map->empty() ? 0 :_track_map->size() - 1;
+	    	      
 	      if (Verbosity() >= 1) 
 		{
 		  std::cout << "  original (copy) track:" << endl;
@@ -251,21 +216,51 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 		    {
 		      if (Verbosity() >= 1)  std::cout << "            cluster belongs to MVTX or INTT, add to track " << std::endl;
 		      extraTrack[ig4]->insert_cluster_key(cluster_key);
-		      _assoc_container->SetClusterTrackAssoc(cluster_key, extraTrack[ig4]->get_id());
 		    }
 		}
-	      
+
 	      if (Verbosity() >= 1)
 		{
 		  std::cout << " updated additional track:" << std::endl;
 		  extraTrack[ig4]->identify(); 
 		  std::cout << " new cluster keys size " << extraTrack[ig4]->size_cluster_keys() << endl;
-		  std::cout << "Done with extra track " << extraTrack[ig4]->get_id()  << std::endl;
+		  std::cout << "Done with extra track " << lastTrackKey << std::endl;
 		}
 	    }
 	}
     }
+
+  // loop over all tracks and copy the silicon clusters to the corrected cluster map
+  if(_corrected_cluster_map)
+    copySiliconClustersToCorrectedMap();
+
+  // loop over all tracks and get the bunch crossing from the INTT cluster - crossing map and add it to the track
+  for (unsigned int phtrk_iter = 0;
+       phtrk_iter < _track_map->size(); 
+       ++phtrk_iter)
+    {
+      TrackSeed *track = _track_map->get(phtrk_iter);
+      const auto intt_crossings = getInttCrossings(track);
+      if(intt_crossings.empty()) 
+	{
+	  if(Verbosity() > 1) std::cout << " Silicon track " << phtrk_iter << " has no INTT clusters" << std::endl;
+	  continue ;
+    
+	} else if( intt_crossings.size() > 1 ) {
+    
+    if(Verbosity() > 1) 
+    { std::cout << " INTT crossings not all the same for track " << phtrk_iter << " crossing_keep - dropping this match " << std::endl; }
+    
+  } else {
+    
+    const auto& crossing = *intt_crossings.begin();
+	  track->set_crossing(crossing);
+	  if(Verbosity() > 1) std::cout << "                    Combined track " << phtrk_iter  << " bunch crossing " << crossing << std::endl;           
+	}
+    }
   
+  makeSvtxSeedMap();
+
   if (Verbosity() >= 1)
     cout << "PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode) Leaving process_event" << endl;  
   
@@ -273,34 +268,48 @@ int PHTruthSiliconAssociation::process_event(PHCompositeNode *topNode)
 }
 
 //____________________________________________________________________________..
-int PHTruthSiliconAssociation::ResetEvent(PHCompositeNode *topNode)
+int PHTruthSiliconAssociation::ResetEvent(PHCompositeNode */*topNode*/)
 {
   //cout << "PHTruthSiliconAssociation::ResetEvent(PHCompositeNode *topNode) Resetting internal structures, prepare for next event" << endl;
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 //____________________________________________________________________________..
-int PHTruthSiliconAssociation::EndRun(const int runnumber)
+int PHTruthSiliconAssociation::EndRun(const int /*runnumber*/)
 {
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 //____________________________________________________________________________..
-int PHTruthSiliconAssociation::End(PHCompositeNode *topNode)
+int PHTruthSiliconAssociation::End(PHCompositeNode */*topNode*/)
 {
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 //____________________________________________________________________________..
-int PHTruthSiliconAssociation::Reset(PHCompositeNode *topNode)
+int PHTruthSiliconAssociation::Reset(PHCompositeNode */*topNode*/)
 {
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 //____________________________________________________________________________..
-void PHTruthSiliconAssociation::Print(const std::string &what) const
+void PHTruthSiliconAssociation::Print(const std::string &/*what*/) const
 {
   //cout << "PHTruthSiliconAssociation::Print(const std::string &what) const Printing info for " << what << endl;
+}
+
+void PHTruthSiliconAssociation::makeSvtxSeedMap()
+{
+  /// The track fitter expects a full svtxtrackseed container, so just 
+  /// convert the tpc+silicon track seeds created into svtxtrack seeds
+  
+  for(unsigned int iter = 0; iter < _track_map->size(); ++iter)
+    {
+      auto seed = std::make_unique<SvtxTrackSeed_v1>();
+      seed->set_tpc_seed_index(iter);
+      _svtx_seed_map->insert(seed.get());
+    }
+
 }
 
 int  PHTruthSiliconAssociation::GetNodes(PHCompositeNode* topNode)
@@ -309,37 +318,37 @@ int  PHTruthSiliconAssociation::GetNodes(PHCompositeNode* topNode)
   // Get Objects off of the Node Tree
   //---------------------------------
 
+  _g4truth_container = findNode::getClass<PHG4TruthInfoContainer>(topNode, "G4TruthInfo");
+  if (!_g4truth_container)
+    {
+      cerr << PHWHERE << " ERROR: Can't find node G4TruthInfo" << endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
+    }
+
+  _cluster_crossing_map = findNode::getClass<TrkrClusterCrossingAssoc>(topNode, "TRKR_CLUSTERCROSSINGASSOC");
+  if (!_cluster_crossing_map)
+  {
+    cerr << PHWHERE << " ERROR: Can't find TRKR_CLUSTERCROSSINGASSOC " << endl;
+    return Fun4AllReturnCodes::ABORTEVENT;
+  }
+
+  _corrected_cluster_map = findNode::getClass<TrkrClusterContainer>(topNode,"CORRECTED_TRKR_CLUSTER");
+  if(_corrected_cluster_map)
+    {
+      std::cout << " Found CORRECTED_TRKR_CLUSTER node " << std::endl;
+    }
+  
   _cluster_map = findNode::getClass<TrkrClusterContainer>(topNode, "TRKR_CLUSTER");
   if (!_cluster_map)
   {
     cerr << PHWHERE << " ERROR: Can't find node TRKR_CLUSTER" << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
-  _hitsets = findNode::getClass<TrkrHitSetContainer>(topNode, "TRKR_HITSET");
-  if(!_hitsets)
-    {
-      std::cout << PHWHERE << "No hitset container on node tree. Bailing."
-		<< std::endl;
-      return Fun4AllReturnCodes::ABORTEVENT;
-    }
-  _vertex_map = findNode::getClass<SvtxVertexMap>(topNode, "SvtxVertexMap");
-  if (!_vertex_map)
-    {
-      cerr << PHWHERE << " ERROR: Can't find SvtxVertexMap." << endl;
-      return Fun4AllReturnCodes::ABORTEVENT;
-    }
-  
-  _track_map = findNode::getClass<SvtxTrackMap>(topNode,  "SvtxTrackMap");
+
+  _track_map = findNode::getClass<TrackSeedContainer>(topNode, "TpcTrackSeedContainer");
   if (!_track_map)
   {
-    cerr << PHWHERE << " ERROR: Can't find SvtxTrackMap: " << endl;
-    return Fun4AllReturnCodes::ABORTEVENT;
-  }
-
-  _assoc_container = findNode::getClass<AssocInfoContainer>(topNode, "AssocInfoContainer");
-  if (!_assoc_container)
-  {
-    cerr << PHWHERE << " ERROR: Can't find AssocInfoContainer." << endl;
+    cerr << PHWHERE << " ERROR: Can't find TpcTrackSeedContainer: " << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 
@@ -356,16 +365,63 @@ int  PHTruthSiliconAssociation::GetNodes(PHCompositeNode* topNode)
     cerr << PHWHERE << " ERROR: Can't find TrkrClusterHitAssoc." << endl;
     return Fun4AllReturnCodes::ABORTEVENT;
   }
+      
+  _tgeometry = findNode::getClass<ActsTrackingGeometry>(topNode, "ActsTrackingGeometry");
+  if(!_tgeometry)
+    {
+      std::cerr << PHWHERE << "ERROR: can't find acts tracking geometry" << std::endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
+    }
 
-   _g4hits_tpc = findNode::getClass<PHG4HitContainer>(topNode, "G4HIT_TPC");
+  _surfmaps = findNode::getClass<ActsSurfaceMaps>(topNode, "ActsSurfaceMaps");
+  if(!_surfmaps)
+    {
+      std::cerr << PHWHERE << "ERROR: can't find acts surface maps" << std::endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
+    }
+
+  /// Get the DST Node
+  PHNodeIterator iter(topNode);
+  PHCompositeNode *dstNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "DST"));
+  
+  /// Check that it is there
+  if (!dstNode)
+    {
+      std::cerr << "DST Node missing, quitting" << std::endl;
+      throw std::runtime_error("failed to find DST node in PHTruthSiliconAssociation::createNodes");
+    }
+  
+  /// Get the tracking subnode
+  PHCompositeNode *svtxNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "SVTX"));
+  
+  /// Check that it is there
+  if (!svtxNode)
+    {
+      svtxNode = new PHCompositeNode("SVTX");
+      dstNode->addNode(svtxNode);
+    }
+  
+  _seed_track_map = new TpcSeedTrackMapv1;
+  PHIODataNode<PHObject> *node
+    = new PHIODataNode<PHObject>(_seed_track_map, _tpcseed_track_map_name);
+  svtxNode->addNode(node);
+  
+  _svtx_seed_map = findNode::getClass<TrackSeedContainer>(topNode, "SvtxTrackSeedContainer");
+  if(!_svtx_seed_map)
+    {
+      _svtx_seed_map = new TrackSeedContainer_v1;
+      PHIODataNode<PHObject> *node2 = new PHIODataNode<PHObject>(_svtx_seed_map, "SvtxTrackSeedContainer","PHObject");
+      svtxNode->addNode(node2);
+    }
+
+  _g4hits_tpc = findNode::getClass<PHG4HitContainer>(topNode, "G4HIT_TPC");
   _g4hits_intt = findNode::getClass<PHG4HitContainer>(topNode, "G4HIT_INTT");
   _g4hits_mvtx = findNode::getClass<PHG4HitContainer>(topNode, "G4HIT_MVTX");
-  _truthinfo = findNode::getClass<PHG4TruthInfoContainer>(topNode, "G4TruthInfo");
   
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-std::vector<PHG4Particle*> PHTruthSiliconAssociation::getG4PrimaryParticle(SvtxTrack *track)
+std::vector<PHG4Particle*> PHTruthSiliconAssociation::getG4PrimaryParticle(TrackSeed *track)
 {
   // Find the best g4particle match to the clusters associated with this reco track
 
@@ -375,7 +431,7 @@ std::vector<PHG4Particle*> PHTruthSiliconAssociation::getG4PrimaryParticle(SvtxT
   int minfound = 200;  // require at least this many hits to be put on the list of contributing particles
 
   // loop over associated clusters to get hits
-  for (SvtxTrack::ConstClusterKeyIter iter = track->begin_cluster_keys();
+  for (auto iter = track->begin_cluster_keys();
        iter != track->end_cluster_keys();
        ++iter)
     {
@@ -437,7 +493,7 @@ std::vector<PHG4Particle*> PHTruthSiliconAssociation::getG4PrimaryParticle(SvtxT
       if(Verbosity() >= 1) std::cout << "    pid: " << *it << "  nfound " << nfound << std::endl;
       if(nfound > minfound)
 	{  
-	  g4part_vec.push_back(_truthinfo->GetParticle(*it));
+	  g4part_vec.push_back(_g4truth_container->GetParticle(*it));
 	}
     }
 
@@ -452,16 +508,14 @@ std::set<TrkrDefs::cluskey> PHTruthSiliconAssociation::getSiliconClustersFromPar
   std::set<TrkrDefs::cluskey> clusters;
 
   // loop over all the clusters
-  auto hitsetrange = _hitsets->getHitSets();
-  for (auto hitsetitr = hitsetrange.first;
-       hitsetitr != hitsetrange.second;
-       ++hitsetitr){
-    auto range = _cluster_map->getClusters(hitsetitr->first);
+  for(const auto& hitsetkey:_cluster_map->getHitSetKeys())
+  {
+    const auto layer = TrkrDefs::getLayer(hitsetkey);
+    if(layer > 6) continue;  // we need the silicon layers only
+    
+    auto range = _cluster_map->getClusters(hitsetkey);
     for( auto clusIter = range.first; clusIter != range.second; ++clusIter ){
       TrkrDefs::cluskey cluster_key = clusIter->first;
-      unsigned int layer = TrkrDefs::getLayer(cluster_key);
-      
-      if(layer > 6) continue;  // we need the silicon layers only
       
       // get all truth hits for this cluster
       //TrkrClusterHitAssoc::ConstRange 
@@ -507,3 +561,68 @@ std::set<TrkrDefs::cluskey> PHTruthSiliconAssociation::getSiliconClustersFromPar
   
 }
 
+void PHTruthSiliconAssociation::copySiliconClustersToCorrectedMap( )
+{
+  // loop over final track map, copy silicon clusters to corrected cluster map
+  for( unsigned int track_iter = 0; 
+       track_iter < _track_map->size(); ++track_iter )
+  {
+    TrackSeed* track = _track_map->get(track_iter);
+    // loop over associated clusters to get keys for micromegas cluster
+    for(auto iter = track->begin_cluster_keys(); iter != track->end_cluster_keys(); ++iter)
+    {
+      TrkrDefs::cluskey cluster_key = *iter;
+      const unsigned int trkrid = TrkrDefs::getTrkrId(cluster_key);
+      if(trkrid == TrkrDefs::mvtxId || trkrid == TrkrDefs::inttId)
+      {
+        // check if clusters has not been inserted already
+        if( _corrected_cluster_map->findCluster( cluster_key ) ) continue;
+
+        auto cluster = _cluster_map->findCluster(cluster_key);	
+        if( !cluster ) continue;
+        
+        // create a new cluster and copy from source
+        auto newclus = new TrkrClusterv3;
+        newclus->CopyFrom( cluster );
+
+        // insert in corrected map
+        _corrected_cluster_map->addClusterSpecifyKey(cluster_key, newclus);
+      }
+    }      
+  }
+}
+
+std::set<short int> PHTruthSiliconAssociation::getInttCrossings(TrackSeed *si_track) const
+{
+  std::set<short int> intt_crossings;
+
+  // If the Si track contains an INTT hit, use it to get the bunch crossing offset
+  // loop over associated clusters to get keys for silicon cluster
+  for (auto iter = si_track->begin_cluster_keys();
+       iter != si_track->end_cluster_keys();
+       ++iter)
+    {
+      
+      TrkrDefs::cluskey cluster_key = *iter;
+      const unsigned int trkrid = TrkrDefs::getTrkrId(cluster_key);
+      if(trkrid == TrkrDefs::inttId)
+	{
+	  // std::cout << "      INTT cluster key " << cluster_key << std::endl; 
+	  
+	  const unsigned int layer = TrkrDefs::getLayer(cluster_key);
+	  
+	  // get the bunch crossings for all hits in this cluster
+	  auto crossings = _cluster_crossing_map->getCrossings(cluster_key);
+	  for(auto iter = crossings.first; iter != crossings.second; ++iter)
+	    {
+        const auto& [key, crossing] = *iter;
+        if( Verbosity() )
+        { std::cout << "PHTruthSiliconAssociation::getInttCrossings - si Track cluster " << key << " layer " << layer << " crossing " << crossing  << std::endl; }
+	      intt_crossings.insert(crossing);
+	    }
+	}
+    }
+  //      std::cout << " intt_crossings size is " << intt_crossings.size() << std::endl;
+  
+  return intt_crossings;
+}

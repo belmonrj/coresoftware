@@ -27,33 +27,47 @@ class TpcClusterizer : public SubsysReco
 {
  public:
   TpcClusterizer(const std::string &name = "TpcClusterizer");
-  virtual ~TpcClusterizer(){}
+  ~TpcClusterizer() override = default;
 
-  int InitRun(PHCompositeNode *topNode);
-  int process_event(PHCompositeNode *topNode);
-  int End(PHCompositeNode *topNode);
+  int InitRun(PHCompositeNode *topNode) override;
+  int process_event(PHCompositeNode *topNode) override;
+  int End(PHCompositeNode *topNode) override;
 
   void set_sector_fiducial_cut(const double cut){SectorFiducialCut = cut; }
-  void set_search_bins(const int bins){NSearch = bins;}
   void set_do_hit_association(bool do_assoc){do_hit_assoc = do_assoc;}
-
+  void set_do_wedge_emulation(bool do_wedge){ do_wedge_emulation = do_wedge;}
+  void set_max_cluster_half_size_phi(unsigned short size) { MaxClusterHalfSizePhi = size ;}
+  void set_max_cluster_half_size_z(unsigned short size) { MaxClusterHalfSizeZ = size ;}
+  void set_drift_velocity_scale(double value) { m_drift_velocity_scale = value; }
+  void set_cluster_version(int value) { cluster_version = value; }
+  
  private:
-  bool is_in_sector_boundary(int phibin, int sector, PHG4CylinderCellGeom *layergeom);
+  bool is_in_sector_boundary(int phibin, int sector, PHG4CylinderCellGeom *layergeom) const;
 
-  TrkrHitSetContainer *m_hits;
-  TrkrClusterContainer *m_clusterlist;
-  TrkrClusterHitAssoc *m_clusterhitassoc;
-  ActsSurfaceMaps *m_surfMaps;
-  ActsTrackingGeometry *m_tGeometry;
-
-  bool do_hit_assoc;
-  double zz_shaping_correction;
-  double pedestal;
-  double SectorFiducialCut;
-
-  int NSearch;
-  int NZBinsMax;
-
+  TrkrHitSetContainer *m_hits = nullptr;
+  TrkrClusterContainer *m_clusterlist = nullptr;
+  TrkrClusterHitAssoc *m_clusterhitassoc = nullptr;
+  ActsSurfaceMaps *m_surfMaps = nullptr;
+  ActsTrackingGeometry *m_tGeometry = nullptr;
+  bool do_hit_assoc = true;
+  bool do_wedge_emulation = false;
+  double pedestal = 74.4;
+  double SectorFiducialCut = 0.5;
+  unsigned short MaxClusterHalfSizePhi = 3;
+  unsigned short MaxClusterHalfSizeZ = 5;
+  int cluster_version = 3;
+  /// drift velocity scale factor
+  /** 
+   * represents the ratio vdrift_measured/vdrift_true
+   * it is used to get cluster z from its timebin
+   **/
+  double m_drift_velocity_scale = 1.0;
+  
+  // TPC shaping offset correction parameters
+  // From Tony Frawley May 13, 2021
+  double par0_neg = 0.0503;
+  double par0_pos = -0.0503;
+  
 };
 
 #endif

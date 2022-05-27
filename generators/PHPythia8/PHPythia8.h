@@ -28,11 +28,11 @@ class PHPythia8 : public SubsysReco, public PHHepMCGenHelper
 {
  public:
   PHPythia8(const std::string &name = "PHPythia8");
-  virtual ~PHPythia8();
+  ~PHPythia8() override;
 
-  int Init(PHCompositeNode *topNode);
-  int process_event(PHCompositeNode *topNode);
-  int End(PHCompositeNode *topNode);
+  int Init(PHCompositeNode *topNode) override;
+  int process_event(PHCompositeNode *topNode) override;
+  int End(PHCompositeNode *topNode) override;
 
   void set_config_file(const std::string &cfg_file)
   {
@@ -67,6 +67,7 @@ class PHPythia8 : public SubsysReco, public PHHepMCGenHelper
     set_vertex_distribution_width(beamXsigma, beamYsigma, beamZsigma, 0);
   }
 
+  void save_event_weight(const bool b) { m_SaveEventWeightFlag = b; }
   void save_integrated_luminosity(const bool b) { m_SaveIntegratedLuminosityFlag = b; }
 
  private:
@@ -88,6 +89,9 @@ class PHPythia8 : public SubsysReco, public PHHepMCGenHelper
 
   // HepMC
   HepMC::Pythia8ToHepMC *m_Pythia8ToHepMC;
+
+  //! whether to store the overall event weight into the HepMC weights
+  bool m_SaveEventWeightFlag;
 
   //! whether to store the integrated luminosity and other event statistics to the TOP/RUN/PHGenIntegral node
   bool m_SaveIntegratedLuminosityFlag;

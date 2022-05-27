@@ -40,19 +40,6 @@ using namespace std;
 
 PHSartre::PHSartre(const std::string &name)
   : SubsysReco(name)
-  , _eventcount(0)
-  , _gencount(0)
-  , _registeredTriggers()
-  , _triggersOR(true)
-  , _triggersAND(false)
-  , _configFile("")
-  , _commands()
-  , _sartre(nullptr)
-  , settings(nullptr)
-  , decay(nullptr)
-  , daughterID(-1)
-  , daughterMasses{0., 0.}
-  , doPerformDecay(false)
 {
   char *charPath = getenv("SARTRE_DIR");
   if (!charPath)
@@ -122,7 +109,7 @@ int PHSartre::Init(PHCompositeNode *topNode)
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-int PHSartre::End(PHCompositeNode *topNode)
+int PHSartre::End(PHCompositeNode */*topNode*/)
 {
   if (Verbosity() > 1) cout << "PHSartre::End - I'm here!" << endl;
 
@@ -151,7 +138,7 @@ void PHSartre::print_config() const
   settings->list();
 }
 
-int PHSartre::process_event(PHCompositeNode *topNode)
+int PHSartre::process_event(PHCompositeNode */*topNode*/)
 {
   if (Verbosity() > 1) cout << "PHSartre::process_event - event: " << _eventcount << endl;
 
@@ -475,7 +462,7 @@ int PHSartre::process_event(PHCompositeNode *topNode)
 
 
 
-int PHSartre::ResetEvent(PHCompositeNode *topNode)
+int PHSartre::ResetEvent(PHCompositeNode */*topNode*/)
 {
   return Fun4AllReturnCodes::EVENT_OK;
 }

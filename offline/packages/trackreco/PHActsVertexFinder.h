@@ -40,11 +40,14 @@ class PHActsVertexFinder: public PHInitVertexing
  public:
   PHActsVertexFinder(const std::string &name = "PHActsVertexFinder");
 
-  virtual ~PHActsVertexFinder() {}
+  ~PHActsVertexFinder() override {}
 
   void setMaxVertices(int maxVertices)
     { m_maxVertices = maxVertices; }
-
+  
+  void setFieldMap(const std::string& fieldMap)
+    { m_fieldMap = fieldMap; }
+  
  protected:
   int Setup(PHCompositeNode *topNode) override;
   int Process(PHCompositeNode *topNode) override;
@@ -69,6 +72,8 @@ class PHActsVertexFinder: public PHInitVertexing
   void updateTrackDCA(const unsigned int trackKey,
 		      const Acts::Vector3D vertex);
 
+  void checkTrackVertexAssociation();
+
   /// An Acts vertex object map
   VertexMap *m_actsVertexMap;
 
@@ -79,11 +84,13 @@ class PHActsVertexFinder: public PHInitVertexing
 
   int m_goodFits = 0;
   int m_totalFits = 0;
+  std::string m_fieldMap = "";
 
   SvtxVertexMap *m_svtxVertexMap = nullptr;
   SvtxVertexMap *m_svtxVertexMapActs = nullptr;
   ActsTrackingGeometry *m_tGeometry = nullptr;
   SvtxTrackMap *m_svtxTrackMap = nullptr;
+  std::map<const unsigned int, Trajectory> *m_trajectories = nullptr;
 };
 
 #endif // TRACKRECO_PHACTSVERTEXFINDER_H

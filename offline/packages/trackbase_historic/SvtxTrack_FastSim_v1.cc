@@ -18,6 +18,9 @@ SvtxTrack_FastSim_v1::SvtxTrack_FastSim_v1(const SvtxTrack& source)
 
 void SvtxTrack_FastSim_v1::CopyFrom( const SvtxTrack& source )
 {
+  // do nothing if copying onto oneself
+  if( this == &source ) return;
+ 
   // parent class method
   SvtxTrack_FastSim::CopyFrom( source );
   
@@ -29,6 +32,7 @@ void SvtxTrack_FastSim_v1::identify(std::ostream& os) const
 {
   SvtxTrack_FastSim::identify(os);
 
+  os << "SvtxTrack_FastSim_v1 Object ";
   os << "G4Hit IDs:" << std::endl;
   for( const auto& pair:_g4hit_ids )
   {
