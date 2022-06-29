@@ -20,6 +20,7 @@ AM_LDFLAGS = \
 pkginclude_HEADERS = \
   ActsSurfaceMaps.h \
   ActsTrackingGeometry.h \
+  ActsGeometry.h \
   CMFlashCluster.h \
   CMFlashClusterv1.h \
   CMFlashClusterContainer.h \
@@ -32,6 +33,7 @@ pkginclude_HEADERS = \
   MvtxDefs.h \
   TpcSeedTrackMap.h \
   TpcSeedTrackMapv1.h \
+  TrackFitUtils.h \
   TrkrCluster.h \
   TrkrClusterv1.h \
   TrkrClusterv2.h \
@@ -151,12 +153,14 @@ nobase_dist_pcm_DATA = \
 libtrack_io_la_SOURCES = \
   $(ROOTDICTS) \
   ActsSurfaceMaps.cc \
+  ActsGeometry.cc \
   CMFlashClusterv1.cc \
   CMFlashClusterContainerv1.cc \
   CMFlashDifferencev1.cc \
   CMFlashDifferenceContainerv1.cc \
   InttDefs.cc \
   MvtxDefs.cc \
+  TrackFitUtils.cc \
   TrkrClusterv1.cc \
   TrkrClusterv2.cc \
   TrkrClusterv3.cc \

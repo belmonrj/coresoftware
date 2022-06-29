@@ -8,11 +8,11 @@
 #define TRACKRECO_PHTRUTHTRACKSEEDING_H
 
 #include "PHTrackSeeding.h"
-#include <trackbase/ActsSurfaceMaps.h>
-#include <trackbase/ActsTrackingGeometry.h>
+#include <trackbase/ActsGeometry.h>
 #include <trackbase/TrkrDefs.h>
 #include <string>  // for string
 #include <vector>
+#include <memory>
 #include <gsl/gsl_rng.h>
 
 // forward declarations
@@ -81,8 +81,6 @@ class PHTruthTrackSeeding : public PHTrackSeeding
   int GetNodes(PHCompositeNode* topNode);
   int CreateNodes(PHCompositeNode* topNode);
 
-  void buildFullTrack(std::vector<TrkrDefs::cluskey>& clusters, 
-		      PHG4Particle *g4particle);
   void buildTrackSeed(std::vector<TrkrDefs::cluskey> clusters, 
 		      PHG4Particle *g4particle, TrackSeedContainer* container);
   PHG4TruthInfoContainer* m_g4truth_container = nullptr;
@@ -108,11 +106,10 @@ class PHTruthTrackSeeding : public PHTrackSeeding
   //! minimal truth momentum cut (GeV)
   double _min_momentum = 50e-3;
 
-  TrackSeedContainer *_tpc_seeds = nullptr;
-  TrackSeedContainer *_silicon_seeds = nullptr;
+  TrackSeedContainer *_track_map_silicon = nullptr;
+  TrackSeedContainer *_track_map_combined = nullptr;
 
-  ActsTrackingGeometry *tgeometry = nullptr;
-  ActsSurfaceMaps *surfmaps = nullptr;
+  ActsGeometry *tgeometry = nullptr;
 
   bool _circle_fit_seed = false;
 
