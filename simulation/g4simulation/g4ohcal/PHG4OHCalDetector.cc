@@ -7,17 +7,42 @@
 
 #include <phparameter/PHParameters.h>
 
+#include <phfield/PHFieldConfig.h>
+#include <phfield/PHFieldUtility.h>
+
+#include <g4gdml/PHG4GDMLConfig.hh>
+#include <g4gdml/PHG4GDMLUtility.hh>
+
+#include <calobase/RawTowerDefs.h>           // for convert_name_...
+#include <calobase/RawTowerGeom.h>           // for RawTowerGeom
+#include <calobase/RawTowerGeomContainer.h>  // for RawTowerGeomC...
+#include <calobase/RawTowerGeomContainer_Cylinderv1.h>
+#include <calobase/RawTowerGeomv1.h>
+
 #include <g4main/PHG4Detector.h>
 #include <g4main/PHG4DisplayAction.h>
 #include <g4main/PHG4Subsystem.h>
+#include <g4main/PHG4Utils.h>
 
+#include <ffamodules/CDBInterface.h>
+
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>  // for PHNode
+#include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>  // for PHObject
+#include <phool/getClass.h>
 #include <phool/phool.h>
 #include <phool/recoConsts.h>
 
 #include <TSystem.h>
 
 #include <Geant4/G4AssemblyVolume.hh>
+#include <Geant4/G4IonisParamMat.hh>
 #include <Geant4/G4LogicalVolume.hh>
+#include <Geant4/G4LogicalVolumeStore.hh>
+#include <Geant4/G4Material.hh>
+#include <Geant4/G4MaterialTable.hh>
 #include <Geant4/G4PVPlacement.hh>
 #include <Geant4/G4RotationMatrix.hh>
 #include <Geant4/G4String.hh>
@@ -38,20 +63,19 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 
-#include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
-
-class G4Material;
-class PHCompositeNode;
-
-using namespace std;
+#include <list>
+#include <memory>   // for unique_ptr
+#include <utility>  // for pair, make_pair
+#include <vector>   // for vector, vector<>::iter...
 
 PHG4OHCalDetector::PHG4OHCalDetector(PHG4Subsystem *subsys, PHCompositeNode *Node, PHParameters *parames, const std::string &dnam)
   : PHG4Detector(subsys, Node, dnam)
   , m_DisplayAction(dynamic_cast<PHG4OHCalDisplayAction *>(subsys->GetDisplayAction()))
-  , m_FieldSetup(nullptr)
   , m_Params(parames)
   , m_InnerRadius(m_Params->get_double_param("inner_radius") * cm)
   , m_OuterRadius(m_Params->get_double_param("outer_radius") * cm)
@@ -61,6 +85,32 @@ PHG4OHCalDetector::PHG4OHCalDetector(PHG4Subsystem *subsys, PHCompositeNode *Nod
   , m_AbsorberActiveFlag(m_Params->get_int_param("absorberactive"))
   , m_GDMPath(m_Params->get_string_param("GDMPath"))
 {
+  gdml_config = PHG4GDMLUtility::GetOrMakeConfigNode(Node);
+  assert(gdml_config);
+  // changes in the parameters have to be made here
+  // otherwise they will not be propagated to the node tree
+  if (std::filesystem::path(m_GDMPath).extension() != ".gdml")
+  {
+    m_GDMPath = CDBInterface::instance()->getUrl(m_GDMPath);
+    m_Params->set_string_param("GDMPath", m_GDMPath);
+  }
+  std::string ironfieldmap = m_Params->get_string_param("IronFieldMapPath");
+  if (std::filesystem::path(ironfieldmap).extension() != ".root")
+  {
+    ironfieldmap = CDBInterface::instance()->getUrl(ironfieldmap);
+    m_Params->set_string_param("IronFieldMapPath", ironfieldmap);
+  }
+  PHFieldConfig *fieldconf = findNode::getClass<PHFieldConfig>(Node, PHFieldUtility::GetDSTConfigNodeName());
+  if (fieldconf->get_field_config() != PHFieldConfig::kFieldUniform)
+  {
+    m_FieldSetup =
+        new PHG4OHCalFieldSetup(
+            ironfieldmap, m_Params->get_double_param("IronFieldMapScale"),
+            m_InnerRadius - 10 * cm,  // subtract 10 cm to make sure fieldmap with 2x2 grid covers it
+            m_OuterRadius + 10 * cm,  // add 10 cm to make sure fieldmap with 2x2 grid covers it
+            m_SizeZ / 2. + 10 * cm    // div by 2 bc G4 convention
+        );
+  }
 }
 
 PHG4OHCalDetector::~PHG4OHCalDetector()
@@ -97,47 +147,80 @@ void PHG4OHCalDetector::ConstructMe(G4LogicalVolume *logicWorld)
   G4Material *Air = GetDetectorMaterial(rc->get_StringFlag("WorldMaterial"));
   G4VSolid *hcal_envelope_cylinder = new G4Tubs("OHCal_envelope_solid", m_InnerRadius, m_OuterRadius, m_SizeZ / 2., 0, 2 * M_PI);
   m_VolumeEnvelope = hcal_envelope_cylinder->GetCubicVolume();
-  G4LogicalVolume *hcal_envelope_log = new G4LogicalVolume(hcal_envelope_cylinder, Air, G4String("OHCal_envelope"), 0, 0, 0);
+  G4LogicalVolume *hcal_envelope_log = new G4LogicalVolume(hcal_envelope_cylinder, Air, G4String("OHCal_envelope"), nullptr, nullptr, nullptr);
   G4RotationMatrix hcal_rotm;
   hcal_rotm.rotateX(m_Params->get_double_param("rot_x") * deg);
   hcal_rotm.rotateY(m_Params->get_double_param("rot_y") * deg);
   hcal_rotm.rotateZ(m_Params->get_double_param("rot_z") * deg);
-  G4VPhysicalVolume *mothervol = new G4PVPlacement(G4Transform3D(hcal_rotm, G4ThreeVector(m_Params->get_double_param("place_x") * cm, m_Params->get_double_param("place_y") * cm, m_Params->get_double_param("place_z") * cm)), hcal_envelope_log, "OHCal", logicWorld, 0, false, OverlapCheck());
+  G4VPhysicalVolume *mothervol = new G4PVPlacement(G4Transform3D(hcal_rotm, G4ThreeVector(m_Params->get_double_param("place_x") * cm, m_Params->get_double_param("place_y") * cm, m_Params->get_double_param("place_z") * cm)), hcal_envelope_log, "OHCal", logicWorld, false, false, OverlapCheck());
   m_DisplayAction->SetMyTopVolume(mothervol);
   ConstructOHCal(hcal_envelope_log);
+
+  // allow installing new G4 subsystem installed inside the HCal envelope via macros, in particular its support rings.
+  PHG4Subsystem *mysys = GetMySubsystem();
+  if (mysys)
+  {
+    mysys->SetLogicalVolume(hcal_envelope_log);
+  }
+  // disable GDML export for HCal geometries for memory saving and compatibility issues
+  assert(gdml_config);
+  gdml_config->exclude_physical_vol(mothervol);
+  gdml_config->exclude_logical_vol(hcal_envelope_log);
+
+  const G4MaterialTable *mtable = G4Material::GetMaterialTable();
+  int nMaterials = G4Material::GetNumberOfMaterials();
+  for (auto i = 0; i < nMaterials; ++i)
+  {
+    const G4Material *mat = (*mtable)[i];
+    if (mat->GetName() == "Uniplast_scintillator")
+    {
+      if ((mat->GetIonisation()->GetBirksConstant()) == 0)
+      {
+        mat->GetIonisation()->SetBirksConstant(m_Params->get_double_param("Birk_const"));
+      }
+    }
+  }
+  if (!m_Params->get_int_param("saveg4hit"))
+  {
+    AddGeometryNode();
+  }
   return;
 }
 
 int PHG4OHCalDetector::ConstructOHCal(G4LogicalVolume *hcalenvelope)
 {
   // import the staves from the gemetry file
-  unique_ptr<G4GDMLReadStructure> reader(new G4GDMLReadStructure());
+  std::unique_ptr<G4GDMLReadStructure> reader(new G4GDMLReadStructure());
   G4GDMLParser gdmlParser(reader.get());
   gdmlParser.SetOverlapCheck(OverlapCheck());
+  if (!std::filesystem::exists(m_GDMPath))
+  {
+    std::cout << PHWHERE << " Outer HCal gdml file " << m_GDMPath << " not found" << std::endl;
+    gSystem->Exit(1);
+    exit(1);
+  }
   gdmlParser.Read(m_GDMPath, false);
 
+  G4AssemblyVolume *abs_asym = reader->GetAssembly("sector");         // absorber
+  m_ScintiMotherAssembly = reader->GetAssembly("tileAssembly24_90");  // tiles
 
-/*
-  G4AssemblyVolume *abs_asym = reader->GetAssembly("sector");             //absorber
-  m_ScintiMotherAssembly = reader->GetAssembly("tileAssembly24_90");             //tiles
-
-// this loop is inefficient but the assignment of the scintillator id's is much simpler when having the hcal sector
-  vector<G4VPhysicalVolume *>::iterator it1 = abs_asym->GetVolumesIterator();
+  // this loop is inefficient but the assignment of the scintillator id's is much simpler when having the hcal sector
+  std::vector<G4VPhysicalVolume *>::iterator it1 = abs_asym->GetVolumesIterator();
   for (unsigned int isector = 0; isector < abs_asym->TotalImprintedVolumes(); isector++)
   {
     m_DisplayAction->AddSteelVolume((*it1)->GetLogicalVolume());
     m_SteelAbsorberLogVolSet.insert((*it1)->GetLogicalVolume());
     hcalenvelope->AddDaughter((*it1));
     m_VolumeSteel += (*it1)->GetLogicalVolume()->GetSolid()->GetCubicVolume();
-    vector<G4VPhysicalVolume *>::iterator it3 = m_ScintiMotherAssembly->GetVolumesIterator();
-    unsigned int ncnt = 24*5*2;
-    unsigned int ioff = isector*ncnt;
+    std::vector<G4VPhysicalVolume *>::iterator it3 = m_ScintiMotherAssembly->GetVolumesIterator();
+    unsigned int ncnt = 24 * 5 * 2;
+    unsigned int ioff = isector * ncnt;
     // ok we always have to skip to the scintillators we want to add for every hcal sector
     for (unsigned int j = 0; j < ioff; j++)
     {
       ++it3;
     }
-    for (unsigned int j = ioff; j < ioff+ncnt; j++)
+    for (unsigned int j = ioff; j < ioff + ncnt; j++)
     {
       m_DisplayAction->AddScintiVolume((*it3)->GetLogicalVolume());
       m_ScintiTileLogVolSet.insert((*it3)->GetLogicalVolume());
@@ -149,92 +232,88 @@ int PHG4OHCalDetector::ConstructOHCal(G4LogicalVolume *hcalenvelope)
 
     ++it1;
   }
-*/
+  // Chimney assemblies
+  G4AssemblyVolume *chimAbs_asym = reader->GetAssembly("sectorChimney");         // absorber
+  m_ChimScintiMotherAssembly = reader->GetAssembly("tileAssembly24chimney_90");  // chimney tiles
 
-  G4AssemblyVolume *chimAbs_asym = reader->GetAssembly("sectorChimney");  //absorber
-  m_ChimScintiMotherAssembly = reader->GetAssembly("tileAssembly24chimney_90");  //chimney tiles
-/*
-  vector<G4VPhysicalVolume *>::iterator it2 = chimAbs_asym->GetVolumesIterator();
+  std::vector<G4VPhysicalVolume *>::iterator it2 = chimAbs_asym->GetVolumesIterator();
+  //	order sector 30,31,29
+  std::map<unsigned int, unsigned int> sectormap;
+  sectormap.insert(std::make_pair(0, 30));
+  sectormap.insert(std::make_pair(1, 31));
+  sectormap.insert(std::make_pair(2, 29));
   for (unsigned int isector = 0; isector < chimAbs_asym->TotalImprintedVolumes(); isector++)
   {
     m_DisplayAction->AddChimSteelVolume((*it2)->GetLogicalVolume());
     m_SteelAbsorberLogVolSet.insert((*it2)->GetLogicalVolume());
+
     hcalenvelope->AddDaughter((*it2));
     m_VolumeSteel += (*it2)->GetLogicalVolume()->GetSolid()->GetCubicVolume();
-    vector<G4VPhysicalVolume *>::iterator it4 = m_ChimScintiMotherAssembly->GetVolumesIterator();
-    unsigned int ncnt = 24*5*2;
-    unsigned int ioff = isector*ncnt;
+    std::vector<G4VPhysicalVolume *>::iterator it4 = m_ChimScintiMotherAssembly->GetVolumesIterator();
+    unsigned int ncnt = 24 * 5 * 2;
+    unsigned int ioff = isector * ncnt;
     // ok we always have to skip to the scintillators we want to add for every hcal sector
     for (unsigned int j = 0; j < ioff; j++)
     {
       ++it4;
     }
-    for (unsigned int j = ioff; j < ioff+ncnt; j++)
+    for (unsigned int j = ioff; j < ioff + ncnt; j++)
     {
       m_DisplayAction->AddScintiVolume((*it4)->GetLogicalVolume());
       m_ScintiTileLogVolSet.insert((*it4)->GetLogicalVolume());
       hcalenvelope->AddDaughter((*it4));
-      m_ScintiTilePhysVolMap.insert(std::make_pair(*it4, ExtractLayerTowerId(isector+29, *it4))); // chimney sectors 29-31
-//    std::pair<int, int> bla = ExtractLayerTowerId(*it4);
-//    m_ScintiTilePhysVolMap.insert(std::make_pair(*it4,make_pair(255,std::get<2>(bla)) ));
+      m_ScintiTilePhysVolMap.insert(std::make_pair(*it4, ExtractLayerTowerId(sectormap[isector], *it4)));  // chimney sectors 29-31
       m_VolumeScintillator += (*it4)->GetLogicalVolume()->GetSolid()->GetCubicVolume();
       ++it4;
     }
     ++it2;
   }
-  return 0;
-*/
-  vector<G4VPhysicalVolume *>::iterator it2 = chimAbs_asym->GetVolumesIterator();
-  for (unsigned int i = 0; i < chimAbs_asym->TotalImprintedVolumes(); i++){
-    m_DisplayAction->AddChimSteelVolume((*it2)->GetLogicalVolume());
-    hcalenvelope->AddDaughter((*it2));
-    ++it2;
-  }
 
-  m_ChimScintiMotherAssembly = reader->GetAssembly("tileAssembly24chimney_90");  //chimney tiles
-  vector<G4VPhysicalVolume *>::iterator it4 = m_ChimScintiMotherAssembly->GetVolumesIterator();
-  unsigned int ncnt = 0;
-  unsigned int tilepersec = 24*5*2;
-  int nsec = 29;
-
-  for (unsigned int isector = 0; isector < m_ChimScintiMotherAssembly->TotalImprintedVolumes(); isector++)
+  //Inner HCal support ring (only the part in Outer HCal volume)
+  // it only exists in the new gdml file, this check keeps the old file
+  // without the inner hcal support readable
+  G4AssemblyVolume *m_iHCalRing = reader->GetAssembly("iHCalRing");  // ihcal ring
+  if (m_iHCalRing)
   {
-    if (ncnt >= tilepersec)
+    std::vector<G4VPhysicalVolume *>::iterator itr = m_iHCalRing->GetVolumesIterator();
+    for (unsigned int iring = 0; iring < m_iHCalRing->TotalImprintedVolumes(); iring++)
     {
-      ncnt = 0;
-      nsec++;
+      m_DisplayAction->AddSupportRingVolume((*itr)->GetLogicalVolume());
+      m_SteelAbsorberLogVolSet.insert((*itr)->GetLogicalVolume());
+      hcalenvelope->AddDaughter((*itr));
+      //std::cout<<(*itr)->GetName()<<std::endl;
+      ++itr;
     }
-//    tuple<int, int, int> bla = ExtractLayerTowerId(nsec, *it4);
-    if (nsec == 30)
-    {
-    cout << "nsec: " << nsec << ", ncnt: " << ncnt << endl;
-      m_DisplayAction->AddScintiVolume((*it4)->GetLogicalVolume());
-    m_ScintiTileLogVolSet.insert((*it4)->GetLogicalVolume());
-    hcalenvelope->AddDaughter((*it4));
-    m_ScintiTilePhysVolMap.insert(std::make_pair(*it4, ExtractLayerTowerId(nsec, *it4)));
-    }
-//    std::pair<int, int> bla = ExtractLayerTowerId(*it4);
-//    m_ScintiTilePhysVolMap.insert(std::make_pair(*it4,make_pair(255,std::get<2>(bla)) ));
-    m_VolumeScintillator += (*it4)->GetLogicalVolume()->GetSolid()->GetCubicVolume();
-    ncnt++;
-    ++it4;
   }
-  std::cout << "nsec: " << nsec << endl;
-  std::cout << "total number of volumes: " << m_ChimScintiMotherAssembly->TotalImprintedVolumes() << endl;
+
+  for (auto &logical_vol : m_SteelAbsorberLogVolSet)
+  {
+    if (m_FieldSetup)  // only if we have a field defined for the steel absorber
+    {
+      logical_vol->SetFieldManager(m_FieldSetup->get_Field_Manager_Iron(), true);
+
+      if (m_Params->get_int_param("field_check"))
+      {
+        std::cout << __PRETTY_FUNCTION__ << " : setup Field_Manager_Iron for LV "
+                  << logical_vol->GetName() << " w/ # of daughter " << logical_vol->GetNoDaughters() << std::endl;
+      }
+    }
+  }
+
   return 0;
 }
 
-void PHG4OHCalDetector::Print(const string &what) const
+void PHG4OHCalDetector::Print(const std::string &what) const
 {
-  cout << "Outer Hcal Detector:" << endl;
+  std::cout << "Outer Hcal Detector:" << std::endl;
   if (what == "ALL" || what == "VOLUME")
   {
-    cout << "Volume Envelope: " << m_VolumeEnvelope / cm / cm / cm << " cm^3" << endl;
-    cout << "Volume Steel: " << m_VolumeSteel / cm / cm / cm << " cm^3" << endl;
-    cout << "Volume Scintillator: " << m_VolumeScintillator / cm / cm / cm << " cm^3" << endl;
-    cout << "Volume Air: " << (m_VolumeEnvelope - m_VolumeSteel - m_VolumeScintillator) / cm / cm / cm << " cm^3" << endl;
+    std::cout << "Volume Envelope: " << m_VolumeEnvelope / cm / cm / cm << " cm^3" << std::endl;
+    std::cout << "Volume Steel: " << m_VolumeSteel / cm / cm / cm << " cm^3" << std::endl;
+    std::cout << "Volume Scintillator: " << m_VolumeScintillator / cm / cm / cm << " cm^3" << std::endl;
+    std::cout << "Volume Air: " << (m_VolumeEnvelope - m_VolumeSteel - m_VolumeScintillator) / cm / cm / cm << " cm^3" << std::endl;
   }
-  cout << "******\tm_GDMPath : " << m_GDMPath << endl;
+  std::cout << "******\tm_GDMPath : " << m_GDMPath << std::endl;
 
   return;
 }
@@ -246,8 +325,8 @@ std::tuple<int, int, int> PHG4OHCalDetector::GetRowColumnId(G4VPhysicalVolume *v
   {
     return it->second;
   }
-  cout << "could not locate volume " << volume->GetName()
-       << " in Outer Hcal scintillator map" << endl;
+  std::cout << "could not locate volume " << volume->GetName()
+            << " in Outer Hcal scintillator map" << std::endl;
   gSystem->Exit(1);
   // that's dumb but code checkers do not know that gSystem->Exit()
   // terminates, so using the standard exit() makes them happy
@@ -299,9 +378,7 @@ std::tuple<int, int, int> PHG4OHCalDetector::ExtractLayerTowerId(const unsigned 
   }
   int column = map_towerid(tower_id);
   int row = map_layerid(isector, layer_id);
-  cout << "name: " << volume->GetName() << ", sector: " << isector << ", layer id: " << layer_id << ", row: " << row << endl;
   return std::make_tuple(isector, row, column);
-//  return std::make_pair(layer_id, column);
 }
 
 // map gdml tower ids to our columns
@@ -314,11 +391,11 @@ int PHG4OHCalDetector::map_towerid(const int tower_id)
   int itmp = tower_id / 2;
   if (tower_id % 2)
   {
-    itwr = 11 - itmp;
+    itwr = 12 + itmp;
   }
   else
   {
-    itwr = 12 + itmp;
+    itwr = 11 - itmp;
   }
   return itwr;
   // here is the mapping in long form
@@ -428,108 +505,156 @@ int PHG4OHCalDetector::map_towerid(const int tower_id)
 
 int PHG4OHCalDetector::map_layerid(const unsigned int isector, const int layer_id)
 {
-  int tmp_layer = layer_id - 10*isector; // normalize to 0-9
-  if (isector>=29)
+  int rowid = -1;
+  if (layer_id < 225)
   {
-    tmp_layer = layer_id - 10*(isector-29);
-    return layer_id;
+    rowid = layer_id + 95;
   }
-  int rowid = 4 - tmp_layer; // lower half
-  if (rowid >= 0)
+  else /* if (layer_id >= 225) */
   {
-    if (isector <= 6)
-    {
-      rowid += 10*(6-isector);
-    }
-    else if (isector <= 28)
-    {
-      rowid += 10*(38-isector);
-    }
-    else if (isector == 29)
-    {
-      rowid += 10*(7);
-      rowid = -1;
-    }
-    else if (isector == 30)
-    {
-      rowid += 10*(8);
-    }
-    else
-    {
-      rowid = -1;
-    }
+    rowid = layer_id - 225;
   }
-  else
-  { // upper half
-    rowid += 10;
-    if (isector <= 5)
-    {
-      rowid += 10*(5-isector);
-    }
-    else if (isector <= 28)
-    {
-      rowid += 10*(37-isector);
-    }
-    else if (isector == 29)
-    {
-      rowid += 10*(7);
-      rowid = -1;
-    }
-    else if (isector == 30)
-    {
-      rowid += 10*(8);
-    }
-    else
-    {
-      rowid = -1;
-    }
-
+  if (isector == 29)
+  {
+    rowid = 45 + layer_id;
   }
-  // if (isector != 6)
-  // {
-  //   rowid = -1;
-  // }
-  // switch(isector)
-  // {
-  // case 6:
-  //   break;
-  // case 5:
-  //   rowid += 10;
-  //   break;
-  // case 4:
-  //   rowid += 20;
-  //   break;
-  // case 3:
-  //   rowid += 30;
-  //   break;
-  // default:
-  //   rowid = -1;
-  //   break;
-  // }
+  else if (isector >= 30)
+  {
+    rowid = 75 + layer_id;
+  }
+  // shift the row index up by 5
+  rowid += 5;
+  if (rowid > 319)
+  {
+    rowid -= 320;
+  }
   if (rowid < 0 || rowid > 319)
   {
-    cout << "bad rowid for sector " << isector << ", layer_id " << layer_id << endl;
-    rowid = 255;
+    std::cout << "bad rowid " << rowid << " for sector " << isector << ", layer_id " << layer_id << std::endl;
+    gSystem->Exit(1);
   }
-  // if (layer_id <= 61)
-  // {
-  //   rowid = 61 - layer_id;
-  // }
-/*
-  else if (layer_id > 60 && layer_id <= 191)
+
+  return rowid;
+}
+
+// This is dulplicated code, we can get rid of it when we have the code to make towergeom for real data reco.
+void PHG4OHCalDetector::AddGeometryNode()
+{
+  PHNodeIterator iter(topNode());
+  PHCompositeNode *runNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "RUN"));
+  if (!runNode)
   {
-    rowid = 191 - layer_id + 125;
-  }
-  else if (layer_id > 191)
-  {
-    rowid = 255 - layer_id + 61;
-  }
-  else
-  {
-    std::cout << PHWHERE << " cannot map layer " << layer_id << std::endl;
+    std::cout << PHWHERE << "Run Node missing, exiting." << std::endl;
     gSystem->Exit(1);
     exit(1);
   }
-*/
-  return rowid;
+  PHNodeIterator runIter(runNode);
+  PHCompositeNode *RunDetNode = dynamic_cast<PHCompositeNode *>(runIter.findFirst("PHCompositeNode", m_SuperDetector));
+  if (!RunDetNode)
+  {
+    RunDetNode = new PHCompositeNode(m_SuperDetector);
+    runNode->addNode(RunDetNode);
+  }
+  m_TowerGeomNodeName = "TOWERGEOM_" + m_SuperDetector;
+  m_RawTowerGeom = findNode::getClass<RawTowerGeomContainer>(topNode(), m_TowerGeomNodeName);
+  if (!m_RawTowerGeom)
+  {
+    m_RawTowerGeom = new RawTowerGeomContainer_Cylinderv1(RawTowerDefs::convert_name_to_caloid(m_SuperDetector));
+    PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(m_RawTowerGeom, m_TowerGeomNodeName, "PHObject");
+    RunDetNode->addNode(newNode);
+  }
+  double innerrad = m_Params->get_double_param(PHG4HcalDefs::innerrad);
+  double thickness = m_Params->get_double_param(PHG4HcalDefs::outerrad) - innerrad;
+  m_RawTowerGeom->set_radius(innerrad);
+  m_RawTowerGeom->set_thickness(thickness);
+  m_RawTowerGeom->set_phibins(m_Params->get_int_param(PHG4HcalDefs::n_towers));
+  m_RawTowerGeom->set_etabins(m_Params->get_int_param("etabins"));
+  double geom_ref_radius = innerrad + thickness / 2.;
+  double phistart = m_Params->get_double_param("phistart");
+  if (!std::isfinite(phistart))
+  {
+    std::cout << PHWHERE << " phistart is not finite: " << phistart
+              << ", exiting now (this will crash anyway)" << std::endl;
+    gSystem->Exit(1);
+  }
+  for (int i = 0; i < m_Params->get_int_param(PHG4HcalDefs::n_towers); i++)
+  {
+    double phiend = phistart + 2. * M_PI / m_Params->get_int_param(PHG4HcalDefs::n_towers);
+    std::pair<double, double> range = std::make_pair(phiend, phistart);
+    phistart = phiend;
+    int tempi = i + 1;
+    if (tempi >= m_Params->get_int_param(PHG4HcalDefs::n_towers))
+    {
+      tempi -= m_Params->get_int_param(PHG4HcalDefs::n_towers);
+    }
+    m_RawTowerGeom->set_phibounds(tempi, range);
+  }
+  double etalowbound = -m_Params->get_double_param("scinti_eta_coverage_neg");
+  for (int i = 0; i < m_Params->get_int_param("etabins"); i++)
+  {
+    // double etahibound = etalowbound + 2.2 / get_int_param("etabins");
+    double etahibound = etalowbound +
+                        (m_Params->get_double_param("scinti_eta_coverage_neg") + m_Params->get_double_param("scinti_eta_coverage_pos")) / m_Params->get_int_param("etabins");
+    std::pair<double, double> range = std::make_pair(etalowbound, etahibound);
+    m_RawTowerGeom->set_etabounds(i, range);
+    etalowbound = etahibound;
+  }
+  for (int iphi = 0; iphi < m_RawTowerGeom->get_phibins(); iphi++)
+  {
+    for (int ieta = 0; ieta < m_RawTowerGeom->get_etabins(); ieta++)
+    {
+      const RawTowerDefs::keytype key = RawTowerDefs::encode_towerid(RawTowerDefs::convert_name_to_caloid(m_SuperDetector), ieta, iphi);
+
+      const double x(geom_ref_radius * cos(m_RawTowerGeom->get_phicenter(iphi)));
+      const double y(geom_ref_radius * sin(m_RawTowerGeom->get_phicenter(iphi)));
+      const double z(geom_ref_radius / tan(PHG4Utils::get_theta(m_RawTowerGeom->get_etacenter(ieta))));
+
+      RawTowerGeom *tg = m_RawTowerGeom->get_tower_geometry(key);
+      if (tg)
+      {
+        if (Verbosity() > 0)
+        {
+          std::cout << "IHCalDetector::InitRun - Tower geometry " << key << " already exists" << std::endl;
+        }
+
+        if (fabs(tg->get_center_x() - x) > 1e-4)
+        {
+          std::cout << "IHCalDetector::InitRun - Fatal Error - duplicated Tower geometry " << key << " with existing x = " << tg->get_center_x() << " and expected x = " << x
+                    << std::endl;
+
+          return;
+        }
+        if (fabs(tg->get_center_y() - y) > 1e-4)
+        {
+          std::cout << "IHCalDetector::InitRun - Fatal Error - duplicated Tower geometry " << key << " with existing y = " << tg->get_center_y() << " and expected y = " << y
+                    << std::endl;
+          return;
+        }
+        if (fabs(tg->get_center_z() - z) > 1e-4)
+        {
+          std::cout << "IHCalDetector::InitRun - Fatal Error - duplicated Tower geometry " << key << " with existing z= " << tg->get_center_z() << " and expected z = " << z
+                    << std::endl;
+          return;
+        }
+      }
+      else
+      {
+        if (Verbosity() > 0)
+        {
+          std::cout << "IHCalDetector::InitRun - building tower geometry " << key << "" << std::endl;
+        }
+
+        tg = new RawTowerGeomv1(key);
+
+        tg->set_center_x(x);
+        tg->set_center_y(y);
+        tg->set_center_z(z);
+        m_RawTowerGeom->add_tower_geometry(tg);
+      }
+    }
+  }
+  if (Verbosity() > 0)
+  {
+    m_RawTowerGeom->identify();
+  }
 }

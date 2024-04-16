@@ -1,34 +1,33 @@
 #include "PHG4EICMvtxSubsystem.h"
 
-#include "PHG4MvtxDefs.h"
 #include "PHG4EICMvtxDetector.h"
-#include "PHG4MvtxDisplayAction.h"
 #include "PHG4EICMvtxSteppingAction.h"
+#include "PHG4MvtxDefs.h"
+#include "PHG4MvtxDisplayAction.h"
 
 #include <phparameter/PHParameters.h>
 #include <phparameter/PHParametersContainer.h>
 
-
 #include <g4detectors/PHG4DetectorGroupSubsystem.h>  // for PHG4DetectorGrou...
 
-#include <g4main/PHG4DisplayAction.h>                // for PHG4DisplayAction
+#include <g4main/PHG4DisplayAction.h>  // for PHG4DisplayAction
 #include <g4main/PHG4HitContainer.h>
-#include <g4main/PHG4SteppingAction.h>               // for PHG4SteppingAction
+#include <g4main/PHG4SteppingAction.h>  // for PHG4SteppingAction
 
-#include <phool/PHIODataNode.h>                      // for PHIODataNode
-#include <phool/PHNode.h>                            // for PHNode
-#include <phool/PHNodeIterator.h>                    // for PHNodeIterator
-#include <phool/PHObject.h>                          // for PHObject
-#include <phool/phool.h>                             // for PHWHERE
-#include <phool/getClass.h>
 #include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>    // for PHIODataNode
+#include <phool/PHNode.h>          // for PHNode
+#include <phool/PHNodeIterator.h>  // for PHNodeIterator
+#include <phool/PHObject.h>        // for PHObject
+#include <phool/getClass.h>
+#include <phool/phool.h>  // for PHWHERE
 
-#include <mvtx/SegmentationAlpide.h>                 // for Alpide constants
+#include <mvtx/SegmentationAlpide.h>  // for Alpide constants
 
-#include <iostream>                                  // for operator<<, basi...
-#include <set>                                       // for _Rb_tree_const_i...
+#include <iostream>  // for operator<<, basi...
+#include <set>       // for _Rb_tree_const_i...
 #include <sstream>
-#include <utility>                                   // for pair
+#include <utility>  // for pair
 
 class PHG4Detector;
 
@@ -45,7 +44,9 @@ PHG4EICMvtxSubsystem::PHG4EICMvtxSubsystem(const std::string& name, const int _n
   , detector_type(name)
 {
   for (unsigned int iLyr = 0; iLyr < n_layers; ++iLyr)
+  {
     AddDetId(iLyr);
+  }
 
   InitializeParameters();
 
@@ -65,7 +66,9 @@ PHG4EICMvtxSubsystem::~PHG4EICMvtxSubsystem()
 int PHG4EICMvtxSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
 {
   if (Verbosity() > 0)
+  {
     cout << "PHG4EICMvtxSubsystem::Init started" << endl;
+  }
 
   PHNodeIterator iter(topNode);
   PHCompositeNode* dstNode = dynamic_cast<PHCompositeNode*>(iter.findFirst("PHCompositeNode", "DST"));
@@ -88,7 +91,7 @@ int PHG4EICMvtxSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
     cout << "    ------ created detector " << Name() << endl;
     GetParamsContainer()->Print();
   }
-  //loop all layer to find atleast one active layer
+  // loop all layer to find atleast one active layer
   int active = 0;
   // for now not absorber are implemnented yet
   int absorberactive = 0;
@@ -133,7 +136,9 @@ int PHG4EICMvtxSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
       detNode->addNode(new PHIODataNode<PHObject>(block_hits = new PHG4HitContainer(nodename.str()), nodename.str(), "PHObject"));
     }
     if (Verbosity())
+    {
       cout << PHWHERE << "creating hits node " << nodename.str() << endl;
+    }
 
     if (absorberactive)
     {
@@ -152,7 +157,9 @@ int PHG4EICMvtxSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
         detNode->addNode(new PHIODataNode<PHObject>(block_hits = new PHG4HitContainer(nodename.str()), nodename.str(), "PHObject"));
       }
       if (Verbosity())
+      {
         cout << PHWHERE << "creating hits node " << nodename.str() << endl;
+      }
     }
 
     // create stepping action
@@ -182,13 +189,13 @@ int PHG4EICMvtxSubsystem::process_event(PHCompositeNode* topNode)
 }
 
 //_______________________________________________________________________
-PHG4Detector* PHG4EICMvtxSubsystem::GetDetector(void) const
+PHG4Detector* PHG4EICMvtxSubsystem::GetDetector() const
 {
   return m_Detector;
 }
 
 //_______________________________________________________________________
-PHG4SteppingAction* PHG4EICMvtxSubsystem::GetSteppingAction(void) const
+PHG4SteppingAction* PHG4EICMvtxSubsystem::GetSteppingAction() const
 {
   return steppingAction_;
 }
@@ -202,7 +209,7 @@ void PHG4EICMvtxSubsystem::SetDefaultParameters()
     const double rLr = mvtxdat[ilyr][kRmd];
     double turbo = radii2Turbo(mvtxdat[ilyr][kRmn], rLr, mvtxdat[ilyr][kRmx], SegmentationAlpide::SensorSizeRows * 10.);
 
-    set_default_int_param(ilyr, "active", 1);  //non-automatic initialization in PHG4DetectorGroupSubsystem
+    set_default_int_param(ilyr, "active", 1);  // non-automatic initialization in PHG4DetectorGroupSubsystem
     set_default_int_param(ilyr, "layer", ilyr);
     set_default_int_param(ilyr, "N_staves", mvtxdat[ilyr][kNStave]);
 

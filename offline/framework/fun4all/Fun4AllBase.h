@@ -3,18 +3,18 @@
 #ifndef FUN4ALL_FUN4ALLBASE_H
 #define FUN4ALL_FUN4ALLBASE_H
 
-#include <climits>  // std::numeric_limits
+#include <limits>  // std::numeric_limits
 #include <string>
 
 /** Base class for all Fun4All Classes
  *
- *  It implements the Name, the Verbosity and the print method  
+ *  It implements the Name, the Verbosity and the print method
  */
 
 class Fun4AllBase
 {
  public:
-  /** dtor. 
+  /** dtor.
       Does nothing as this is a base class only.
   */
   virtual ~Fun4AllBase();
@@ -25,7 +25,7 @@ class Fun4AllBase
   /// Sets the name of this module.
   virtual void Name(const std::string &name) { m_ThisName = name; }
 
-  /** Print out some info about this module. 
+  /** Print out some info about this module.
       @param what can be used to specify what to print exactly.
   */
   virtual void Print(const std::string &what = "ALL") const;
@@ -51,7 +51,7 @@ class Fun4AllBase
     // ... use your imagination ...
 
     //! Show all messages. Useful for step-by-step debugging
-    VERBOSITY_MAX = INT_MAX - 10
+    VERBOSITY_MAX = std::numeric_limits<int>::max() - 10
 
   };
 
@@ -66,14 +66,14 @@ class Fun4AllBase
 
  protected:
   /** ctor.
-  */
+   */
   Fun4AllBase(const std::string &name = "NONAME");
 
  private:
   std::string m_ThisName;
 
   /// The verbosity level. 0 means not verbose at all.
-  int m_Verbosity;
+  int m_Verbosity = VERBOSITY_QUIET;
 };
 
 #endif

@@ -11,7 +11,7 @@
 #ifndef G4JET_JETHEPMCLOADER_H
 #define G4JET_JETHEPMCLOADER_H
 
-#include "Jet.h"
+#include <jetbase/Jet.h>
 
 #include <fun4all/SubsysReco.h>
 #include <string>
@@ -44,9 +44,8 @@ class JetHepMCLoader : public SubsysReco
  public:
   //! \param[in] jetInputCategory is the DST PHCompositeNode name that list the output jet maps, e.g. sHijing_HIJFRG for sHijing HIJFRG truth jets
   JetHepMCLoader(const std::string &jetInputCategory);
-  ~JetHepMCLoader() override;
+  ~JetHepMCLoader() override {}
 
-  int Init(PHCompositeNode *topNode) override;
   int InitRun(PHCompositeNode *topNode) override;
   int process_event(PHCompositeNode *topNode) override;
   int End(PHCompositeNode *topNode) override;
@@ -78,7 +77,7 @@ class JetHepMCLoader : public SubsysReco
 
   std::string m_jetInputCategory;
 
-  bool m_saveQAPlots;
+  bool m_saveQAPlots = false;
 
   struct hepmc_jet_src
   {

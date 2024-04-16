@@ -18,8 +18,6 @@
 #include <phool/PHObject.h>        // for PHObject
 #include <phool/getClass.h>
 
-#include <boost/foreach.hpp>
-
 #include <cmath>     // for NAN
 #include <iostream>  // for operator<<, basic_ostream
 #include <set>       // for set
@@ -27,14 +25,9 @@
 
 class PHG4Detector;
 
-using namespace std;
-
 //_______________________________________________________________________
 PHG4OuterHcalSubsystem::PHG4OuterHcalSubsystem(const std::string &name, const int lyr)
   : PHG4DetectorSubsystem(name, lyr)
-  , m_Detector(nullptr)
-  , m_SteppingAction(nullptr)
-  , m_DisplayAction(nullptr)
 {
   InitializeParameters();
 }
@@ -58,9 +51,10 @@ int PHG4OuterHcalSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
   m_Detector = new PHG4OuterHcalDetector(this, topNode, GetParams(), Name());
   m_Detector->SuperDetector(SuperDetector());
   m_Detector->OverlapCheck(CheckOverlap());
-  set<string> nodes;
+
   if (GetParams()->get_int_param("active"))
   {
+    std::set<std::string> nodes;
     PHNodeIterator dstIter(dstNode);
     PHCompositeNode *DetNode = dynamic_cast<PHCompositeNode *>(dstIter.findFirst("PHCompositeNode", SuperDetector()));
     if (!DetNode)
@@ -68,7 +62,7 @@ int PHG4OuterHcalSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
       DetNode = new PHCompositeNode(SuperDetector());
       dstNode->addNode(DetNode);
     }
-    ostringstream nodename;
+    std::ostringstream nodename;
     if (SuperDetector() != "NONE")
     {
       nodename << "G4HIT_" << SuperDetector();
@@ -91,25 +85,25 @@ int PHG4OuterHcalSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
       }
       nodes.insert(nodename.str());
     }
-    BOOST_FOREACH (string node, nodes)
+    for (auto &node : nodes)
     {
-      PHG4HitContainer *g4_hits = findNode::getClass<PHG4HitContainer>(topNode, node.c_str());
+      PHG4HitContainer *g4_hits = findNode::getClass<PHG4HitContainer>(topNode, node);
       if (!g4_hits)
       {
         g4_hits = new PHG4HitContainer(node);
-        DetNode->addNode(new PHIODataNode<PHObject>(g4_hits, node.c_str(), "PHObject"));
+        DetNode->addNode(new PHIODataNode<PHObject>(g4_hits, node, "PHObject"));
       }
     }
     // create stepping action
     m_SteppingAction = new PHG4OuterHcalSteppingAction(m_Detector, GetParams());
-    m_SteppingAction->Init();
+    m_SteppingAction->InitWithNode(topNode);
   }
   else
   {
     if (GetParams()->get_int_param("blackhole"))
     {
       m_SteppingAction = new PHG4OuterHcalSteppingAction(m_Detector, GetParams());
-      m_SteppingAction->Init();
+      m_SteppingAction->InitWithNode(topNode);
     }
   }
 
@@ -128,9 +122,9 @@ int PHG4OuterHcalSubsystem::process_event(PHCompositeNode *topNode)
   return 0;
 }
 
-void PHG4OuterHcalSubsystem::Print(const string &what) const
+void PHG4OuterHcalSubsystem::Print(const std::string &what) const
 {
-  cout << "Outer Hcal Parameters: " << endl;
+  std::cout << "Outer Hcal Parameters: " << std::endl;
   GetParams()->Print();
   if (m_Detector)
   {
@@ -140,7 +134,7 @@ void PHG4OuterHcalSubsystem::Print(const string &what) const
 }
 
 //_______________________________________________________________________
-PHG4Detector *PHG4OuterHcalSubsystem::GetDetector(void) const
+PHG4Detector *PHG4OuterHcalSubsystem::GetDetector() const
 {
   return m_Detector;
 }
@@ -161,6 +155,9 @@ void PHG4OuterHcalSubsystem::SetDefaultParameters()
   set_default_double_param("light_balance_inner_radius", NAN);
   set_default_double_param("light_balance_outer_corr", NAN);
   set_default_double_param("light_balance_outer_radius", NAN);
+  set_default_double_param("phistart", NAN);
+  set_default_double_param("scinti_eta_coverage_neg", 1.1);
+  set_default_double_param("scinti_eta_coverage_pos", 1.1);
   // some math issue in the code does not subtract the magnet cutout correctly
   // (maybe some factor of 2 in a G4 volume creation)
   // The engineering drawing values are:
@@ -177,6 +174,9 @@ void PHG4OuterHcalSubsystem::SetDefaultParameters()
   set_default_double_param("rot_x", 0.);
   set_default_double_param("rot_y", 0.);
   set_default_double_param("rot_z", 0.);
+  set_default_double_param("tmin", -20.);
+  set_default_double_param("tmax", 60.);
+  set_default_double_param("dt", 100.);
   set_default_double_param("scinti_eta_coverage", 1.1);
   set_default_double_param("scinti_gap", 0.85);
   set_default_double_param("scinti_gap_neighbor", 0.1);
@@ -194,6 +194,8 @@ void PHG4OuterHcalSubsystem::SetDefaultParameters()
   set_default_int_param("field_check", 0);
   set_default_int_param("light_scint_model", 1);
   set_default_int_param("magnet_cutout_first_scinti", 8);  // tile start at 0, drawing tile starts at 1
+  set_default_int_param("etabins", 24);
+  set_default_int_param("saveg4hit", 1);
 
   // if ncross is set (and tilt_angle is NAN) tilt_angle is calculated
   // from number of crossings
@@ -203,4 +205,13 @@ void PHG4OuterHcalSubsystem::SetDefaultParameters()
   set_default_int_param("n_scinti_tiles", 12);
 
   set_default_string_param("material", "Steel_1006");
+  std::string defaultmapfilename;
+  const char *Calibroot = getenv("CALIBRATIONROOT");
+  if (Calibroot)
+  {
+    defaultmapfilename = Calibroot;
+    defaultmapfilename += "/HCALOUT/tilemap/oHCALMaps092021.root";
+  }
+  set_default_string_param("MapFileName", defaultmapfilename);
+  set_default_string_param("MapHistoName", "hCombinedMap");
 }

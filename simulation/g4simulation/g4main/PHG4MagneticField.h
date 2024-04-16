@@ -4,7 +4,7 @@
 
 /*!
  * \file PHG4MagneticField.h
- * \brief 
+ * \brief
  * \author Jin Huang <jhuang@bnl.gov>
  * \version $Revision:   $
  * \date $Date: $
@@ -24,7 +24,7 @@ class PHG4MagneticField : public G4MagneticField
 {
  public:
   PHG4MagneticField(const PHField* field);
-  ~PHG4MagneticField() override;
+  ~PHG4MagneticField() override = default;
 
   const PHField* get_field() const
   {
@@ -36,9 +36,9 @@ class PHG4MagneticField : public G4MagneticField
     field_ = field;
   }
 
-  void GetFieldValue( const double Point[4],    double *Bfield ) const override;
+  void GetFieldValue(const double Point[4], double* Bfield) const override;
 
- protected:
+ private:
   const PHField* field_;
 };
 

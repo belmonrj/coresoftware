@@ -1,4 +1,6 @@
-#pragma once
+#ifndef FUN4ALL_FILLCHARGESMAP_300EVTS_MDC2_C
+#define FUN4ALL_FILLCHARGESMAP_300EVTS_MDC2_C
+
 #include <fun4all/Fun4AllServer.h>
 #include <fun4all/Fun4AllInputManager.h>
 #include <fun4all/Fun4AllDstInputManager.h>
@@ -13,6 +15,7 @@
 #include <string>
 
 
+// cppcheck-suppress unknownMacro
 R__LOAD_LIBRARY(libfun4all.so)
 R__LOAD_LIBRARY(libfillSpaceChargeMaps.so)
 R__LOAD_LIBRARY(libg4dst.so)
@@ -94,7 +97,7 @@ void Fun4All_FillChargesMap_300evts_MDC2(  const int nEvents = 10, const int eve
   dist_calc->SetBeamXing(bXs_sel);// Set beam crosssing bias
   //dist_calc->SetBeamXingEnd(bXs_sel_end);// Set last beam crosssing for the biases
   //dist_calc->SetAvg(1); //Set average calculation
-  dist_calc->SetUseIBFMap(true);//false);
+  dist_calc->SetUseIBFMap(false);//false);
   //dist_calc->SetGain(2e3*48.7/71.5);
   dist_calc->SetGain(1400);
   dist_calc->SetIBF(0.004);
@@ -110,7 +113,7 @@ void Fun4All_FillChargesMap_300evts_MDC2(  const int nEvents = 10, const int eve
   gSystem->Load("libFROG");
   FROG *fr = new FROG();
   string inputFileName = fr->location(fname);
-
+  cout << "Next file:" << inputFileName << endl;
   // this (DST) input manager just drives the event loop
   Fun4AllInputManager *in = new Fun4AllDstInputManager("DSTin");
   in->fileopen(inputFileName);
@@ -132,3 +135,5 @@ void Fun4All_FillChargesMap_300evts_MDC2(  const int nEvents = 10, const int eve
   cout << endl << "gSystem->Exit(0)" << endl;
   gSystem->Exit(0);
 }
+
+#endif

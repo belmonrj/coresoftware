@@ -30,6 +30,7 @@ class PHG4CylinderCellReco : public SubsysReco, public PHParameterContainerInter
 
   int ResetEvent(PHCompositeNode *topNode) override;
 
+  // cppcheck-suppress virtualCallInConstructor
   void SetDefaultParameters() override;
 
   void Detector(const std::string &d);
@@ -47,8 +48,8 @@ class PHG4CylinderCellReco : public SubsysReco, public PHParameterContainerInter
   int CheckEnergy(PHCompositeNode *topNode);
 
   std::map<int, int> binning;
-  std::map<int, std::pair<double, double> > cell_size;  // cell size in phi/z
-  std::map<int, std::pair<double, double> > zmin_max;   // zmin/zmax for each layer for faster lookup
+  std::map<int, std::pair<double, double>> cell_size;  // cell size in phi/z
+  std::map<int, std::pair<double, double>> zmin_max;   // zmin/zmax for each layer for faster lookup
   std::map<int, double> phistep;
   std::map<int, double> etastep;
   std::set<int> implemented_detid;
@@ -58,16 +59,17 @@ class PHG4CylinderCellReco : public SubsysReco, public PHParameterContainerInter
   std::string cellnodename;
   std::string geonodename;
   std::string seggeonodename;
-  std::map<int, std::pair<int, int> > n_phi_z_bins;
+  std::map<int, std::pair<int, int>> n_phi_z_bins;
   std::map<unsigned long long, PHG4Cell *> cellptmap;  // This map holds the hit cells
   std::map<unsigned long long, PHG4Cell *>::iterator it;
-  std::map<int, std::pair<double, double> > tmin_max;
+  std::map<int, std::pair<double, double>> tmin_max;
+  std::map<int, double> m_DeltaTMap;
 
-  int nbins[2];
-  int chkenergyconservation;
+  int nbins[2]{};
+  int chkenergyconservation{0};
 
-  double sum_energy_before_cuts;
-  double sum_energy_g4hit;
+  double sum_energy_before_cuts{0.};
+  double sum_energy_g4hit{0.};
 };
 
 #endif

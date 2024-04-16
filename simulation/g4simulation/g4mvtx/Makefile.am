@@ -19,8 +19,11 @@ AM_LDFLAGS = \
 libg4mvtx_la_LIBADD = \
   -lfun4all \
   -lphg4hit \
+  -lphool \
   -lg4detectors \
   -ltrack_io \
+  -lg4tracking_io \
+  -lmvtx \
   -lmvtx_io
 
 pkginclude_HEADERS = \
@@ -40,8 +43,6 @@ libg4mvtx_la_SOURCES = \
   PHG4MvtxSubsystem.cc \
   PHG4EICMvtxSubsystem.cc \
   PHG4MvtxDigitizer.cc \
-  PHG4MvtxCable.cc \
-  PHG4MvtxServiceStructure.cc \
   PHG4MvtxSupport.cc
 
 ################################################

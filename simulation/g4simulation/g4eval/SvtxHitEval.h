@@ -46,15 +46,23 @@ class SvtxHitEval
   // access the clustereval (and its cached values)
   SvtxTruthEval* get_truth_eval() { return &_trutheval; }
 
-  //PHG4Cell* get_cell(SvtxHit* hit);
+  // PHG4Cell* get_cell(SvtxHit* hit);
 
   // backtrace through to PHG4Hits
   std::set<PHG4Hit*> all_truth_hits(TrkrDefs::hitkey hit_key);
   PHG4Hit* max_truth_hit_by_energy(TrkrDefs::hitkey hit_key);
 
+  // backtrace through to PHG4Hits for a specific tracker
+  std::set<PHG4Hit*> all_truth_hits(TrkrDefs::hitkey hit_key, const TrkrDefs::TrkrId trkrid);
+  PHG4Hit* max_truth_hit_by_energy(TrkrDefs::hitkey hit_key, const TrkrDefs::TrkrId trkrid);
+
   // backtrace through to PHG4Particles
   std::set<PHG4Particle*> all_truth_particles(TrkrDefs::hitkey hit_key);
   PHG4Particle* max_truth_particle_by_energy(TrkrDefs::hitkey hit_key);
+
+  // backtrace through to PHG4Particles for a specific tracker
+  std::set<PHG4Particle*> all_truth_particles(TrkrDefs::hitkey hit_key, const TrkrDefs::TrkrId trkrid);
+  PHG4Particle* max_truth_particle_by_energy(TrkrDefs::hitkey hit_key, const TrkrDefs::TrkrId trkrid);
 
   // forwardtrace through to SvtxHits
   std::set<TrkrDefs::hitkey> all_hits_from(PHG4Particle* truthparticle);
@@ -72,22 +80,22 @@ class SvtxHitEval
   bool has_node_pointers();
 
   SvtxTruthEval _trutheval;
-  TrkrHitSetContainer* _hitmap;
-  TrkrClusterContainer* _clustermap;
-  TrkrHitTruthAssoc* _hit_truth_map;
+  TrkrHitSetContainer* _hitmap = nullptr;
+  TrkrClusterContainer* _clustermap{};
+  TrkrHitTruthAssoc* _hit_truth_map{};
 
-  PHG4HitContainer* _g4hits_tpc;
-  PHG4HitContainer* _g4hits_intt;
-  PHG4HitContainer* _g4hits_mvtx;
-  PHG4HitContainer* _g4hits_mms;
+  PHG4HitContainer* _g4hits_tpc = nullptr;
+  PHG4HitContainer* _g4hits_intt = nullptr;
+  PHG4HitContainer* _g4hits_mvtx = nullptr;
+  PHG4HitContainer* _g4hits_mms = nullptr;
 
   PHG4TruthInfoContainer* _truthinfo;
 
-  bool _strict;
-  int _verbosity;
-  unsigned int _errors;
+  bool _strict = false;
+  int _verbosity = 0;
+  unsigned int _errors = 0;
 
-  bool _do_cache;
+  bool _do_cache = true;
   std::map<TrkrDefs::hitkey, std::set<PHG4Hit*> > _cache_all_truth_hits;
   std::map<TrkrDefs::hitkey, PHG4Hit*> _cache_max_truth_hit_by_energy;
   std::map<TrkrDefs::hitkey, std::set<PHG4Particle*> > _cache_all_truth_particles;

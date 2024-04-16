@@ -103,15 +103,17 @@ void PHG4BeamlineMagnetDetector::ConstructMe(G4LogicalVolume *logicMother)
     magField = new G4UniformMagField(G4ThreeVector(0., fieldValue, 0.));
 
     if (Verbosity() > 0)
+    {
       cout << "Creating DIPOLE with field " << fieldValue << " and name " << GetName() << endl;
+    }
   }
   else if (magnettype == "quadrupole")
   {
     G4double fieldGradient = params->get_double_param("fieldgradient") * tesla / meter;
 
     /* G4MagneticField::GetFieldValue( pos*, B* ) uses GLOBAL coordinates, not local.
-       * Therefore, place magnetic field center at the correct location and angle for the
-       * magnet AND do the same transformations for the logical volume (see below). */
+     * Therefore, place magnetic field center at the correct location and angle for the
+     * magnet AND do the same transformations for the logical volume (see below). */
     magField = new G4QuadrupoleMagField(fieldGradient, origin, rotm);
     //      magField = new PHG4QuadrupoleMagField ( fieldGradient, origin, rotm );
 
@@ -151,7 +153,7 @@ void PHG4BeamlineMagnetDetector::ConstructMe(G4LogicalVolume *logicMother)
   G4LogicalVolume *magnet_logic = new G4LogicalVolume(magnet_solid,
                                                       GetDetectorMaterial("G4_Galactic"),
                                                       GetName(),
-                                                      0, 0, 0);
+                                                      nullptr, nullptr, nullptr);
   magnet_logic->SetVisAttributes(fieldVis);
 
   /* Set field manager for logical volume */
@@ -165,7 +167,7 @@ void PHG4BeamlineMagnetDetector::ConstructMe(G4LogicalVolume *logicMother)
                                                                params->get_double_param("place_z") * cm)),
                                    magnet_logic,
                                    GetName(),
-                                   logicMother, 0, false, OverlapCheck());
+                                   logicMother, false, false, OverlapCheck());
 
   /* Add volume with solid magnet material */
   G4VSolid *cylinder_solid = new G4Tubs(G4String(GetName().append("_Solid")),
@@ -175,11 +177,11 @@ void PHG4BeamlineMagnetDetector::ConstructMe(G4LogicalVolume *logicMother)
   G4LogicalVolume *cylinder_logic = new G4LogicalVolume(cylinder_solid,
                                                         TrackerMaterial,
                                                         G4String(GetName()),
-                                                        0, 0, 0);
+                                                        nullptr, nullptr, nullptr);
   cylinder_logic->SetVisAttributes(siliconVis);
 
-  cylinder_physi = new G4PVPlacement(0, G4ThreeVector(0, 0, 0),
+  cylinder_physi = new G4PVPlacement(nullptr, G4ThreeVector(0, 0, 0),
                                      cylinder_logic,
                                      G4String(GetName().append("_Solid")),
-                                     magnet_logic, 0, false, OverlapCheck());
+                                     magnet_logic, false, false, OverlapCheck());
 }

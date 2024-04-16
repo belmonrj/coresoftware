@@ -37,8 +37,8 @@ libg4testbench_la_LDFLAGS = \
 libg4testbench_la_LIBADD = \
   libphg4hit.la \
   -lboost_filesystem \
-  -leASTPhysicsList \
   -leicsmear \
+  -lffamodules \
   -lfun4all \
   -lg4decayer \
   -lgsl \
@@ -49,8 +49,7 @@ libg4testbench_la_LIBADD = \
   -lphg4gdml \
   -lphhepmc \
   -lphparameter \
-  -lvararray \
-  -lxpload
+  -lvararray
 
 # I/O dictionaries have to exist for root5 and root6. For ROOT6 we need
 # pcm files in addition. If someone can figure out how to make a list
@@ -198,6 +197,7 @@ pkginclude_HEADERS = \
   PHG4Particlev1.h \
   PHG4Particlev2.h \
   PHG4Particlev3.h \
+  PHG4MagneticField.h \
   PHG4ParticleGenerator.h \
   PHG4ParticleGeneratorBase.h \
   PHG4ParticleGeneratorD0.h \

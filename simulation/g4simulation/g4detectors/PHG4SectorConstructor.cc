@@ -1,6 +1,6 @@
 /*!
  * \file PHG4SectorConstructor.cc
- * \brief 
+ * \brief
  * \author Jin Huang <jhuang@bnl.gov>
  * \version $Revision: 1.6 $
  * \date $Date: 2014/07/31 15:52:37 $
@@ -19,11 +19,10 @@
 #include <Geant4/G4ExceptionSeverity.hh>  // for FatalException, JustWarning
 #include <Geant4/G4IntersectionSolid.hh>
 #include <Geant4/G4LogicalVolume.hh>
-#include <Geant4/G4Material.hh>
-#include <Geant4/G4MaterialTable.hh>  // for G4MaterialTable
 #include <Geant4/G4PVPlacement.hh>
 #include <Geant4/G4PhysicalConstants.hh>  // for pi
 #include <Geant4/G4Sphere.hh>
+#include <Geant4/G4String.hh>
 #include <Geant4/G4SystemOfUnits.hh>  // for cm, um, perCent
 #include <Geant4/G4ThreeVector.hh>    // for G4ThreeVector
 #include <Geant4/G4Transform3D.hh>    // for G4Transform3D, G4RotateX3D
@@ -36,6 +35,8 @@
 #include <cmath>
 #include <iostream>
 #include <sstream>
+
+class G4Material;
 
 PHG4Sector::PHG4SectorConstructor::PHG4SectorConstructor(const std::string &name, PHG4Subsystem *subsys)
   : overlapcheck_sector(false)
@@ -98,7 +99,7 @@ void PHG4Sector::PHG4SectorConstructor::Construct_Sectors(G4LogicalVolume *World
   G4VSolid *SecConeBoundary_Hall = new G4Sphere("SecConeBoundary_Hall",                                           //
                                                 geom.get_normal_start(), geom.get_max_R(),                        // G4double pRmin, G4double pRmax,
                                                 pi / 2 - pi / geom.get_N_Sector(), 2 * pi / geom.get_N_Sector(),  //  G4double pSPhi, G4double pDPhi,
-                                                sph_min_polar_angle, sph_max_polar_angle - sph_min_polar_angle    //G4double pSTheta, G4double pDTheta
+                                                sph_min_polar_angle, sph_max_polar_angle - sph_min_polar_angle    // G4double pSTheta, G4double pDTheta
   );
 
   G4VSolid *SecConeBoundary_Det = new G4DisplacedSolid("SecConeBoundary_Det",
@@ -119,7 +120,7 @@ void PHG4Sector::PHG4SectorConstructor::Construct_Sectors(G4LogicalVolume *World
                                           geom.get_max_R(), (sph_min_polar_size + sph_max_polar_size) / 2,
                                           geom.get_total_thickness());
     G4VSolid *BoxBoundary_Det_Place = new G4DisplacedSolid(
-        "BoxBoundary_Det_Place", BoxBoundary_Det, 0,
+        "BoxBoundary_Det_Place", BoxBoundary_Det, nullptr,
         G4ThreeVector(0, (sph_max_polar_size - sph_min_polar_size) / 2, 0));
 
     Boundary_Det = new G4IntersectionSolid("Boundary_Det",
@@ -147,12 +148,8 @@ void PHG4Sector::PHG4SectorConstructor::Construct_Sectors(G4LogicalVolume *World
   // construct layers
   double z_start = -geom.get_total_thickness() / 2;
 
-  for (Sector_Geometry::t_layer_list::const_iterator it =
-           geom.layer_list.begin();
-       it != geom.layer_list.end(); ++it)
+  for (const auto &l : geom.layer_list)
   {
-    const Layer &l = (*it);
-
     if (l.percentage_filled > 100. || l.percentage_filled < 0)
     {
       std::ostringstream strstr;
@@ -174,7 +171,7 @@ void PHG4Sector::PHG4SectorConstructor::Construct_Sectors(G4LogicalVolume *World
     RegisterLogicalVolume(LayerLog_Det);
 
     RegisterPhysicalVolume(
-        new G4PVPlacement(0, G4ThreeVector(), LayerLog_Det,
+        new G4PVPlacement(nullptr, G4ThreeVector(), LayerLog_Det,
                           layer_name + "_Physical", DetectorLog_Det, false, 0, overlapcheck_sector),
         l.active);
 
@@ -217,7 +214,7 @@ PHG4Sector::PHG4SectorConstructor::Construct_Sectors_Plane(  //
 {
   assert(SecConeBoundary_Det);
 
-  G4VSolid *Sol_Raw = new G4Tubs(name + "_Raw",     //const G4String& pName,
+  G4VSolid *Sol_Raw = new G4Tubs(name + "_Raw",     // const G4String& pName,
                                  0,                 //      G4double pRMin,
                                  geom.get_max_R(),  //      G4double pRMax,
                                  thickness / 2,     //      G4double pDz,
@@ -225,10 +222,10 @@ PHG4Sector::PHG4SectorConstructor::Construct_Sectors_Plane(  //
                                  2 * pi             //      G4double pDPhi
   );
 
-  G4VSolid *Sol_Place = new G4DisplacedSolid(name + "_Place", Sol_Raw, 0,
+  G4VSolid *Sol_Place = new G4DisplacedSolid(name + "_Place", Sol_Raw, nullptr,
                                              G4ThreeVector(0, 0, start_z + thickness / 2));
 
-  G4VSolid *Sol = new G4IntersectionSolid(name.c_str(), Sol_Place,
+  G4VSolid *Sol = new G4IntersectionSolid(name, Sol_Place,
                                           SecConeBoundary_Det);
 
   return Sol;
@@ -302,7 +299,9 @@ PHG4Sector::PHG4SectorConstructor::RegisterPhysicalVolume(G4PVPlacement *v,
   map_phy_vol[id] = v;
 
   if (active)
+  {
     map_active_phy_vol[id] = v;
+  }
 
   return v;
 }
@@ -311,10 +310,9 @@ double
 PHG4Sector::Sector_Geometry::get_total_thickness() const
 {
   double sum = 0;
-  for (t_layer_list::const_iterator it = layer_list.begin();
-       it != layer_list.end(); ++it)
+  for (const auto &it : layer_list)
   {
-    sum += (*it).depth;
+    sum += it.depth;
   }
   return sum;
 }
@@ -472,7 +470,7 @@ void PHG4Sector::Sector_Geometry::AddLayers_AeroGel_ePHENIX(const double radiato
   AddLayer("AeroGel", radiator, radiator_length, false, 100);
   AddLayer("ExpansionVol", "G4_AIR", expansion_length, false, 100);
 
-  //Some readout
+  // Some readout
   AddLayer(G4String("ReadoutFR4"), "G10", 0.05 * cm, false, 100);
   AddLayer(G4String("ReadoutCu"), "G4_Cu", 0.001 * cm, false, 100);
   AddLayer(G4String("SocketsCu"), "G4_Cu", 0.0005 * cm, false, 100);

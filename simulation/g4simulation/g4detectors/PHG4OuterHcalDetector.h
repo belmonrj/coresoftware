@@ -10,6 +10,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <CGAL/Exact_circular_kernel_2.h>
 #include <CGAL/point_generators_2.h>
 #pragma GCC diagnostic pop
@@ -29,6 +30,7 @@ class PHG4OuterHcalDisplayAction;
 class PHG4OuterHcalFieldSetup;
 class PHParameters;
 class PHG4Subsystem;
+class RawTowerGeomContainer;
 
 class PHG4OuterHcalDetector : public PHG4Detector
 {
@@ -63,46 +65,49 @@ class PHG4OuterHcalDetector : public PHG4Detector
   std::pair<int, int> GetLayerTowerId(G4VPhysicalVolume *volume) const;
 
  protected:
+  void AddGeometryNode();
   int ConstructOuterHcal(G4LogicalVolume *hcalenvelope);
   G4VSolid *ConstructSteelPlate(G4LogicalVolume *hcalenvelope);
   G4AssemblyVolume *ConstructHcalScintillatorAssembly(G4LogicalVolume *hcalenvelope);
   G4double x_at_y(Point_2 &p0, Point_2 &p1, G4double yin);
-  PHG4OuterHcalDisplayAction *m_DisplayAction;
-  PHG4OuterHcalFieldSetup *m_FieldSetup;
-  PHParameters *m_Params;
-  G4AssemblyVolume *m_ScintiMotherAssembly;
-  G4VSolid *m_SteelCutoutForMagnetG4Solid;
-  double m_InnerRadius;
-  double m_OuterRadius;
-  double m_SizeZ;
-  double m_ScintiTileX;
-  double m_ScintiTileXLower;
-  double m_ScintiTileXUpper;
-  double m_ScintiTileZ;
-  double m_ScintiTileThickness;
-  double m_ScintiGap;
-  double m_ScintiInnerRadius;
-  double m_ScintiOuterRadius;
-  double m_TiltAngle;
-  double m_EnvelopeInnerRadius;
-  double m_EnvelopeOuterRadius;
-  double m_EnvelopeZ;
-  double m_VolumeEnvelope;
-  double m_VolumeSteel;
-  double m_VolumeScintillator;
+  PHG4OuterHcalDisplayAction *m_DisplayAction = nullptr;
+  PHG4OuterHcalFieldSetup *m_FieldSetup = nullptr;
+  PHParameters *m_Params = nullptr;
+  G4AssemblyVolume *m_ScintiMotherAssembly = nullptr;
+  G4VSolid *m_SteelCutoutForMagnetG4Solid = nullptr;
+  double m_InnerRadius = NAN;
+  double m_OuterRadius = NAN;
+  double m_SizeZ = NAN;
+  double m_ScintiTileX = NAN;
+  double m_ScintiTileXLower = NAN;
+  double m_ScintiTileXUpper = NAN;
+  double m_ScintiTileZ = NAN;
+  double m_ScintiTileThickness = NAN;
+  double m_ScintiGap = NAN;
+  double m_ScintiInnerRadius = NAN;
+  double m_ScintiOuterRadius = NAN;
+  double m_TiltAngle = NAN;
+  double m_EnvelopeInnerRadius = NAN;
+  double m_EnvelopeOuterRadius = NAN;
+  double m_EnvelopeZ = NAN;
+  double m_VolumeEnvelope = NAN;
+  double m_VolumeSteel = NAN;
+  double m_VolumeScintillator = NAN;
 
-  int m_NumScintiPlates;
-  int m_NumScintiTiles;
+  int m_NumScintiPlates = 0;
+  int m_NumScintiTiles = 0;
 
-  int m_ActiveFlag;
-  int m_AbsorberActiveFlag;
+  int m_ActiveFlag = 0;
+  int m_AbsorberActiveFlag = 0;
 
-  int m_Layer;
+  int m_Layer = 0;
   std::string m_SuperDetector;
   std::string m_ScintiLogicNamePrefix;
   std::vector<G4VSolid *> m_ScintiTilesVec;
   std::set<G4VPhysicalVolume *> m_SteelAbsorberVec;
   std::map<G4VPhysicalVolume *, std::pair<int, int>> m_ScintiTilePhysVolMap;
+  RawTowerGeomContainer *m_RawTowerGeom = nullptr;
+  std::string m_TowerGeomNodeName;
 };
 
 #endif

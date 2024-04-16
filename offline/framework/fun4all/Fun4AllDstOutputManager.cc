@@ -6,28 +6,20 @@
 #include <phool/PHNodeIOManager.h>
 #include <phool/PHNodeIterator.h>
 #include <phool/phool.h>  // for PHWHERE, PHReadOnly, PHRunTree
+#include <phool/recoConsts.h>
 
 #include <TSystem.h>
 
+#include <boost/format.hpp>
+
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <string>
 
-using namespace std;
-
-Fun4AllDstOutputManager::Fun4AllDstOutputManager(const string &myname, const string &fname)
+Fun4AllDstOutputManager::Fun4AllDstOutputManager(const std::string &myname, const std::string &fname)
   : Fun4AllOutputManager(myname, fname)
 {
-  dstOut = new PHNodeIOManager(fname, PHWrite);
-  if (!dstOut->isFunctional())
-  {
-    delete dstOut;
-    cout << PHWHERE << " Could not open " << fname
-         << " exiting now" << endl;
-    gSystem->Exit(1);
-    exit(1);  // cppcheck does not know gSystem->Exit(1)
-  }
-  dstOut->SetCompressionLevel(3);
   return;
 }
 
@@ -37,63 +29,52 @@ Fun4AllDstOutputManager::~Fun4AllDstOutputManager()
   return;
 }
 
-int Fun4AllDstOutputManager::AddNode(const string &nodename)
+int Fun4AllDstOutputManager::AddNode(const std::string &nodename)
 {
   savenodes.insert(nodename);
   return 0;
 }
 
-int Fun4AllDstOutputManager::AddRunNode(const string &nodename)
+int Fun4AllDstOutputManager::AddRunNode(const std::string &nodename)
 {
   saverunnodes.insert(nodename);
   return 0;
 }
 
-int Fun4AllDstOutputManager::StripNode(const string &nodename)
+int Fun4AllDstOutputManager::StripNode(const std::string &nodename)
 {
   stripnodes.insert(nodename);
   return 0;
 }
 
-int Fun4AllDstOutputManager::StripRunNode(const string &nodename)
+int Fun4AllDstOutputManager::StripRunNode(const std::string &nodename)
 {
   striprunnodes.insert(nodename);
   return 0;
 }
 
-int Fun4AllDstOutputManager::outfileopen(const string &fname)
+int Fun4AllDstOutputManager::outfileopen(const std::string &fname)
 {
-  delete dstOut;
-  dstOut = new PHNodeIOManager(fname, PHWrite);
-  if (!dstOut->isFunctional())
-  {
-    delete dstOut;
-    dstOut = nullptr;
-    cout << PHWHERE << " Could not open " << fname << endl;
-    return -1;
-  }
-
-  dstOut->SetCompressionLevel(3);
+  OutFileName(fname);
   return 0;
 }
 
-void Fun4AllDstOutputManager::Print(const string &what) const
+void Fun4AllDstOutputManager::Print(const std::string &what) const
 {
   if (what == "ALL" || what == "WRITENODES")
   {
-    //    vector<string>::const_iterator iter;
-    cout << Name() << " writes " << OutFileName() << endl;
+    std::cout << Name() << " writes " << OutFileName() << std::endl;
     if (savenodes.empty())
     {
       if (stripnodes.empty())
       {
-        cout << Name() << ": All Nodes will be written out" << endl;
+        std::cout << Name() << ": All Nodes will be written out" << std::endl;
       }
       else
       {
         for (auto &nodename : stripnodes)
         {
-          cout << Name() << ": Node " << nodename << " will be stripped" << endl;
+          std::cout << Name() << ": Node " << nodename << " will be stripped" << std::endl;
         }
       }
     }
@@ -101,7 +82,7 @@ void Fun4AllDstOutputManager::Print(const string &what) const
     {
       for (auto &nodename : savenodes)
       {
-        cout << Name() << ": Node " << nodename << " is written out" << endl;
+        std::cout << Name() << ": Node " << nodename << " is written out" << std::endl;
       }
     }
   }
@@ -121,6 +102,14 @@ void Fun4AllDstOutputManager::Print(const string &what) const
 // that everything is written out), those nodes are declared transient
 int Fun4AllDstOutputManager::Write(PHCompositeNode *startNode)
 {
+  if (!m_SaveDstNodeFlag)
+  {
+    return 0;
+  }
+  if (!dstOut)
+  {
+    outfile_open_first_write();  //    outfileopen(OutFileName());
+  }
   PHNodeIterator nodeiter(startNode);
   if (savenodes.empty())
   {
@@ -139,8 +128,8 @@ int Fun4AllDstOutputManager::Write(PHCompositeNode *startNode)
         {
           if (Verbosity() > 0)
           {
-            cout << PHWHERE << Name() << ": Node " << nodename
-                 << " does not exist" << endl;
+            std::cout << PHWHERE << Name() << ": Node " << nodename
+                      << " does not exist" << std::endl;
           }
         }
       }
@@ -159,8 +148,8 @@ int Fun4AllDstOutputManager::Write(PHCompositeNode *startNode)
       {
         if (Verbosity() > 0)
         {
-          cout << PHWHERE << Name() << ": Node " << nodename
-               << " does not exist" << endl;
+          std::cout << PHWHERE << Name() << ": Node " << nodename
+                    << " does not exist" << std::endl;
         }
       }
     }
@@ -192,12 +181,27 @@ int Fun4AllDstOutputManager::Write(PHCompositeNode *startNode)
 int Fun4AllDstOutputManager::WriteNode(PHCompositeNode *thisNode)
 {
   delete dstOut;
-  if (! m_SaveRunNodeFlag)
+  if (!m_SaveRunNodeFlag)
   {
     dstOut = nullptr;
     return 0;
   }
-  dstOut = new PHNodeIOManager(OutFileName(), PHUpdate, PHRunTree);
+  PHAccessType access_type = PHUpdate;
+  if (!m_SaveDstNodeFlag)
+  {
+    access_type = PHWrite;
+  }
+
+  if (UsedOutFileName().empty())
+  {
+    std::filesystem::path p = OutFileName();
+    if (m_FileNameStem.empty())
+    {
+      m_FileNameStem = p.stem();
+    }
+    m_UsedOutFileName = OutFileName() + std::string("?reproducible=") + std::string(p.filename());
+  }
+  dstOut = new PHNodeIOManager(UsedOutFileName(), access_type, PHRunTree);
   Fun4AllServer *se = Fun4AllServer::instance();
   PHNodeIterator nodeiter(thisNode);
   if (saverunnodes.empty())
@@ -216,8 +220,8 @@ int Fun4AllDstOutputManager::WriteNode(PHCompositeNode *thisNode)
         {
           if (Verbosity() > 0)
           {
-            cout << PHWHERE << Name() << ": Node " << nodename
-                 << " does not exist" << endl;
+            std::cout << PHWHERE << Name() << ": Node " << nodename
+                      << " does not exist" << std::endl;
           }
         }
       }
@@ -236,8 +240,8 @@ int Fun4AllDstOutputManager::WriteNode(PHCompositeNode *thisNode)
       {
         if (Verbosity() > 0)
         {
-          cout << PHWHERE << Name() << ": Node " << nodename
-               << " does not exist" << endl;
+          std::cout << PHWHERE << Name() << ": Node " << nodename
+                    << " does not exist" << std::endl;
         }
       }
     }
@@ -246,5 +250,46 @@ int Fun4AllDstOutputManager::WriteNode(PHCompositeNode *thisNode)
   se->MakeNodesTransient(thisNode);
   delete dstOut;
   dstOut = nullptr;
+  return 0;
+}
+
+int Fun4AllDstOutputManager::outfile_open_first_write()
+{
+  delete dstOut;
+  SetEventsWritten(1);  // this is the first event we write, need to set the number to 1
+  std::filesystem::path p = OutFileName();
+  if (m_FileNameStem.empty())
+  {
+    m_FileNameStem = p.stem();
+  }
+  if (ApplyFileRule())
+  {
+    recoConsts *rc = recoConsts::instance();
+    int runnumber = 0;
+    if (rc->FlagExist("RUNNUMBER"))
+    {
+      runnumber = rc->get_IntFlag("RUNNUMBER");
+    }
+    std::string fullpath = ".";
+    if (p.has_parent_path())
+    {
+      fullpath = p.parent_path();
+    }
+    std::string runseg = boost::str(boost::format("-%08d-%04d") % runnumber % m_CurrentSegment);
+    std::string newfile = fullpath + std::string("/") + m_FileNameStem + runseg + std::string(p.extension());
+    OutFileName(newfile);
+    m_CurrentSegment++;
+  }
+  m_UsedOutFileName = OutFileName() + std::string("?reproducible=") + std::string(p.filename());
+  dstOut = new PHNodeIOManager(UsedOutFileName(), PHWrite);
+  if (!dstOut->isFunctional())
+  {
+    delete dstOut;
+    dstOut = nullptr;
+    std::cout << PHWHERE << " Could not open " << OutFileName() << std::endl;
+    return -1;
+  }
+
+  dstOut->SetCompressionSetting(m_CompressionSetting);
   return 0;
 }

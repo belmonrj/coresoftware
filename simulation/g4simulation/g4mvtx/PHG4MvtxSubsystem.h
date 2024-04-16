@@ -5,8 +5,8 @@
 
 #include <g4detectors/PHG4DetectorGroupSubsystem.h>
 
-#include <cmath>                                     // for asin
-#include <string>                                    // for string
+#include <cmath>   // for asin
+#include <string>  // for string
 
 class PHCompositeNode;
 class PHG4Detector;
@@ -41,7 +41,7 @@ class PHG4MvtxSubsystem : public PHG4DetectorGroupSubsystem
 
   //! accessors (reimplemented)
   PHG4Detector* GetDetector(void) const override;
-  PHG4SteppingAction* GetSteppingAction(void) const override;
+  PHG4SteppingAction* GetSteppingAction(void) const override { return m_SteppingAction; }
 
   PHG4DisplayAction* GetDisplayAction() const override { return m_DisplayAction; }
 
@@ -54,20 +54,22 @@ class PHG4MvtxSubsystem : public PHG4DetectorGroupSubsystem
   }
   //! detector geometry
   /*! defives from PHG4Detector */
-  PHG4MvtxDetector* m_Detector;
+  PHG4MvtxDetector* m_Detector{nullptr};
 
   //! particle tracking "stepping" action
   /*! derives from PHG4SteppingActions */
-  PHG4SteppingAction* steppingAction_;
+  PHG4SteppingAction* m_SteppingAction{nullptr};
 
   //! display attribute setting
   /*! derives from PHG4DisplayAction */
-  PHG4DisplayAction* m_DisplayAction;
+  PHG4DisplayAction* m_DisplayAction{nullptr};
 
   // These are passed on to the detector class
-  unsigned int n_layers;
+  unsigned int n_layers{0};
 
   std::string detector_type;
+  std::string m_HitNodeName;
+  std::string m_SupportNodeName;
 };
 
 #endif

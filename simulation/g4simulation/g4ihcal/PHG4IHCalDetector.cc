@@ -2,21 +2,43 @@
 
 #include "PHG4IHCalDisplayAction.h"
 
+#include <g4detectors/PHG4DetectorSubsystem.h>
 #include <g4detectors/PHG4HcalDefs.h>
 
 #include <phparameter/PHParameters.h>
 
+#include <g4gdml/PHG4GDMLConfig.hh>
+#include <g4gdml/PHG4GDMLUtility.hh>
+
+#include <calobase/RawTowerDefs.h>           // for convert_name_...
+#include <calobase/RawTowerGeom.h>           // for RawTowerGeom
+#include <calobase/RawTowerGeomContainer.h>  // for RawTowerGeomC...
+#include <calobase/RawTowerGeomContainer_Cylinderv1.h>
+#include <calobase/RawTowerGeomv1.h>
+
 #include <g4main/PHG4Detector.h>
 #include <g4main/PHG4DisplayAction.h>
 #include <g4main/PHG4Subsystem.h>
+#include <g4main/PHG4Utils.h>
 
+#include <ffamodules/CDBInterface.h>
+
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>  // for PHNode
+#include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>  // for PHObject
+#include <phool/getClass.h>
 #include <phool/phool.h>
 #include <phool/recoConsts.h>
 
 #include <TSystem.h>
 
 #include <Geant4/G4AssemblyVolume.hh>
+#include <Geant4/G4IonisParamMat.hh>
 #include <Geant4/G4LogicalVolume.hh>
+#include <Geant4/G4Material.hh>
+#include <Geant4/G4MaterialTable.hh>
 #include <Geant4/G4PVPlacement.hh>
 #include <Geant4/G4RotationMatrix.hh>
 #include <Geant4/G4String.hh>
@@ -37,16 +59,14 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 
-#include <cmath>
+#include <cassert>
 #include <cstdlib>
+#include <cmath>
+#include <filesystem>
 #include <iostream>
-#include <memory>       // for unique_ptr
-#include <type_traits>  // for __decay_and_strip<>::_...
-#include <utility>      // for pair, make_pair
-#include <vector>       // for vector, vector<>::iter...
-
-class G4Material;
-class PHCompositeNode;
+#include <memory>   // for unique_ptr
+#include <utility>  // for pair, make_pair
+#include <vector>   // for vector, vector<>::iter...
 
 PHG4IHCalDetector::PHG4IHCalDetector(PHG4Subsystem *subsys, PHCompositeNode *Node, PHParameters *parameters, const std::string &dnam)
   : PHG4Detector(subsys, Node, dnam)
@@ -60,6 +80,15 @@ PHG4IHCalDetector::PHG4IHCalDetector(PHG4Subsystem *subsys, PHCompositeNode *Nod
   , m_AbsorberActive(m_Params->get_int_param("absorberactive"))
   , m_GDMPath(m_Params->get_string_param("GDMPath"))
 {
+  gdml_config = PHG4GDMLUtility::GetOrMakeConfigNode(Node);
+  assert(gdml_config);
+  // changes in the parameters have to be made here
+  // otherwise they will not be propagated to the node tree
+  if (std::filesystem::path(m_GDMPath).extension() != ".gdml")
+  {
+    m_GDMPath = CDBInterface::instance()->getUrl(m_GDMPath);
+    m_Params->set_string_param("GDMPath", m_GDMPath);
+  }
 }
 
 PHG4IHCalDetector::~PHG4IHCalDetector()
@@ -96,15 +125,38 @@ void PHG4IHCalDetector::ConstructMe(G4LogicalVolume *logicWorld)
   G4Material *worldmat = GetDetectorMaterial(rc->get_StringFlag("WorldMaterial"));
   G4VSolid *hcal_envelope_cylinder = new G4Tubs("IHCal_envelope_solid", m_InnerRadius, m_OuterRadius, m_SizeZ / 2., 0, 2 * M_PI);
   m_VolumeEnvelope = hcal_envelope_cylinder->GetCubicVolume();
-  G4LogicalVolume *hcal_envelope_log = new G4LogicalVolume(hcal_envelope_cylinder, worldmat, "Hcal_envelope", 0, 0, 0);
+  G4LogicalVolume *hcal_envelope_log = new G4LogicalVolume(hcal_envelope_cylinder, worldmat, "Hcal_envelope", nullptr, nullptr, nullptr);
 
   G4RotationMatrix hcal_rotm;
   hcal_rotm.rotateX(m_Params->get_double_param("rot_x") * deg);
   hcal_rotm.rotateY(m_Params->get_double_param("rot_y") * deg);
   hcal_rotm.rotateZ(m_Params->get_double_param("rot_z") * deg);
-  G4VPhysicalVolume *mothervol = new G4PVPlacement(G4Transform3D(hcal_rotm, G4ThreeVector(m_Params->get_double_param("place_x") * cm, m_Params->get_double_param("place_y") * cm, m_Params->get_double_param("place_z") * cm)), hcal_envelope_log, "IHCalEnvelope", logicWorld, 0, false, OverlapCheck());
+  G4VPhysicalVolume *mothervol = new G4PVPlacement(G4Transform3D(hcal_rotm, G4ThreeVector(m_Params->get_double_param("place_x") * cm, m_Params->get_double_param("place_y") * cm, m_Params->get_double_param("place_z") * cm)), hcal_envelope_log, "IHCalEnvelope", logicWorld, false, false, OverlapCheck());
   m_DisplayAction->SetMyTopVolume(mothervol);
   ConstructIHCal(hcal_envelope_log);
+
+  // disable GDML export for HCal geometries for memory saving and compatibility issues
+  assert(gdml_config);
+  gdml_config->exclude_physical_vol(mothervol);
+  gdml_config->exclude_logical_vol(hcal_envelope_log);
+
+  const G4MaterialTable *mtable = G4Material::GetMaterialTable();
+  int nMaterials = G4Material::GetNumberOfMaterials();
+  for (auto i = 0; i < nMaterials; ++i)
+  {
+    const G4Material *mat = (*mtable)[i];
+    if (mat->GetName() == "Uniplast_scintillator")
+    {
+      if ((mat->GetIonisation()->GetBirksConstant()) == 0)
+      {
+        mat->GetIonisation()->SetBirksConstant(m_Params->get_double_param("Birk_const"));
+      }
+    }
+  }
+  if (!m_Params->get_int_param("saveg4hit"))
+  {
+    AddGeometryNode();
+  }
   return;
 }
 
@@ -114,9 +166,15 @@ int PHG4IHCalDetector::ConstructIHCal(G4LogicalVolume *hcalenvelope)
   std::unique_ptr<G4GDMLReadStructure> reader(new G4GDMLReadStructure());
   G4GDMLParser gdmlParser(reader.get());
   gdmlParser.SetOverlapCheck(OverlapCheck());
+  if (!std::filesystem::exists(m_GDMPath))
+  {
+    std::cout << PHWHERE << " Inner HCal gdml file " << m_GDMPath << " not found" << std::endl;
+    gSystem->Exit(1);
+    exit(1);
+  }
   gdmlParser.Read(m_GDMPath, false);
 
-  G4AssemblyVolume *abs_asym = reader->GetAssembly("InnerSector");      //absorber
+  G4AssemblyVolume *abs_asym = reader->GetAssembly("InnerSector");      // absorber
   m_ScintiMotherAssembly = reader->GetAssembly("InnerTileAssembly90");  // scintillator
   std::vector<G4VPhysicalVolume *>::iterator it = abs_asym->GetVolumesIterator();
   static const unsigned int tilepersec = 24 * 4 * 2;
@@ -138,7 +196,6 @@ int PHG4IHCalDetector::ConstructIHCal(G4LogicalVolume *hcalenvelope)
       m_DisplayAction->AddScintiVolume((*its)->GetLogicalVolume());
       m_ScintiTileLogVolSet.insert((*its)->GetLogicalVolume());
       hcalenvelope->AddDaughter((*its));
-      std::cout << "sector " << isector << std::endl;
       m_ScintiTilePhysVolMap.insert(std::make_pair(*its, ExtractLayerTowerId(isector, *its)));
       m_VolumeScintillator += (*its)->GetLogicalVolume()->GetSolid()->GetCubicVolume();
       ++its;
@@ -205,7 +262,7 @@ int PHG4IHCalDetector::GetSectorId(G4VPhysicalVolume *volume) const
   exit(1);
 }
 
-std::tuple<int, int, int> PHG4IHCalDetector::ExtractLayerTowerId(const int isector, G4VPhysicalVolume *volume)
+std::tuple<int, int, int> PHG4IHCalDetector::ExtractLayerTowerId(const unsigned int isector, G4VPhysicalVolume *volume)
 {
   boost::char_separator<char> sep("_");
   boost::tokenizer<boost::char_separator<char>> tok(volume->GetName(), sep);
@@ -262,11 +319,11 @@ int PHG4IHCalDetector::map_towerid(const int tower_id)
   int itmp = tower_id / 2;
   if (tower_id % 2)
   {
-    itwr = 11 - itmp;
+    itwr = 12 + itmp;
   }
   else
   {
-    itwr = 12 + itmp;
+    itwr = 11 - itmp;
   }
   return itwr;
   // here is the mapping in long form
@@ -377,23 +434,148 @@ int PHG4IHCalDetector::map_towerid(const int tower_id)
 int PHG4IHCalDetector::map_layerid(const int layer_id)
 {
   int rowid = -1;
-  if (layer_id <= 60)
+
+  if (layer_id < 188)
   {
-    rowid = 60 - layer_id;
+    rowid = layer_id + 68;
   }
-  else if (layer_id > 60 && layer_id <= 191)
+  else  // (layer_id >= 188)
   {
-    rowid = 191 - layer_id + 125;
+    rowid = layer_id - 188;
   }
-  else if (layer_id > 191)
+  // shift the row index up by 4
+  rowid += 4;
+  if (rowid > 255)
   {
-    rowid = 255 - layer_id + 61;
+    rowid -= 256;
   }
-  else
+
+  if (rowid > 255 || rowid < 0)
   {
-    std::cout << PHWHERE << " cannot map layer " << layer_id << std::endl;
+    std::cout << PHWHERE << " row id out of range: " << rowid << std::endl;
+    gSystem->Exit(1);
+  }
+  return rowid;
+}
+
+// This is dulplicated code, we can get rid of it when we have the code to make towergeom for real data reco.
+void PHG4IHCalDetector::AddGeometryNode()
+{
+  PHNodeIterator iter(topNode());
+  PHCompositeNode *runNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "RUN"));
+  if (!runNode)
+  {
+    std::cout << PHWHERE << "Run Node missing, exiting." << std::endl;
     gSystem->Exit(1);
     exit(1);
   }
-  return rowid;
+  PHNodeIterator runIter(runNode);
+  PHCompositeNode *RunDetNode = dynamic_cast<PHCompositeNode *>(runIter.findFirst("PHCompositeNode", m_SuperDetector));
+  if (!RunDetNode)
+  {
+    RunDetNode = new PHCompositeNode(m_SuperDetector);
+    runNode->addNode(RunDetNode);
+  }
+  m_TowerGeomNodeName = "TOWERGEOM_" + m_SuperDetector;
+  m_RawTowerGeom = findNode::getClass<RawTowerGeomContainer>(topNode(), m_TowerGeomNodeName);
+  if (!m_RawTowerGeom)
+  {
+    m_RawTowerGeom = new RawTowerGeomContainer_Cylinderv1(RawTowerDefs::convert_name_to_caloid(m_SuperDetector));
+    PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(m_RawTowerGeom, m_TowerGeomNodeName, "PHObject");
+    RunDetNode->addNode(newNode);
+  }
+  double innerrad = m_Params->get_double_param(PHG4HcalDefs::innerrad);
+  double thickness = m_Params->get_double_param(PHG4HcalDefs::outerrad) - innerrad;
+  m_RawTowerGeom->set_radius(innerrad);
+  m_RawTowerGeom->set_thickness(thickness);
+  m_RawTowerGeom->set_phibins(m_Params->get_int_param(PHG4HcalDefs::n_towers));
+  m_RawTowerGeom->set_etabins(m_Params->get_int_param("etabins"));
+  double geom_ref_radius = innerrad + thickness / 2.;
+  double phistart = m_Params->get_double_param("phistart");
+  if (!std::isfinite(phistart))
+  {
+    std::cout << PHWHERE << " phistart is not finite: " << phistart
+              << ", exiting now (this will crash anyway)" << std::endl;
+    gSystem->Exit(1);
+  }
+  for (int i = 0; i < m_Params->get_int_param(PHG4HcalDefs::n_towers); i++)
+  {
+    double phiend = phistart + 2. * M_PI / m_Params->get_int_param(PHG4HcalDefs::n_towers);
+    std::pair<double, double> range = std::make_pair(phiend, phistart);
+    phistart = phiend;
+    int tempi = i + 1;
+    if (tempi >= m_Params->get_int_param(PHG4HcalDefs::n_towers))
+    {
+      tempi -= m_Params->get_int_param(PHG4HcalDefs::n_towers);
+    }
+    m_RawTowerGeom->set_phibounds(tempi, range);
+  }
+  double etalowbound = -m_Params->get_double_param("scinti_eta_coverage_neg");
+  for (int i = 0; i < m_Params->get_int_param("etabins"); i++)
+  {
+    // double etahibound = etalowbound + 2.2 / get_int_param("etabins");
+    double etahibound = etalowbound +
+                        (m_Params->get_double_param("scinti_eta_coverage_neg") + m_Params->get_double_param("scinti_eta_coverage_pos")) / m_Params->get_int_param("etabins");
+    std::pair<double, double> range = std::make_pair(etalowbound, etahibound);
+    m_RawTowerGeom->set_etabounds(i, range);
+    etalowbound = etahibound;
+  }
+  for (int iphi = 0; iphi < m_RawTowerGeom->get_phibins(); iphi++)
+  {
+    for (int ieta = 0; ieta < m_RawTowerGeom->get_etabins(); ieta++)
+    {
+      const RawTowerDefs::keytype key = RawTowerDefs::encode_towerid(RawTowerDefs::convert_name_to_caloid(m_SuperDetector), ieta, iphi);
+
+      const double x(geom_ref_radius * std::cos(m_RawTowerGeom->get_phicenter(iphi)));
+      const double y(geom_ref_radius * std::sin(m_RawTowerGeom->get_phicenter(iphi)));
+      const double z(geom_ref_radius / std::tan(PHG4Utils::get_theta(m_RawTowerGeom->get_etacenter(ieta))));
+
+      RawTowerGeom *tg = m_RawTowerGeom->get_tower_geometry(key);
+      if (tg)
+      {
+        if (Verbosity() > 0)
+        {
+          std::cout << "IHCalDetector::InitRun - Tower geometry " << key << " already exists" << std::endl;
+        }
+
+        if (std::fabs(tg->get_center_x() - x) > 1e-4)
+        {
+          std::cout << "IHCalDetector::InitRun - Fatal Error - duplicated Tower geometry " << key << " with existing x = " << tg->get_center_x() << " and expected x = " << x
+                    << std::endl;
+
+          return;
+        }
+        if (std::fabs(tg->get_center_y() - y) > 1e-4)
+        {
+          std::cout << "IHCalDetector::InitRun - Fatal Error - duplicated Tower geometry " << key << " with existing y = " << tg->get_center_y() << " and expected y = " << y
+                    << std::endl;
+          return;
+        }
+        if (std::fabs(tg->get_center_z() - z) > 1e-4)
+        {
+          std::cout << "IHCalDetector::InitRun - Fatal Error - duplicated Tower geometry " << key << " with existing z= " << tg->get_center_z() << " and expected z = " << z
+                    << std::endl;
+          return;
+        }
+      }
+      else
+      {
+        if (Verbosity() > 0)
+        {
+          std::cout << "IHCalDetector::InitRun - building tower geometry " << key << "" << std::endl;
+        }
+
+        tg = new RawTowerGeomv1(key);
+
+        tg->set_center_x(x);
+        tg->set_center_y(y);
+        tg->set_center_z(z);
+        m_RawTowerGeom->add_tower_geometry(tg);
+      }
+    }
+  }
+  if (Verbosity() > 0)
+  {
+    m_RawTowerGeom->identify();
+  }
 }

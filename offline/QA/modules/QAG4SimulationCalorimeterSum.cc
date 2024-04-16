@@ -1,5 +1,5 @@
 #include "QAG4SimulationCalorimeterSum.h"
-#include "QAHistManagerDef.h"
+#include <qautils/QAHistManagerDef.h>
 
 #include <g4eval/CaloEvalStack.h>
 #include <g4eval/CaloRawClusterEval.h>
@@ -445,20 +445,20 @@ bool QAG4SimulationCalorimeterSum::eval_trk_proj(const std::string &detector, Sv
   return true;
 }  //       // Track projections
 
-//int
-//QAG4SimulationCalorimeterSum::Init_Tower(PHCompositeNode *topNode)
+// int
+// QAG4SimulationCalorimeterSum::Init_Tower(PHCompositeNode *topNode)
 //{
 //
-//  Fun4AllHistoManager *hm = QAHistManagerDef::getHistoManager();
-//  assert(hm);
+//   Fun4AllHistoManager *hm = QAHistManagerDef::getHistoManager();
+//   assert(hm);
 //
 ////  TH1F * h = nullptr;
 //
 //  return Fun4AllReturnCodes::EVENT_OK;
 //}
 //
-//int
-//QAG4SimulationCalorimeterSum::process_event_Tower(PHCompositeNode *topNode)
+// int
+// QAG4SimulationCalorimeterSum::process_event_Tower(PHCompositeNode *topNode)
 //{
 //  if (Verbosity() > 2)
 //    std::cout << "QAG4SimulationCalorimeterSum::process_event_Tower() entered"

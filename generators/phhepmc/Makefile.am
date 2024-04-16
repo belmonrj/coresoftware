@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include \
-  -I`root-config --incdir`
+  -isystem`root-config --incdir`
 
 AM_LDFLAGS = \
   -L$(libdir) \
@@ -22,6 +22,7 @@ pkginclude_HEADERS = \
   HepMCFlowAfterBurner.h \
   PHGenIntegral.h \
   PHGenIntegralv1.h \
+  PHHepMCDefs.h \
   PHHepMCGenEvent.h \
   PHHepMCGenEventv1.h \
   PHHepMCGenEventMap.h \

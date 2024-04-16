@@ -1,6 +1,7 @@
 #ifndef QA_QAG4SIMULATIONMVTX_H
 #define QA_QAG4SIMULATIONMVTX_H
 
+#include <trackbase/ClusterErrorPara.h>
 #include <trackbase/TrkrDefs.h>
 
 #include <fun4all/SubsysReco.h>
@@ -25,7 +26,7 @@ class QAG4SimulationMvtx : public SubsysReco
 
   int InitRun(PHCompositeNode* topNode) override;
   int process_event(PHCompositeNode* topNode) override;
-
+ 
  private:
   /// common prefix for QA histograms
   std::string get_histo_prefix() const;
@@ -61,6 +62,7 @@ class QAG4SimulationMvtx : public SubsysReco
   /// list of relevant layers
   /* it is filled at Init stage. It should not change for the full run */
   std::set<int> m_layers;
+  ClusterErrorPara _ClusErrPara;
 };
 
 #endif

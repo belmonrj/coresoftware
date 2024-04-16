@@ -20,7 +20,10 @@
 #include <TSystem.h>
 #include <TTree.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <boost/algorithm/string.hpp>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 #include <cstdlib>
@@ -96,7 +99,7 @@ bool PHNodeIOManager::setFile(const std::string& f, const std::string& title,
     {
       return false;
     }
-    file->SetCompressionLevel(CompressionLevel);
+    file->SetCompressionSettings(m_CompressionSetting);
     tree = new TTree(TreeName.c_str(), title.c_str());
     tree->SetMaxTreeSize(900000000000LL);  // set max size to ~900 GB
     gROOT->cd(currdir.c_str());
@@ -104,7 +107,7 @@ bool PHNodeIOManager::setFile(const std::string& f, const std::string& title,
     break;
   case PHReadOnly:
     file = TFile::Open(filename.c_str());
-    tree = 0;
+    tree = nullptr;
     if (!file)
     {
       return false;
@@ -119,7 +122,7 @@ bool PHNodeIOManager::setFile(const std::string& f, const std::string& title,
     {
       return false;
     }
-    file->SetCompressionLevel(CompressionLevel);
+    file->SetCompressionSettings(m_CompressionSetting);
     tree = new TTree(TreeName.c_str(), title.c_str());
     gROOT->cd(currdir.c_str());
     return true;
@@ -259,7 +262,7 @@ PHNodeIOManager::getBranchClassName(TBranch* branch)
     // For this one we need to go down a little before getting the
     // name...
     TLeafObject* leaf = static_cast<TLeafObject*>(branch->GetLeaf(branch->GetName()));
-    assert(leaf != 0);
+    assert(leaf != nullptr);
     return leaf->GetTypeName();
   }
   std::cout << PHWHERE << "Fatal error, dynamic cast of TBranchObject failed" << std::endl;
@@ -425,7 +428,7 @@ PHNodeIOManager::reconstructNodeTree(PHCompositeNode* topNode)
     std::string branchName = thisBranch->GetName();
     fBranches[branchName] = thisBranch;
 
-    assert(gROOT != 0);
+    assert(gROOT != nullptr);
     TClass* thisClass = gROOT->GetClass(branchClassName.c_str());
 
     if (!thisClass)
@@ -437,7 +440,7 @@ PHNodeIOManager::reconstructNodeTree(PHCompositeNode* topNode)
     }
     // it does not make sense to continue - the code coredumps
     // later if a class is not loaded
-    assert(thisClass != 0);
+    assert(thisClass != nullptr);
 
     PHIODataNode<TObject>* newIODataNode =
         static_cast<PHIODataNode<TObject>*>(nodeIter.findFirst("PHIODataNode", (*splitvec.rbegin()).c_str()));
@@ -520,25 +523,32 @@ bool PHNodeIOManager::isSelected(const std::string& objectName)
   return false;
 }
 
-bool PHNodeIOManager::SetCompressionLevel(const int level)
+bool PHNodeIOManager::SetCompressionSetting(const int level)
 {
   if (level < 0)
   {
     return false;
   }
-  CompressionLevel = level;
+  m_CompressionSetting = level;
   if (file)
   {
-    file->SetCompressionLevel(CompressionLevel);
+    file->SetCompressionSettings(m_CompressionSetting);
   }
 
   return true;
 }
 
-double
+uint64_t
 PHNodeIOManager::GetBytesWritten()
 {
   if (file) return file->GetBytesWritten();
+  return 0.;
+}
+
+uint64_t
+PHNodeIOManager::GetFileSize()
+{
+  if (file) return file->GetSize();
   return 0.;
 }
 
@@ -581,10 +591,10 @@ bool PHNodeIOManager::NodeExist(const std::string& nodename)
     FillBranchMap();
   }
   std::string delimeters = phooldefs::branchpathdelim + phooldefs::legacypathdelims;  // add old backslash for backward compat
-  for (auto iter = fBranches.begin(); iter != fBranches.end(); ++iter)
+  for (auto & fBranche : fBranches)
   {
     std::vector<std::string> splitvec;
-    boost::split(splitvec, iter->first, boost::is_any_of(delimeters));
+    boost::split(splitvec, fBranche.first, boost::is_any_of(delimeters));
     if (splitvec.back() == nodename)
     {
       return true;

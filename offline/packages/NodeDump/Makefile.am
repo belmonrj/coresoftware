@@ -5,7 +5,7 @@ lib_LTLIBRARIES = libphnodedump.la
 AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include \
-  -I$(ROOTSYS)/include
+  -isystem$(ROOTSYS)/include
 
 pkginclude_HEADERS = \
   Dumper.h \
@@ -14,15 +14,29 @@ pkginclude_HEADERS = \
 
 libphnodedump_la_SOURCES = \
   Dumper.cc \
+  DumpBbcPmtInfoContainer.cc \
   DumpBbcVertexMap.cc \
+  DumpCaloPacketContainer.cc \
   DumpCaloTriggerInfo.cc \
+  DumpCdbUrlSave.cc \
   DumpCentralityInfo.cc \
-  DumpEpInfo.cc \
+  DumpJetContainer.cc \
+  DumpEpdGeom.cc \
   DumpEventHeader.cc \
   DumpFlagSave.cc \
+  DumpGl1Packet.cc \
+  DumpGl1RawHit.cc \
   DumpGlobalVertexMap.cc \
   DumpInttDeadMap.cc \
+  DumpInttRawHitContainer.cc \
   DumpJetMap.cc \
+  DumpMbdGeom.cc \
+  DumpMbdOut.cc \
+  DumpMbdPmtContainer.cc \
+  DumpMbdVertexMap.cc \
+  DumpMicromegasRawHitContainer.cc \
+  DumpMvtxRawEvtHeader.cc \
+  DumpMvtxRawHitContainer.cc \
   DumpParticleFlowElementContainer.cc \
   DumpPdbParameterMap.cc \
   DumpPdbParameterMapContainer.cc \
@@ -36,8 +50,10 @@ libphnodedump_la_SOURCES = \
   DumpPHG4HitContainer.cc \
   DumpPHG4ParticleSvtxMap.cc \
   DumpPHG4ScintillatorSlatContainer.cc \
+  DumpPHG4TpcCylinderGeomContainer.cc \
   DumpPHG4TruthInfoContainer.cc \
   DumpPHG4InEvent.cc \
+  DumpPHGenIntegral.cc \
   DumpPHHepMCGenEventMap.cc \
   DumpRawClusterContainer.cc \
   DumpRawTowerContainer.cc \
@@ -48,7 +64,10 @@ libphnodedump_la_SOURCES = \
   DumpSvtxVertexMap.cc \
   DumpSyncObject.cc \
   DumpTowerBackground.cc \
+  DumpTowerInfoContainer.cc \
+  DumpTpcRawHitContainer.cc \
   DumpTpcSeedTrackMap.cc \
+  DumpTrackSeedContainer.cc \
   DumpTrkrClusterContainer.cc \
   DumpTrkrClusterHitAssoc.cc \
   DumpTrkrHitSetContainer.cc \
@@ -61,16 +80,19 @@ libphnodedump_la_SOURCES = \
 AM_LDFLAGS = -L$(libdir) -L$(OFFLINE_MAIN)/lib
 
 libphnodedump_la_LIBADD = \
-  -lg4bbc_io \
   -lcalo_io \
   -lcalotrigger_io \
-  -leventplane_io \
+  -lepd_io \
+  -leventplaneinfo_io \
   -lffaobjects \
+  -lffarawobjects \
   -lg4detectors_io \
-  -lphfield_io \
-  -lg4jets_io \
+  -lg4mbd_io \
   -lHepMC \
+  -ljetbase_io \
+  -lmbd_io \
   -lparticleflow_io \
+  -lphfield_io \
   -lphg4hit \
   -lSubsysReco \
   -ltrackbase_historic_io \

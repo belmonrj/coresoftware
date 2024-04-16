@@ -17,6 +17,7 @@ AM_LDFLAGS = \
   -L$(ROOTSYS)/lib
 
 libg4ohcal_la_LIBADD = \
+  -lcalo_io \
   -lfun4all \
   -lphg4hit \
   -lg4detectors
@@ -28,7 +29,8 @@ libg4ohcal_la_SOURCES = \
   PHG4OHCalDetector.cc \
   PHG4OHCalDisplayAction.cc \
   PHG4OHCalSteppingAction.cc \
-  PHG4OHCalSubsystem.cc
+  PHG4OHCalSubsystem.cc \
+  PHG4OHCalFieldSetup.cc 
 
 ################################################
 # linking tests

@@ -194,14 +194,14 @@ namespace PHG4Sector
     double
     get_total_thickness() const;
 
-    //!Unit
+    //! Unit
     static double
     Unit_cm()
     {
       return cm;
     }
 
-    //!Intercept certain z point at certain polar angle
+    //! Intercept certain z point at certain polar angle
     void
     set_normal_start(const double z_intercept, const double angle_intercept)
     {
@@ -233,8 +233,8 @@ namespace PHG4Sector
 
     void
     AddLayer(                            //
-        std::string _name,               //! name base for this layer
-        std::string _material,           //! material name in G4
+        const std::string &_name,        //! name base for this layer
+        const std::string &_material,    //! material name in G4
         double _depth,                   //! depth in G4 units
         bool _active = false,            //! active detector element for sensitive detector?
         double _percentage_filled = 100  //! percentage filled//

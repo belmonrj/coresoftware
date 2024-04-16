@@ -3,21 +3,24 @@
 #include "AnnularFieldSim.h"
 #include "TTree.h" //this prevents a lazy binding issue and/or is a magic spell.
 #include "TCanvas.h" //this prevents a lazy binding issue and/or is a magic spell.
-//R__LOAD_LIBRARY(.libs/libfieldsim)
-R__LOAD_LIBRARY(build/.libs/libfieldsim)
 
-  char field_string[200];
-  char lookup_string[200];
+// cppcheck-suppress unknownMacro
+R__LOAD_LIBRARY(libfieldsim.so)
+
+char field_string[200];
+char lookup_string[200];
 
 AnnularFieldSim *SetupDefaultSphenixTpc(bool twinMe=false, bool useSpacecharge=true);
 AnnularFieldSim *SetupDigitalCurrentSphenixTpc(bool twinMe=false, bool useSpacecharge=true);
 void TestSpotDistortion(AnnularFieldSim *t);
-void   SurveyFiles(TFileCollection* filelist);
+void SurveyFiles(TFileCollection* filelist);
 
-void generate_distortion_map(const char *inputname, const char *outputname, const char *ibfName, const char *primName, bool hasSpacecharge=true){
-  printf("generating single distortion map.  Caution:  This is vastly less efficient than re-using the tpc model once it is set up\n");
   
+void generate_distortion_map(const char *inputname, const char* gainName, const char *outputname, const char *ibfName, const char *primName, bool hasSpacecharge=true, bool isAdc=false, int nSteps=500, bool scanSteps=false){
+  printf("generating single distortion map.  Caution:  This is vastly less efficient than re-using the tpc model once it is set up\n");
+ 
   bool hasTwin=true; //this flag prompts the code to build both a positive-half and a negative-half for the TPC, reusing as much of the calculations as possible.  It is more efficient to 'twin' one half of the TPC than to recalculate/store the greens functions for both.
+  TString gainHistName[2]={"hIbfGain_posz","hIbfGFain_negz"};
 
   //and some parameters of the files we're loading:
   bool usesChargeDensity=false; //true if source hists contain charge density per bin.  False if hists are charge per bin.
@@ -25,39 +28,66 @@ void generate_distortion_map(const char *inputname, const char *outputname, cons
   float spacecharge_cm_per_axis_unit=0.1;//cm per histogram axis unit, matching the MDC2 sample from Evgeny.
   
   //file names we'll be filling as we go:
-  TFile *infile;
+  TFile *infile, *gainfile;
  
   TString sourcefilename=inputname;
   TString outputfilename=outputname;
 
   //now build the time-consuming part:
-  //AnnularFieldSim *tpc=SetupDefaultSphenixTpc(hasTwin,hasSpacecharge);//loads the lookup, fields, etc.
   AnnularFieldSim *tpc;
     tpc=SetupDefaultSphenixTpc(hasTwin,hasSpacecharge);//loads the lookup, fields, etc.
  
   //and the location to plot the fieldslices about:
  TVector3 pos=0.5*(tpc->GetOuterEdge()+tpc->GetInnerEdge());;
   pos.SetPhi(3.14159);
-
+  
   infile=TFile::Open(sourcefilename.Data(),"READ");
 
+
   //the total charge is prim + IBF
+  //if we are doing ADCs, though, we only read the one.
   TH3* hCharge=(TH3*)(infile->Get(ibfName));
-  hCharge->Add((TH3*)(infile->Get(primName)));
-  TString chargestring=Form("%s:(%s+%s)",inputname,ibfName,primName);
+  if (!isAdc){
+    hCharge->Add((TH3*)(infile->Get(primName)));
+  }   
+    //hCharge->Scale(70);//Scaleing the histogram spacecharge by 100 times
+
+  TString chargestring;
 	       
   //load the spacecharge into the distortion map generator:
   //  void load_spacecharge(TH3F *hist, float zoffset, float chargescale, float cmscale, bool isChargeDensity);
-  tpc->load_spacecharge(hCharge,0,tpc_chargescale,spacecharge_cm_per_axis_unit, usesChargeDensity, chargestring.Data());
-  if (hasTwin) tpc->twin->load_spacecharge(hCharge,0,tpc_chargescale,spacecharge_cm_per_axis_unit, usesChargeDensity);
-
+  if (!isAdc){
+    chargestring=Form("%s:(%s+%s)",inputname,ibfName,primName);
+    tpc->load_spacecharge(hCharge,0,tpc_chargescale,spacecharge_cm_per_axis_unit, usesChargeDensity, chargestring.Data());
+    if (hasTwin) tpc->twin->load_spacecharge(hCharge,0,tpc_chargescale,spacecharge_cm_per_axis_unit, usesChargeDensity);
+  }
+  if (isAdc){ //load digital current using the scaling:
+    gainfile=TFile::Open(gainName,"READ");
+    TH2* hGain[2];
+    hGain[0]=(TH2*)(gainfile->Get(gainHistName[0]));
+    chargestring=Form("%s:(dc:%s g:%s:%s)",inputname,ibfName,gainName,gainHistName[0].Data());
+    tpc->load_digital_current(hCharge,hGain[0],tpc_chargescale,spacecharge_cm_per_axis_unit,chargestring.Data());
+    if (hasTwin) {
+      hGain[1]=(TH2*)(gainfile->Get(gainHistName[1]));
+      tpc->twin->load_digital_current(hCharge,hGain[1],tpc_chargescale,spacecharge_cm_per_axis_unit,chargestring.Data());
+    }
+  }
   //build the electric fieldmap from the chargemap
   tpc->populate_fieldmap();
   if (hasTwin)  tpc->twin->populate_fieldmap();
 
   //build the distortion maps from the fieldmaps and save it to the output filename.
-  tpc->GenerateSeparateDistortionMaps(outputfilename.Data(),1,1,1,1,true);
+  if (scanSteps){
+  for(int i=0;i<10;i++){
+  	TString study_filestring=Form("%s.steps%d.hist.root","study_file_changinginterval",50*(i+1));
+  tpc->GenerateSeparateDistortionMaps(study_filestring,50*(i+1),1,1,1,1,true);
   //tpc->GenerateSeparateDistortionMaps(outputfilename.Data(),1,1,1,1,false);
+}
+}
+  else{
+   tpc->GenerateSeparateDistortionMaps(outputfilename.Data(),450,1,1,1,1,false);
+}
+
   printf("distortions mapped.\n");
   tpc->PlotFieldSlices(outputfilename.Data(),pos, 'E'); //plot the electric field
   tpc->PlotFieldSlices(outputfilename.Data(),pos,'B'); //plot the magnetic field
@@ -71,7 +101,7 @@ void generate_distortion_map(const char *inputname, const char *outputname, cons
 }
 
   
-void generate_distortion_map(const char * inputpattern="./evgeny_apr/Smooth*.root", const char *outputfilebase="./apr07_maps/apr07", bool hasSpacecharge=true, bool isDigitalCurrent=false){
+void generate_distortion_map(const char * inputpattern="./evgeny_apr/Smooth*.root", const char *outputfilebase="./apr07_maps/apr07", bool hasSpacecharge=true, bool isDigitalCurrent=false, int nSteps=500){
   
 
   int maxmaps=10;
@@ -177,7 +207,10 @@ void generate_distortion_map(const char * inputpattern="./evgeny_apr/Smooth*.roo
       //TestSpotDistortion(tpc);
  
       //tpc->GenerateDistortionMaps(outputfilename,2,2,2,1,true);
-      tpc->GenerateSeparateDistortionMaps(outputfilename,2,2,2,1,true);
+
+
+      tpc->GenerateSeparateDistortionMaps(outputfilename,2,2,2,1,true,nSteps);
+
       printf("distortions mapped.\n");
       tpc->PlotFieldSlices(outputfilename.Data(),pos);
       tpc->PlotFieldSlices(outputfilename.Data(),pos,'B');
@@ -214,9 +247,13 @@ AnnularFieldSim *SetupDefaultSphenixTpc(bool twinMe, bool useSpacecharge){
   const float tpc_driftVel=8.0*1e6;//cm per s  -- 2019 nominal value
   const float tpc_magField=1.4;//T -- 2019 nominal value
   const char detgeoname[]="sphenix";
-  
-   //step 2: specify the parameters of the field simulation.  Larger numbers of bins will rapidly increase the memory footprint and compute times.
-  //there are some ways to mitigate this by setting a small region of interest, or a more parsimonious lookup strategy, specified when AnnularFieldSim() is actually constructed below.
+
+
+  //step 2: specify the parameters of the field simulation.  Larger numbers of
+  // bins will rapidly increase the memory footprint and compute times.  There
+  // are some ways to mitigate this by setting a small region of interest, or a
+  // more parsimonious lookup strategy, specified when AnnularFieldSim() is
+  // actually constructed below.
   int nr=26;//10;//24;//159;//159 nominal
   int nr_roi_min=0;
   int nr_roi=nr;//10;
@@ -234,7 +271,11 @@ AnnularFieldSim *SetupDefaultSphenixTpc(bool twinMe, bool useSpacecharge){
   bool realE=true;
   
 
-  //step 3:  create the fieldsim object.  different choices of the last few arguments will change how it builds the lookup table spatially, and how it loads the spacecharge.  The various start-up steps are exposed here so they can be timed in the macro.
+  
+  //step 3:  create the fieldsim object.  different choices of the last few arguments will change how it
+  // builds the lookup table spatially, and how it loads the spacecharge.  The various start-up steps
+  // are exposed here so they can be timed in the macro.
+  
   AnnularFieldSim *tpc;
   if (useSpacecharge){
     tpc=    new  AnnularFieldSim(tpc_rmin,tpc_rmax,tpc_z,
@@ -350,8 +391,12 @@ AnnularFieldSim *SetupDigitalCurrentSphenixTpc(bool twinMe, bool useSpacecharge)
   const float tpc_magField=1.4;//T -- 2019 nominal value
   const char detgeoname[]="sphenix";
   
-   //step 2: specify the parameters of the field simulation.  Larger numbers of bins will rapidly increase the memory footprint and compute times.
-  //there are some ways to mitigate this by setting a small region of interest, or a more parsimonious lookup strategy, specified when AnnularFieldSim() is actually constructed below.
+  //step 2: specify the parameters of the field simulation.  Larger numbers of
+  // bins will rapidly increase the memory footprint and compute times.  There
+  // are some ways to mitigate this by setting a small region of interest, or a
+  // more parsimonious lookup strategy, specified when AnnularFieldSim() is
+  // actually constructed below.
+  
   int nr=8;//10;//24;//159;//159 nominal
   int nr_roi_min=0;
   int nr_roi=nr;//10;
@@ -369,7 +414,9 @@ AnnularFieldSim *SetupDigitalCurrentSphenixTpc(bool twinMe, bool useSpacecharge)
   bool realE=true;
   
 
-  //step 3:  create the fieldsim object.  different choices of the last few arguments will change how it builds the lookup table spatially, and how it loads the spacecharge.  The various start-up steps are exposed here so they can be timed in the macro.
+  //step 3:  create the fieldsim object.  different choices of the last few arguments will change how it
+  // builds the lookup table spatially, and how it loads the spacecharge.  The various start-up steps
+  // are exposed here so they can be timed in the macro.
   AnnularFieldSim *tpc;
   if (useSpacecharge){
     tpc=    new  AnnularFieldSim(tpc_rmin,tpc_rmax,tpc_z,

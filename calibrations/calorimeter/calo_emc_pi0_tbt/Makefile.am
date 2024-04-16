@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = foreign
 AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include \
-  -I$(ROOTSYS)/include
+  -isystem$(ROOTSYS)/include
 
 lib_LTLIBRARIES = libcalibCaloEmc_pi0.la
 
@@ -11,17 +11,19 @@ AM_LDFLAGS = \
   -L$(libdir) \
   -L$(OFFLINE_MAIN)/lib \
   -L$(OFFLINE_MAIN)/lib64 \
-  -lHepMC \
   -lCLHEP \
-  -lg4vertex_io \
+  -lglobalvertex_io \
   -lcalo_io \
+  -lcdbobjects \
   -lSubsysReco
 
 libcalibCaloEmc_pi0_la_SOURCES = \
-  CaloCalibEmc_Pi0.cc
+  CaloCalibEmc_Pi0.cc \
+  pi0EtaByEta.cc
 
 pkginclude_HEADERS = \
-  CaloCalibEmc_Pi0.h
+  CaloCalibEmc_Pi0.h \
+  pi0EtaByEta.h
 
 BUILT_SOURCES = \
   testexternals.cc

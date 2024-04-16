@@ -21,6 +21,7 @@
 #include <tpc/TpcDistortionCorrection.h>
 
 class PHCompositeNode;
+class PHG4TpcCylinderGeomContainer;
 class SvtxTrack;
 class SvtxTrackMap;
 class TrkrCluster;
@@ -58,6 +59,8 @@ class PHTpcClusterMover : public SubsysReco
 
   // range of TPC layers to use in projection to micromegas
 
+  PHG4TpcCylinderGeomContainer* _tpc_geom_container = nullptr;
+
   SvtxTrackMap *_track_map{nullptr};
   SvtxTrack *_track{nullptr};
   TrkrClusterContainer *_cluster_map{nullptr};						    
@@ -66,14 +69,14 @@ class PHTpcClusterMover : public SubsysReco
   TpcDistortionCorrectionContainer* _dcc{nullptr};
 
   double layer_radius[48] = {0};
-  double inner_tpc_min_radius = 30.0;
-  double mid_tpc_min_radius = 40.0;
-  double outer_tpc_min_radius = 60.0;
-  double outer_tpc_max_radius = 77.0;
+//  double inner_tpc_min_radius = 30.0;
+//  double mid_tpc_min_radius = 40.0;
+//  double outer_tpc_min_radius = 60.0;
+//  double outer_tpc_max_radius = 77.0;
 
-  double inner_tpc_spacing = 0.0;
-  double mid_tpc_spacing = 0.0;
-  double outer_tpc_spacing = 0.0;
+//  double inner_tpc_spacing = 0.0;
+//  double mid_tpc_spacing = 0.0;
+//  double outer_tpc_spacing = 0.0;
 
 };
 

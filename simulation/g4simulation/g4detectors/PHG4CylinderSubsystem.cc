@@ -27,13 +27,11 @@
 class PHG4CylinderGeom;
 class PHG4Detector;
 
-using namespace std;
-
 //_______________________________________________________________________
 PHG4CylinderSubsystem::PHG4CylinderSubsystem(const std::string &na, const int lyr)
   : PHG4DetectorSubsystem(na, lyr)
 {
-  m_ColorArray.fill(NAN);
+  m_ColorArray.fill(std::numeric_limits<double>::quiet_NaN());
   InitializeParameters();
 }
 
@@ -48,7 +46,7 @@ int PHG4CylinderSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
 {
   // create hit list only for active layers
   double detlength = GetParams()->get_double_param("length");
-  if (!isfinite(detlength) && GetParams()->get_int_param("lengthviarapidity"))
+  if (!std::isfinite(detlength) && GetParams()->get_int_param("lengthviarapidity"))
   {
     GetParams()->set_double_param("length", PHG4Utils::GetLengthForRapidityCoverage(GetParams()->get_double_param("radius") + GetParams()->get_double_param("thickness")) * 2);
     detlength = GetParams()->get_double_param("length");
@@ -65,10 +63,10 @@ int PHG4CylinderSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
   }
   // create display settings before detector
   PHG4CylinderDisplayAction *disp_action = new PHG4CylinderDisplayAction(Name(), GetParams());
-  if (isfinite(m_ColorArray[0]) &&
-      isfinite(m_ColorArray[1]) &&
-      isfinite(m_ColorArray[2]) &&
-      isfinite(m_ColorArray[3]))
+  if (std::isfinite(m_ColorArray[0]) &&
+      std::isfinite(m_ColorArray[1]) &&
+      std::isfinite(m_ColorArray[2]) &&
+      std::isfinite(m_ColorArray[3]))
   {
     disp_action->SetColor(m_ColorArray[0], m_ColorArray[1], m_ColorArray[2], m_ColorArray[3]);
   }
@@ -84,8 +82,8 @@ int PHG4CylinderSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
     PHCompositeNode *dstNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "DST"));
     PHCompositeNode *runNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "RUN"));
 
-    string nodename;
-    string geonode;
+    std::string nodename;
+    std::string geonode;
     if (SuperDetector() != "NONE")
     {
       // create super detector subnodes
@@ -171,6 +169,8 @@ void PHG4CylinderSubsystem::SetDefaultParameters()
   set_default_double_param("rot_x", 0.);
   set_default_double_param("rot_y", 0.);
   set_default_double_param("rot_z", 0.);
+  set_default_double_param("start_phi_rad", 0.);
+  set_default_double_param("delta_phi_rad", M_PI * 2);
   set_default_int_param("lengthviarapidity", 1);
   set_default_int_param("lightyield", 0);
   set_default_int_param("use_g4steps", 0);
@@ -180,23 +180,23 @@ void PHG4CylinderSubsystem::SetDefaultParameters()
 }
 
 PHG4Detector *
-PHG4CylinderSubsystem::GetDetector(void) const
+PHG4CylinderSubsystem::GetDetector() const
 {
   return m_Detector;
 }
 
-void PHG4CylinderSubsystem::Print(const string &what) const
+void PHG4CylinderSubsystem::Print(const std::string &what) const
 {
-  cout << Name() << " Parameters: " << endl;
+  std::cout << Name() << " Parameters: " << std::endl;
   if (!BeginRunExecuted())
   {
-    cout << "Need to execute BeginRun() before parameter printout is meaningful" << endl;
-    cout << "To do so either run one or more events or on the command line execute: " << endl;
-    cout << "Fun4AllServer *se = Fun4AllServer::instance();" << endl;
-    cout << "PHG4Reco *g4 = (PHG4Reco *) se->getSubsysReco(\"PHG4RECO\");" << endl;
-    cout << "g4->InitRun(se->topNode());" << endl;
-    cout << "PHG4CylinderSubsystem *cyl = (PHG4CylinderSubsystem *) g4->getSubsystem(\"" << Name() << "\");" << endl;
-    cout << "cyl->Print()" << endl;
+    std::cout << "Need to execute BeginRun() before parameter printout is meaningful" << std::endl;
+    std::cout << "To do so either run one or more events or on the command line execute: " << std::endl;
+    std::cout << "Fun4AllServer *se = Fun4AllServer::instance();" << std::endl;
+    std::cout << "PHG4Reco *g4 = (PHG4Reco *) se->getSubsysReco(\"PHG4RECO\");" << std::endl;
+    std::cout << "g4->InitRun(se->topNode());" << std::endl;
+    std::cout << "PHG4CylinderSubsystem *cyl = (PHG4CylinderSubsystem *) g4->getSubsystem(\"" << Name() << "\");" << std::endl;
+    std::cout << "cyl->Print()" << std::endl;
     return;
   }
   GetParams()->Print();

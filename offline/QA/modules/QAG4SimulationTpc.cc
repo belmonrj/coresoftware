@@ -1,19 +1,19 @@
 #include "QAG4SimulationTpc.h"
-#include "QAG4Util.h"
-#include "QAHistManagerDef.h"
+#include <qautils/QAUtil.h>
+#include <qautils/QAHistManagerDef.h>
 
-#include <g4detectors/PHG4CylinderCellGeomContainer.h>
+#include <g4detectors/PHG4TpcCylinderGeomContainer.h>
 
 #include <g4main/PHG4Particle.h>
 #include <g4main/PHG4TruthInfoContainer.h>
 
 #include <g4main/PHG4HitContainer.h>
 
-#include <tpc/TpcDefs.h>
-
 #include <trackbase_historic/ActsTransformations.h>
 
 #include <trackbase/ActsGeometry.h>
+#include <trackbase/TpcDefs.h>
+#include <trackbase/TrackFitUtils.h>
 #include <trackbase/TrkrCluster.h>
 #include <trackbase/TrkrClusterContainer.h>
 #include <trackbase/TrkrClusterHitAssoc.h>
@@ -76,9 +76,9 @@ int QAG4SimulationTpc::InitRun(PHCompositeNode* topNode)
   }
 
   // find tpc geometry
-  PHG4CylinderCellGeomContainer* geom_container =
-      findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
-  //auto geom_container = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
+  PHG4TpcCylinderGeomContainer* geom_container =
+      findNode::getClass<PHG4TpcCylinderGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
+  // auto geom_container = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
   if (!geom_container)
   {
     std::cout << PHWHERE << " unable to find DST node CYLINDERCELLGEOM_SVTX" << std::endl;
@@ -317,7 +317,7 @@ void QAG4SimulationTpc::evaluate_clusters()
   if (Verbosity() > 0)
     std::cout << PHWHERE << " get all truth clusters for primary particles " << std::endl;
 
-  //PHG4TruthInfoContainer::ConstRange range = m_truthContainer->GetParticleRange();  // all truth cluters
+  // PHG4TruthInfoContainer::ConstRange range = m_truthContainer->GetParticleRange();  // all truth cluters
   PHG4TruthInfoContainer::ConstRange range = m_truthContainer->GetPrimaryParticleRange();  // only from primary particles
 
   for (PHG4TruthInfoContainer::ConstIterator iter = range.first;
@@ -336,11 +336,36 @@ void QAG4SimulationTpc::evaluate_clusters()
 
     // Get the truth clusters from this particle
     const auto truth_clusters = trutheval->all_truth_clusters(g4particle);
-    for (const auto& [gkey, gclus]:truth_clusters)
+
+    // get circle fit parameters first
+    TrackFitUtils::position_vector_t xy_pts;
+    TrackFitUtils::position_vector_t rz_pts;
+
+    for (const auto& [gkey, gclus] : truth_clusters)
+    {
+      const auto layer = TrkrDefs::getLayer(gkey);
+      if (layer < 7) continue;
+
+      float gx = gclus->getX();
+      float gy = gclus->getY();
+      float gz = gclus->getZ();
+
+      xy_pts.emplace_back(gx, gy);
+      rz_pts.emplace_back(std::sqrt(gx * gx + gy * gy), gz);
+    }
+
+    // fit a circle through x,y coordinates
+    const auto [R, X0, Y0] = TrackFitUtils::circle_fit_by_taubin(xy_pts);
+    
+    // skip chain entirely if fit fails
+    if (std::isnan(R)) continue;
+
+    // process residuals and pulls
+    for (const auto& [gkey, gclus] : truth_clusters)
     {
       const auto layer = TrkrDefs::getLayer(gkey);
       const auto detID = TrkrDefs::getTrkrId(gkey);
-      //if (detID != TrkrDefs::tpcId) continue;
+      // if (detID != TrkrDefs::tpcId) continue;
       if (layer < 7) continue;
 
       float gx = gclus->getX();
@@ -374,9 +399,10 @@ void QAG4SimulationTpc::evaluate_clusters()
         const auto r_cluster = QAG4Util::get_r(global(0), global(1));
         const auto z_cluster = global(2);
         const auto phi_cluster = (float) std::atan2(global(1), global(0));
-        const auto phi_error = rclus->getRPhiError() / r_cluster;
-        const auto z_error = rclus->getZError();
 
+	double phi_error = rclus->getRPhiError() / r_cluster;
+	double z_error = rclus->getZError();
+        
         const auto dphi = QAG4Util::delta_phi(phi_cluster, gphi);
         const auto dz = z_cluster - gz;
 
@@ -396,7 +422,8 @@ void QAG4SimulationTpc::evaluate_clusters()
         if (hiter == histograms.end()) continue;
 
         // fill phi residuals, errors and pulls
-        auto fill = [](TH1* h, float value) { if( h ) h->Fill( value ); };
+        auto fill = [](TH1* h, float value)
+        { if( h ) h->Fill( value ); };
         fill(hiter->second.drphi, r_cluster * dphi);
         fill(hiter->second.rphi_error, r_cluster * phi_error);
         fill(hiter->second.phi_pulls, dphi / phi_error);

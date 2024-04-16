@@ -7,32 +7,26 @@
 
 #include <trackbase/ActsGeometry.h>
 
+#include "ActsPropagator.h"
+
 #include <Acts/Definitions/Algebra.hpp>
-#include <Acts/Propagator/Propagator.hpp>
-#include <Acts/Utilities/Result.hpp>
-#include <Acts/Surfaces/CylinderSurface.hpp>
 #include <Acts/EventData/TrackParameters.hpp>
+#include <Acts/Surfaces/CylinderSurface.hpp>
+#include <Acts/Utilities/Result.hpp>
 
 #include <ActsExamples/EventData/Trajectories.hpp>
 
 class PHCompositeNode;
 class RawClusterContainer;
-class RawTowerContainer;
+class TowerInfoContainer;
 class RawTowerGeomContainer;
 class SvtxTrackMap;
 class SvtxTrack;
 class SvtxVertexMap;
 
-#include <memory>
 #include <map>
+#include <memory>
 #include <string>
-
-using BoundTrackParamPtr = 
-  std::unique_ptr<const Acts::BoundTrackParameters>;
-using BoundTrackParamPtrResult = Acts::Result<BoundTrackParamPtr>;
-using SurfacePtr = std::shared_ptr<const Acts::Surface>;
-using Trajectory = ActsExamples::Trajectories;
-
 
 /**
  * This class takes final fitted tracks from the Acts track fitting
@@ -43,71 +37,76 @@ using Trajectory = ActsExamples::Trajectories;
 
 class PHActsTrackProjection : public SubsysReco
 {
-
  public:
-  PHActsTrackProjection(const std::string& name 
-			= "PHActsTrackProjection");
-  
+  using BoundTrackParam =
+      const Acts::BoundTrackParameters;
+  using SurfacePtr = std::shared_ptr<const Acts::Surface>;
+  using Trajectory = ActsExamples::Trajectories;
+  using BoundTrackParamResult = ActsPropagator::BTPPairResult;
+
+  PHActsTrackProjection(const std::string &name = "PHActsTrackProjection");
+
   int Init(PHCompositeNode *topNode) override;
   int InitRun(PHCompositeNode *topNode) override;
   int process_event(PHCompositeNode *topNode) override;
   int End(PHCompositeNode *topNode) override;
-  
+
   void useConstField(bool field) { m_constField = field; }
+  void setConstFieldVal(float b) { m_constFieldVal = b; }
 
   /// Set an arbitrary radius to project to, in cm
   void setLayerRadius(SvtxTrack::CAL_LAYER layer,
-		      const float rad) { 
-
-    if(m_caloRadii.find(layer) != m_caloRadii.end())
+                      const float rad)
+  {
+    if (m_caloRadii.find(layer) != m_caloRadii.end())
+    {
       m_caloRadii[layer] = rad;
+    }
     else
+    {
       m_caloRadii.insert(std::make_pair(layer, rad));
+    }
   }
 
  private:
-  
   int getNodes(PHCompositeNode *topNode);
-  int projectTracks(PHCompositeNode *topNode, int caloLayer);
+  int projectTracks(int caloLayer);
 
   /// Propagate the fitted track parameters to a surface with Acts
-  BoundTrackParamPtrResult propagateTrack(
-        const Acts::BoundTrackParameters& params, 
-	const SurfacePtr &targetSurf);
+  BoundTrackParamResult propagateTrack(
+      const Acts::BoundTrackParameters &params,
+      const int caloLayer,
+      const SurfacePtr &targetSurf);
 
   /// Set the particular calo nodes depending on which layer
   int setCaloContainerNodes(PHCompositeNode *topNode,
-			     const int caloLayer);
-  
+                            const int caloLayer);
+
   /// Make Acts::CylinderSurface objects corresponding to the calos
   int makeCaloSurfacePtrs(PHCompositeNode *topNode);
 
   /// Update the SvtxTrack object with the track-cluster match
-  void updateSvtxTrack(const Acts::BoundTrackParameters& params,
-		       SvtxTrack* svtxTrack,
-		       const int caloLayer);
+  void updateSvtxTrack(const ActsPropagator::BoundTrackParamPair &params,
+                       SvtxTrack *svtxTrack,
+                       const int caloLayer);
 
   /// Get 3x3 and 5x5 tower sums matched to a track
   void getSquareTowerEnergies(int phiBin, int etaBin,
-			      double& energy3x3,
-			      double& energy5x5);
+                              double &energy3x3,
+                              double &energy5x5);
 
   /// Get the cluster values for a particular matched track
   void getClusterProperties(double phi, double eta,
-			    double& minIndex, double& minDphi,
-			    double& minDeta, double& minE);
-  Acts::BoundTrackParameters makeTrackParams(SvtxTrack* track);
-  double deltaPhi(const double& phi);
-  Acts::Vector3 getVertex(SvtxTrack* track);
-
+                            double &minIndex, double &minDphi,
+                            double &minDeta, double &minE);
+  double deltaPhi(const double &phi);
+ 
   /// Objects containing the Acts track fit results
   ActsGeometry *m_tGeometry = nullptr;
   SvtxTrackMap *m_trackMap = nullptr;
   SvtxVertexMap *m_vertexMap = nullptr;
-  std::map<const unsigned int, Trajectory> *m_trajectories{nullptr};
 
-
-  /// Objects to hold calorimeter information. There are 
+  /// Objects to hold calorimeter information. There are
   /// only 3 calo layers
   const static int m_nCaloLayers = 3;
   std::vector<std::string> m_caloNames;
@@ -118,15 +117,14 @@ class PHActsTrackProjection : public SubsysReco
   std::map<SvtxTrack::CAL_LAYER, float> m_caloRadii;
 
   RawTowerGeomContainer *m_towerGeomContainer = nullptr;
-  RawTowerContainer *m_towerContainer = nullptr;
+  TowerInfoContainer *m_towerContainer = nullptr;
   RawClusterContainer *m_clusterContainer = nullptr;
 
   bool m_constField = true;
-
+  float m_constFieldVal = 1.4;
   bool m_useCemcPosRecalib = false;
-
   bool m_calosAvailable = true;
-  
+
   int m_event = 0;
 };
 

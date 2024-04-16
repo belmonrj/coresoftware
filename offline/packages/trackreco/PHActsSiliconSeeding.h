@@ -4,14 +4,17 @@
 #include <fun4all/SubsysReco.h>
 #include <trackbase/TrkrDefs.h>
 #include <trackbase/ActsGeometry.h>
+#include <trackbase/ClusterErrorPara.h>
 
 #include <Acts/Definitions/Algebra.hpp>
 #include <Acts/Geometry/GeometryIdentifier.hpp>
-#include <Acts/Seeding/Seedfinder.hpp>
+#include <Acts/Seeding/SeedFinder.hpp>
 #include <Acts/Definitions/Units.hpp>
 
 #include <Acts/Seeding/BinFinder.hpp>
 #include <Acts/Seeding/SpacePointGrid.hpp>
+
+#include <trackbase/SpacePoint.h>
 
 #include <string>
 #include <map>
@@ -27,37 +30,8 @@ class TrkrCluster;
 class TrkrClusterContainer;
 class TrkrClusterIterationMapv1;
 
-/**
- * A struct for Acts to take cluster information for seeding
- */
-struct SpacePoint {
-  TrkrDefs::cluskey m_clusKey;
-  double m_x;
-  double m_y;
-  double m_z;
-  double m_r;
-  Acts::GeometryIdentifier m_geoId;
-  double m_varianceR;
-  double m_varianceZ;
-  
-  TrkrDefs::cluskey Id() const { return m_clusKey; }
-
-  /// These are needed by Acts
-  double x() const { return m_x; }
-  double y() const { return m_y; }
-  double z() const { return m_z; }
-  double r() const { return m_r; }
-
-};
-
-/// This is needed by the Acts seedfinder 
-inline bool operator==(SpacePoint a, SpacePoint b) {
-  return (a.m_clusKey == b.m_clusKey);
-}
-
-using SpacePointPtr = std::unique_ptr<SpacePoint>;
 using GridSeeds = std::vector<std::vector<Acts::Seed<SpacePoint>>>;
-using SeedContainer = std::vector<Acts::Seed<SpacePoint>>;
+
 /**
  * This class runs the Acts seeder over the MVTX measurements
  * to create track stubs for the rest of the stub matching pattern
@@ -73,6 +47,7 @@ class PHActsSiliconSeeding : public SubsysReco
   int process_event(PHCompositeNode *topNode) override;
   int End(PHCompositeNode *topNode) override;
 
+  void setunc(float unc) { m_uncfactor = unc; }
   /// Set seeding with truth clusters
   void useTruthClusters(bool useTruthClusters)
     { m_useTruthClusters = useTruthClusters; }
@@ -81,11 +56,13 @@ class PHActsSiliconSeeding : public SubsysReco
   void seedAnalysis(bool seedAnalysis)
     { m_seedAnalysis = seedAnalysis; }
 
-  /// field map name for 3d map functionality
-  void fieldMapName(const std::string& fieldmap)
-    { m_fieldMapName = fieldmap; }
 
-  void setRPhiSearchWindow(const float win) { m_rPhiSearchWin = win; std::cout << "Search window is " << m_rPhiSearchWin<<std::endl;}
+  void setRPhiSearchWindow(const float win) 
+  { 
+    m_rPhiSearchWin = win; 
+    std::cout << "Search window is " << m_rPhiSearchWin<<std::endl;
+  }
+
 
   /// For each MVTX+INTT seed, take the best INTT hits and form
   /// 1 silicon seed per MVTX seed
@@ -106,13 +83,29 @@ class PHActsSiliconSeeding : public SubsysReco
   {m_cotThetaMax = cotThetaMax;}
   void gridFactor(const float gridFactor)
   {m_gridFactor = gridFactor;}
+  void sigmaScattering(const float sigma)
+  { m_sigmaScattering = sigma; }
+  void maxPtScattering(const float pt)
+  { m_maxPtScattering = pt; }
+  void sigmaError(const float sigma)
+  { m_sigmaError = sigma; }
+  void zalign(const float z)
+  { m_zalign = z; }
+  void ralign(const float r) 
+  { m_ralign = r; }
+  void tolerance(const float tolerance)
+  { m_tolerance = tolerance; }
+  void helixcut(const float cut)
+  { m_helixcut = cut; }
 
+  
   /// A function to run the seeder with large (true)
   /// or small (false) grid spacing
   void largeGridSpacing(const bool spacing);
 
   void set_track_map_name(const std::string &map_name) { _track_map_name = map_name; }
-  void SetIteration(int iter){_n_iteration = iter;}
+  void iteration(int iter){m_nIteration = iter;}
+  void searchInIntt() { m_searchInIntt = true; }
 
  private:
 
@@ -123,8 +116,8 @@ class PHActsSiliconSeeding : public SubsysReco
 
   /// Configure the seeding parameters for Acts. There
   /// are a number of tunable parameters for the seeder here
-  Acts::SeedfinderConfig<SpacePoint> configureSeeder();
-  Acts::SpacePointGridConfig configureSPGrid();
+  void configureSeeder();
+  void configureSPGrid();
   Acts::SeedFilterConfig configureSeedFilter();
 
   /// Take final seeds and fill the TrackSeedContainer
@@ -134,12 +127,12 @@ class PHActsSiliconSeeding : public SubsysReco
   SpacePointPtr makeSpacePoint(
     const Surface& surf,
     const TrkrDefs::cluskey,
-    const TrkrCluster* clus);
+    //    const TrkrCluster* clus);
+    TrkrCluster* clus);
   
   /// Get all space points for the seeder
-  std::vector<const SpacePoint*> getMvtxSpacePoints(Acts::Extent& rRangeSPExtent);
-
-
+  std::vector<const SpacePoint*> getSiliconSpacePoints(Acts::Extent& rRangeSPExtent);
+  void printSeedConfigs(Acts::SeedFilterConfig &sfconfig);
 
   /// Projects circle fit to INTT radii to find possible INTT clusters
   /// belonging to MVTX track stub
@@ -148,18 +141,10 @@ class PHActsSiliconSeeding : public SubsysReco
 		        TrackSeed& seed);
 
   std::vector<TrkrDefs::cluskey> matchInttClusters(std::vector<Acts::Vector3>& clusters,
-						   const double xProj[],
+						   TrackSeed& seed,
+               const double xProj[],
 						   const double yProj[],
 						   const double zProj[]);
-
-  void circleCircleIntersection(const double layerRadius, 
-				const double circRadius,
-				const double circX0,
-				const double circY0,
-				double& xplus,
-				double& yplus,
-				double& xminus,
-				double& yminus);
 
   void createHistograms();
   void writeHistograms();
@@ -171,23 +156,37 @@ class PHActsSiliconSeeding : public SubsysReco
   PHG4CylinderGeomContainer *m_geomContainerIntt = nullptr;
   
   /// Configuration classes for Acts seeding
-  Acts::SeedfinderConfig<SpacePoint> m_seedFinderCfg;
+  Acts::SeedFinderConfig<SpacePoint> m_seedFinderCfg;
   Acts::SpacePointGridConfig m_gridCfg;
+  Acts::SpacePointGridOptions m_gridOptions;
+  Acts::SeedFinderOptions m_seedFinderOptions;
+
+  /// boolean whether or not to include the intt in the acts search windows
+  bool m_searchInIntt = false;
 
   /// Configurable parameters
   /// seed pt has to be in MeV
   float m_minSeedPt = 100 * Acts::UnitConstants::MeV;
-
+  float m_uncfactor = 3.18;
+    
   /// How many seeds a given hit can be the middle hit of the seed
   /// MVTX can only have the middle layer be the middle hit
   int m_maxSeedsPerSpM = 1;
 
   /// Limiting location of measurements (e.g. detector constraints)
-  /// We limit to the MVTX
   float m_rMax = 200. * Acts::UnitConstants::mm;
   float m_rMin = 23. * Acts::UnitConstants::mm;
-  float m_zMax = 300. * Acts::UnitConstants::mm;
-  float m_zMin = -300. * Acts::UnitConstants::mm;
+  float m_zMax = 500. * Acts::UnitConstants::mm;
+  float m_zMin = -500. * Acts::UnitConstants::mm;
+
+  /// misalignment parameters
+  float m_helixcut = 1;
+  float m_tolerance = 1.1 * Acts::UnitConstants::mm;
+  float m_ralign = 0;
+  float m_zalign = 0;
+  float m_maxPtScattering = 10;
+  float m_sigmaScattering = 5.;
+  float m_sigmaError = 5;
 
   /// Value tuned to provide as large of phi bins as possible. 
   /// Increases the secondary finding efficiency
@@ -204,13 +203,15 @@ class PHActsSiliconSeeding : public SubsysReco
 
   /// Only used in seeding with specified z bin edges, which
   /// is more configuration than we need
-  int m_numPhiNeighbors = 0;
+  int m_numPhiNeighbors = 1;
 
   /// B field value in z direction
   /// bfield for space point grid neds to be in kiloTesla
   float m_bField = 1.4 * Acts::UnitConstants::T;
-
-  std::shared_ptr<Acts::BinFinder<SpacePoint>> 
+  std::vector<std::pair<int, int> > zBinNeighborsTop;
+  std::vector<std::pair<int, int> > zBinNeighborsBottom;
+  int nphineighbors = 1;
+  std::shared_ptr<const Acts::BinFinder<SpacePoint>> 
     m_bottomBinFinder, m_topBinFinder;
 
   int m_event = 0;
@@ -232,10 +233,10 @@ class PHActsSiliconSeeding : public SubsysReco
 
   int m_nBadUpdates = 0;
   int m_nBadInitialFits = 0;
-  std::string m_fieldMapName = "";
   TrkrClusterIterationMapv1* _iteration_map = nullptr;
-  int _n_iteration = 0;
+  int m_nIteration = 0;
   std::string _track_map_name = "SiliconTrackSeedContainer";
+  ClusterErrorPara _ClusErrPara;
 
   bool m_seedAnalysis = false;
   TFile *m_file = nullptr;

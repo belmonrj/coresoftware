@@ -29,6 +29,8 @@
 
 #include <TSystem.h>
 
+#include <cassert>
+#include <cstdlib>
 #include <iostream>  // for operator<<, basic_ostream
 #include <sstream>
 
@@ -66,19 +68,28 @@ int PHG4SpacalSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
   switch (GetParams()->get_int_param("config"))
   {
   case PHG4CylinderGeom_Spacalv1::kNonProjective:
-    if (Verbosity() > 0) std::cout << "PHG4SpacalSubsystem::InitRun - use PHG4SpacalDetector" << std::endl;
+    if (Verbosity() > 0)
+    {
+      std::cout << "PHG4SpacalSubsystem::InitRun - use PHG4SpacalDetector" << std::endl;
+    }
     detector_ = new PHG4SpacalDetector(this, topNode, Name(), GetParams(), GetLayer());
     break;
 
   case PHG4CylinderGeom_Spacalv1::kFullProjective_2DTaper:
   case PHG4CylinderGeom_Spacalv1::kFullProjective_2DTaper_SameLengthFiberPerTower:
-    if (Verbosity() > 0) std::cout << "PHG4SpacalSubsystem::InitRun - use PHG4FullProjSpacalDetector" << std::endl;
+    if (Verbosity() > 0)
+    {
+      std::cout << "PHG4SpacalSubsystem::InitRun - use PHG4FullProjSpacalDetector" << std::endl;
+    }
     detector_ = new PHG4FullProjSpacalDetector(this, topNode, Name(), GetParams(), GetLayer());
     break;
 
   case PHG4CylinderGeom_Spacalv1::kFullProjective_2DTaper_Tilted:
   case PHG4CylinderGeom_Spacalv1::kFullProjective_2DTaper_Tilted_SameLengthFiberPerTower:
-    if (Verbosity() > 0) std::cout << "PHG4SpacalSubsystem::InitRun - use PHG4FullProjTiltedSpacalDetector" << std::endl;
+    if (Verbosity() > 0)
+    {
+      std::cout << "PHG4SpacalSubsystem::InitRun - use PHG4FullProjTiltedSpacalDetector" << std::endl;
+    }
     detector_ = new PHG4FullProjTiltedSpacalDetector(this, topNode, Name(), GetParams(), GetLayer());
     break;
 
@@ -97,42 +108,55 @@ int PHG4SpacalSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
   // display to extract the visibility setting for logical volumes
   PHG4SpacalDisplayAction* DispAct = dynamic_cast<PHG4SpacalDisplayAction*>(m_DisplayAction);
   DispAct->SetGeom(detector_->get_geom());
+
   if (GetParams()->get_int_param("active"))
   {
-    std::ostringstream nodename;
-    if (SuperDetector() != "NONE")
+    std::set<std::string> nodes;
+    PHNodeIterator dstIter(dstNode);
+    PHCompositeNode* DetNode = dstNode;
+    if (SuperDetector() != "NONE" && !SuperDetector().empty())
     {
-      nodename << "G4HIT_" << SuperDetector();
+      PHNodeIterator iter_dst(dstNode);
+      DetNode = dynamic_cast<PHCompositeNode*>(iter_dst.findFirst("PHCompositeNode", SuperDetector()));
+      if (!DetNode)
+      {
+        DetNode = new PHCompositeNode(SuperDetector());
+        dstNode->addNode(DetNode);
+      }
     }
-    else
+    std::string detector_suffix = SuperDetector();
+    if (detector_suffix == "NONE" || detector_suffix.empty())
     {
-      nodename << "G4HIT_" << Name() << "_" << GetLayer();
+      detector_suffix = Name();
     }
-    PHG4HitContainer* cylinder_hits = findNode::getClass<PHG4HitContainer>(topNode, nodename.str());
-    if (!cylinder_hits)
-    {
-      dstNode->addNode(new PHIODataNode<PHObject>(cylinder_hits = new PHG4HitContainer(nodename.str()), nodename.str(), "PHObject"));
-    }
-    cylinder_hits->AddLayer(GetLayer());
+
+    m_HitNodeName = "G4HIT_" + detector_suffix;
+    nodes.insert(m_HitNodeName);
+    m_AbsorberNodeName = "G4HIT_ABSORBER_" + detector_suffix;
     if (GetParams()->get_int_param("absorberactive"))
     {
-      nodename.str("");
-      if (SuperDetector() != "NONE")
-      {
-        nodename << "G4HIT_ABSORBER_" << SuperDetector();
-      }
-      else
-      {
-        nodename << "G4HIT_ABSORBER_" << Name() << "_" << GetLayer();
-      }
-      PHG4HitContainer* absorber_hits = findNode::getClass<PHG4HitContainer>(topNode, nodename.str());
-      if (!absorber_hits)
-      {
-        dstNode->addNode(new PHIODataNode<PHObject>(absorber_hits = new PHG4HitContainer(nodename.str()), nodename.str(), "PHObject"));
-      }
-      absorber_hits->AddLayer(GetLayer());
+      nodes.insert(m_AbsorberNodeName);
     }
-    steppingAction_ = new PHG4SpacalSteppingAction(detector_);
+    for (const auto& nodename : nodes)
+    {
+      PHG4HitContainer* g4_hits = findNode::getClass<PHG4HitContainer>(topNode, nodename);
+      if (!g4_hits)
+      {
+        g4_hits = new PHG4HitContainer(nodename);
+        DetNode->addNode(new PHIODataNode<PHObject>(g4_hits, nodename, "PHObject"));
+      }
+      g4_hits->AddLayer(GetLayer());
+    }
+
+    steppingAction_ = new PHG4SpacalSteppingAction(detector_, GetParams());
+    steppingAction_->InitWithNode(topNode);
+    const char* calibrationRoot = getenv("CALIBRATIONROOT");
+    assert(calibrationRoot != nullptr && "Environment variable CALIBRATIONROOT is not set");
+    std::string filePath = std::string(calibrationRoot) + "/CEMC/LightCollection/Prototype3Module.xml";
+    steppingAction_->get_light_collection_model().load_data_file(
+        filePath, "data_grid_light_guide_efficiency", "data_grid_fiber_trans");
+    steppingAction_->SetHitNodeName("G4HIT", m_HitNodeName);
+    steppingAction_->SetHitNodeName("G4HIT_ABSORBER", m_AbsorberNodeName);
   }
   return 0;
 }
@@ -150,7 +174,7 @@ int PHG4SpacalSubsystem::process_event(PHCompositeNode* topNode)
 }
 
 //_______________________________________________________________________
-PHG4Detector* PHG4SpacalSubsystem::GetDetector(void) const
+PHG4Detector* PHG4SpacalSubsystem::GetDetector() const
 {
   return detector_;
 }
@@ -172,12 +196,16 @@ void PHG4SpacalSubsystem::SetDefaultParameters()
   set_default_double_param("radius", 90.);
   set_default_double_param("zmin", -149.470000);
   set_default_double_param("zmax", 149.470000);
+  set_default_double_param("tmin", -20.);
+  set_default_double_param("tmax", 60.);
+  set_default_double_param("dt", 100.);
   set_default_int_param("azimuthal_n_sec", 256);
 
   set_default_int_param("construction_verbose", 0.);
   set_default_int_param("azimuthal_seg_visible", 0.);
   set_default_int_param("virualize_fiber", 0.);
   set_default_int_param("config", static_cast<int>(PHG4CylinderGeom_Spacalv1::kNonProjective));
+  set_default_int_param("saveg4hit", 1);
 
   set_default_double_param("divider_width", 0);       // radial size of the divider between blocks. <=0 means no dividers
   set_default_string_param("divider_mat", "G4_AIR");  // materials of the divider. G4_AIR is equivalent to not installing one in the term of material distribution

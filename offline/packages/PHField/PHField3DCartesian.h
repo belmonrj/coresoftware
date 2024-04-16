@@ -4,12 +4,15 @@
 #include "PHField.h"
 
 #include <cmath>
+#include <map>
+#include <set>
 #include <string>
+#include <tuple>
 
 class PHField3DCartesian : public PHField
 {
  public:
-  PHField3DCartesian(const std::string &fname, const float magfield_rescale = 1.0);
+  explicit PHField3DCartesian(const std::string &fname, const float magfield_rescale = 1.0, const float innerradius = 0, const float outerradius = 1.e10, const float size_z = 1.e10);
   ~PHField3DCartesian() override;
 
   //! access field value
@@ -31,13 +34,19 @@ class PHField3DCartesian : public PHField
   double zstepsize = NAN;
   // these are updated in a const method
   // to cache previous values
-  mutable double xyz[2][2][2][3];
-  mutable double bf[2][2][2][3];
+  mutable double xyz[2][2][2][3]{};
+  mutable double bf[2][2][2][3]{};
   mutable double xkey_save = NAN;
   mutable double ykey_save = NAN;
   mutable double zkey_save = NAN;
   mutable int cache_hits = 0;
   mutable int cache_misses = 0;
+
+  typedef std::tuple<float, float, float> trio;
+  std::map<std::tuple<float, float, float>, std::tuple<float, float, float> > fieldmap;
+  std::set<float> xvals;
+  std::set<float> yvals;
+  std::set<float> zvals;
 };
 
 #endif

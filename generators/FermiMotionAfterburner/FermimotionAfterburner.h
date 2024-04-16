@@ -14,7 +14,7 @@ class PHCompositeNode;
 class FermimotionAfterburner : public SubsysReco
 {
  public:
-  FermimotionAfterburner(const std::string &name = "FermimotionAfterburner");
+  FermimotionAfterburner(const std::string &name = "FermimotionAfterburner", const double pTspec = 0.05);
 
   virtual ~FermimotionAfterburner();
 
@@ -34,6 +34,7 @@ class FermimotionAfterburner : public SubsysReco
   void AddpF(PHCompositeNode *);
 
   gsl_rng *RandomGenerator;
+  double m_pTspec;
 };
 
 #endif  // FERMIMOTIONAFTERBURNER_H

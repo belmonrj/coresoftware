@@ -4,7 +4,7 @@
 
 /*!
  * \file PHG4GDMLDetector.h
- * \brief 
+ * \brief
  * \author Jin Huang <jhuang@bnl.gov>
  * \version $Revision:   $
  * \date $Date: $
@@ -65,7 +65,7 @@ class PHG4GDMLDetector : public PHG4Detector
   int m_skipDSTGeometryExport;
 
   //! registry for volumes that should not be exported, i.e. fibers
-  PHG4GDMLConfig* gdml_config;
+  PHG4GDMLConfig* gdml_config = nullptr;
 };
 
 #endif /* PHG4GDMLDetector_H_ */

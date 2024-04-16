@@ -9,57 +9,50 @@
  */
 
 #include "JetHepMCLoader.h"
-
-#include "JetMap.h"                       // for JetMap
-#include "JetMapv1.h"
-#include "Jetv1.h"
+#include <jetbase/JetContainer.h>  // for JetContainer
+#include <jetbase/JetContainer.h>
+#include <jetbase/Jetv1.h>
 
 #include <phhepmc/PHHepMCGenEvent.h>
 #include <phhepmc/PHHepMCGenEventMap.h>
 
-#include <fun4all/Fun4AllBase.h>          // for Fun4AllBase::VERBOSITY_A_LOT
+#include <fun4all/Fun4AllBase.h>  // for Fun4AllBase::VERBOSITY_A_LOT
 #include <fun4all/Fun4AllHistoManager.h>
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <fun4all/Fun4AllServer.h>
-#include <fun4all/SubsysReco.h>           // for SubsysReco
+#include <fun4all/SubsysReco.h>  // for SubsysReco
 
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
-#include <phool/PHNode.h>                 // for PHNode
+#include <phool/PHNode.h>  // for PHNode
 #include <phool/PHNodeIterator.h>
-#include <phool/PHObject.h>               // for PHObject
+#include <phool/PHObject.h>  // for PHObject
 #include <phool/getClass.h>
-#include <phool/phool.h>                  // for PHWHERE
+#include <phool/phool.h>  // for PHWHERE
 
-#include <TAxis.h>                        // for TAxis
+#include <TAxis.h>  // for TAxis
 #include <TH1.h>
 #include <TH2.h>
-#include <TNamed.h>                       // for TNamed
+#include <TNamed.h>  // for TNamed
 
-#include <HepMC/GenEvent.h>               // for GenEvent, GenEvent::particl...
-#include <HepMC/GenParticle.h>            // for GenParticle
-#include <HepMC/SimpleVector.h>           // for FourVector
-#include <HepMC/Units.h>                  // for conversion_factor, GEV
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#include <HepMC/GenEvent.h>      // for GenEvent, GenEvent::particl...
+#pragma GCC diagnostic pop
 
+#include <HepMC/GenParticle.h>   // for GenParticle
+#include <HepMC/SimpleVector.h>  // for FourVector
+#include <HepMC/Units.h>         // for conversion_factor, GEV
+
+#include <algorithm>  // for max
 #include <cassert>
 #include <iostream>
-
-using namespace std;
 
 JetHepMCLoader::JetHepMCLoader(const std::string &jetInputCategory)
   : SubsysReco("JetHepMCLoader_" + jetInputCategory)
   , m_jetInputCategory(jetInputCategory)
-  , m_saveQAPlots(false)
-{
-}
 
-JetHepMCLoader::~JetHepMCLoader()
 {
-}
-
-int JetHepMCLoader::Init(PHCompositeNode */*topNode*/)
-{
-  return Fun4AllReturnCodes::EVENT_OK;
 }
 
 int JetHepMCLoader::InitRun(PHCompositeNode *topNode)
@@ -77,7 +70,7 @@ int JetHepMCLoader::InitRun(PHCompositeNode *topNode)
     h->GetXaxis()->SetBinLabel(i++, "Event count");
     for (const hepmc_jet_src &src : m_jetSrc)
     {
-      h->GetXaxis()->SetBinLabel(i++, (string("SubEvent ") + src.m_name).c_str());
+      h->GetXaxis()->SetBinLabel(i++, (std::string("SubEvent ") + src.m_name).c_str());
     }
     h->GetXaxis()->LabelsOption("v");
     hm->registerHisto(h);
@@ -85,7 +78,7 @@ int JetHepMCLoader::InitRun(PHCompositeNode *topNode)
     for (const hepmc_jet_src &src : m_jetSrc)
     {
       hm->registerHisto(
-          new TH2F((string("hJetEtEta_") + src.m_name).c_str(),  //
+          new TH2F((std::string("hJetEtEta_") + src.m_name).c_str(),  //
                    ("Jet distribution from " + src.m_name + ";Jet #eta;Jet E_{T} [GeV]").c_str(),
                    40, -4., 4.,
                    100, 0, 100));
@@ -108,7 +101,7 @@ int JetHepMCLoader::process_event(PHCompositeNode *topNode)
     {
       once = false;
 
-      cout << "HepMCNodeReader::process_event - No PHHepMCGenEventMap node. Do not perform HepMC->Geant4 input" << endl;
+      std::cout << "HepMCNodeReader::process_event - No PHHepMCGenEventMap node. Do not perform HepMC->Geant4 input" << std::endl;
     }
 
     return Fun4AllReturnCodes::DISCARDEVENT;
@@ -125,22 +118,21 @@ int JetHepMCLoader::process_event(PHCompositeNode *topNode)
 
   for (const hepmc_jet_src &src : m_jetSrc)
   {
-    JetMap *jets = findNode::getClass<JetMap>(topNode, src.m_name);
+    JetContainer *jets = findNode::getClass<JetContainer>(topNode, src.m_name);
     assert(jets);
 
     jets->set_algo(src.m_algorithmID);
     jets->set_par(src.m_parameter);
     jets->insert_src(Jet::HEPMC_IMPORT);
 
-    PHHepMCGenEvent *genevt =
-        genevtmap->get(src.m_embeddingID);
+    PHHepMCGenEvent *genevt = genevtmap->get(src.m_embeddingID);
 
     if (genevt == nullptr) continue;
 
     HepMC::GenEvent *evt = genevt->getEvent();
     if (!evt)
     {
-      cout << PHWHERE << " no evt pointer under HEPMC Node found:";
+      std::cout << PHWHERE << " no evt pointer under HEPMC Node found:";
       genevt->identify();
       return Fun4AllReturnCodes::ABORTEVENT;
     }
@@ -155,9 +147,9 @@ int JetHepMCLoader::process_event(PHCompositeNode *topNode)
       assert(hm);
       TH1D *h_norm = dynamic_cast<TH1D *>(hm->getHisto("hNormalization"));
       assert(h_norm);
-      h_norm->Fill((string("SubEvent ") + src.m_name).c_str(), 1);
+      h_norm->Fill((std::string("SubEvent ") + src.m_name).c_str(), 1);
 
-      hjet = dynamic_cast<TH2F *>(hm->getHisto(string("hJetEtEta_") + src.m_name));
+      hjet = dynamic_cast<TH2F *>(hm->getHisto(std::string("hJetEtEta_") + src.m_name));
       assert(hjet);
 
     }  //   if (m_saveQAPlots)
@@ -171,11 +163,13 @@ int JetHepMCLoader::process_event(PHCompositeNode *topNode)
 
       assert(part);
       if (Verbosity() >= VERBOSITY_A_LOT)
+      {
         part->print();
+      }
 
       if (part->status() == src.m_tagStatus and part->pdg_id() == src.m_tagPID)
       {
-        Jet *jet = new Jetv1();
+        Jet *jet = jets->add_jet(); // returns a new Jetv2
 
         jet->set_px(part->momentum().px() * mom_factor);
         jet->set_py(part->momentum().py() * mom_factor);
@@ -183,9 +177,6 @@ int JetHepMCLoader::process_event(PHCompositeNode *topNode)
         jet->set_e(part->momentum().e() * mom_factor);
 
         jet->insert_comp(Jet::HEPMC_IMPORT, part->barcode());
-
-        jets->insert(jet);
-
         if (hjet)
         {
           hjet->Fill(jet->get_eta(), jet->get_et());
@@ -198,14 +189,14 @@ int JetHepMCLoader::process_event(PHCompositeNode *topNode)
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-int JetHepMCLoader::End(PHCompositeNode */*topNode*/)
+int JetHepMCLoader::End(PHCompositeNode * /*topNode*/)
 {
   if (m_saveQAPlots)
   {
     Fun4AllHistoManager *hm = getHistoManager();
     assert(hm);
 
-    cout << "JetHepMCLoader::End - saving QA histograms to " << Name() + ".root" << endl;
+    std::cout << "JetHepMCLoader::End - saving QA histograms to " << Name() + ".root" << std::endl;
     hm->dumpHistos(Name() + ".root", "RECREATE");
   }
 
@@ -220,7 +211,7 @@ void JetHepMCLoader::addJet(
     int tagPID,
     int tagStatus)
 {
-  string algorithmName = "Undefined_Jet_Algorithm";
+  std::string algorithmName = "Undefined_Jet_Algorithm";
 
   switch (algorithm)
   {
@@ -254,7 +245,7 @@ int JetHepMCLoader::CreateNodes(PHCompositeNode *topNode)
   PHCompositeNode *dstNode = static_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "DST"));
   if (!dstNode)
   {
-    cout << PHWHERE << "DST Node missing, doing nothing." << endl;
+    std::cout << PHWHERE << "DST Node missing, doing nothing." << std::endl;
     return Fun4AllReturnCodes::ABORTRUN;
   }
 
@@ -276,12 +267,12 @@ int JetHepMCLoader::CreateNodes(PHCompositeNode *topNode)
       AlgoNode->addNode(InputNode);
     }
 
-    JetMap *jets = findNode::getClass<JetMap>(topNode, src.m_name);
+    JetContainer *jets = findNode::getClass<JetContainer>(topNode, src.m_name);
     if (!jets)
     {
-      jets = new JetMapv1();
-      PHIODataNode<PHObject> *JetMapNode = new PHIODataNode<PHObject>(jets, src.m_name.c_str(), "PHObject");
-      InputNode->addNode(JetMapNode);
+      jets = new JetContainer();
+      PHIODataNode<PHObject> *JetContainerNode = new PHIODataNode<PHObject>(jets, src.m_name.c_str(), "PHObject");
+      InputNode->addNode(JetContainerNode);
     }
   }
 
@@ -291,16 +282,16 @@ int JetHepMCLoader::CreateNodes(PHCompositeNode *topNode)
 Fun4AllHistoManager *
 JetHepMCLoader::getHistoManager()
 {
-  string histname(Name() + "_HISTOS");
+  std::string histname(Name() + "_HISTOS");
 
   Fun4AllServer *se = Fun4AllServer::instance();
   Fun4AllHistoManager *hm = se->getHistoManager(histname);
 
   if (not hm)
   {
-    cout
+    std::cout
         << "TPCDataStreamEmulator::get_HistoManager - Making Fun4AllHistoManager " << histname
-        << endl;
+        << std::endl;
     hm = new Fun4AllHistoManager(histname);
     se->registerHistoManager(hm);
   }

@@ -1,6 +1,7 @@
 #ifndef QA_QAG4SIMULATIONINTT_H
 #define QA_QAG4SIMULATIONINTT_H
 
+#include <trackbase/ClusterErrorPara.h>
 #include <trackbase/TrkrDefs.h>
 
 #include <fun4all/SubsysReco.h>
@@ -61,6 +62,7 @@ class QAG4SimulationIntt : public SubsysReco
   /// list of relevant layers
   /* it is filled at Init stage. It should not change for the full run */
   std::set<int> m_layers;
+  ClusterErrorPara _ClusErrPara;
 };
 
 #endif

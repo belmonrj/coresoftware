@@ -10,6 +10,10 @@
 #include <trackbase/TrkrDefs.h>
 #include <trackbase/InttDefs.h>
 #include <trackbase/MvtxDefs.h>
+#include <trackbase/TpcDefs.h>
+#include <trackbase/sPHENIXActsDetectorElement.h>
+#include <trackbase/AlignmentTransformation.h>
+#include <trackbase/alignmentTransformationContainer.h>
 
 #include <intt/CylinderGeomIntt.h>
 
@@ -17,12 +21,10 @@
 
 #include <micromegas/CylinderGeomMicromegas.h>
 
-#include <tpc/TpcDefs.h>
-
 #include <micromegas/MicromegasDefs.h>
 
-#include <g4detectors/PHG4CylinderCellGeom.h>
-#include <g4detectors/PHG4CylinderCellGeomContainer.h>
+#include <g4detectors/PHG4TpcCylinderGeom.h>
+#include <g4detectors/PHG4TpcCylinderGeomContainer.h>
 #include <g4detectors/PHG4CylinderGeom.h>  // for PHG4CylinderGeom
 #include <g4detectors/PHG4CylinderGeomContainer.h>
 
@@ -31,6 +33,10 @@
 #include <phgeom/PHGeomTGeo.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/Fun4AllServer.h>
+
+#include <ffamodules/CDBInterface.h>
+
 #include <phool/PHCompositeNode.h>
 #include <phool/PHDataNode.h>
 #include <phool/PHNode.h>
@@ -39,7 +45,6 @@
 #include <phool/getClass.h>
 #include <phool/phool.h>
 
-#include <Acts/EventData/TrackParameters.hpp>
 #include <Acts/Geometry/GeometryContext.hpp>
 #include <Acts/Geometry/TrackingVolume.hpp>
 #include <Acts/MagneticField/MagneticFieldContext.hpp>
@@ -48,15 +53,24 @@
 #include <Acts/Surfaces/Surface.hpp>
 #include <Acts/Utilities/CalibrationContext.hpp>
 
-#include <ActsExamples/Detector/IBaseDetector.hpp>
-#include <ActsExamples/EventData/Track.hpp>
-#include <ActsExamples/Framework/AlgorithmContext.hpp>
 #include <ActsExamples/Framework/IContextDecorator.hpp>
-#include <ActsExamples/Framework/WhiteBoard.hpp>
 #include <ActsExamples/Geometry/CommonGeometry.hpp>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wuninitialized"
 #include <ActsExamples/Options/CommonOptions.hpp>
+#pragma GCC diagnostic pop
+
 #include <ActsExamples/Utilities/Options.hpp>
-#include <ActsExamples/MagneticField/MagneticFieldOptions.hpp>
+#include <ActsExamples/Options/MagneticFieldOptions.hpp>
+
+#include <ActsExamples/TGeoDetector/JsonTGeoDetectorConfig.hpp>
+
+#include <ActsExamples/Geometry/MaterialWiper.hpp>
+#include <Acts/Material/IMaterialDecorator.hpp>
+#include <Acts/Plugins/Json/JsonMaterialDecorator.hpp>
+#include <Acts/Plugins/Json/MaterialMapJsonConverter.hpp>
 
 #include <TGeoManager.h>
 #include <TMatrixT.h>
@@ -92,20 +106,43 @@ namespace
     // not found
     return nullptr;
   }
+  
+  template<class T> inline constexpr T square( const T& x ) { return x*x; }
+
+  template<class T> inline T get_r( const T& x, const T&y ) { return std::sqrt( square(x) + square(y) ); }
+
 }
 
 MakeActsGeometry::MakeActsGeometry(const std::string &name)
 : SubsysReco(name)
-{}
+{
+  for ( int layer = 0; layer < 57; layer++)
+    {
+      m_misalignmentFactor.insert(std::make_pair(layer, 1.));
+    }
+}
 
 int MakeActsGeometry::Init(PHCompositeNode */*topNode*/)
 {  
-  setPlanarSurfaceDivisions();
+
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 int MakeActsGeometry::InitRun(PHCompositeNode *topNode)
 {
+    m_geomContainerTpc =
+      findNode::getClass<PHG4TpcCylinderGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
+
+  // Alignment Transformation declaration of instance - must be here to set initial alignment flag
+  AlignmentTransformation alignment_transformation;
+  alignment_transformation.createAlignmentTransformContainer(topNode);
+
+  //set parameter for sampling probability distribution
+  if(mvtxParam){alignment_transformation.setMVTXParams(m_mvtxDevs);}
+  if(inttParam){alignment_transformation.setINTTParams(m_inttDevs);}
+  if(tpcParam){alignment_transformation.setTPCParams(m_tpcDevs);}
+  if(mmParam){alignment_transformation.setMMParams(m_mmDevs);}
+
   if(buildAllGeometry(topNode) != Fun4AllReturnCodes::EVENT_OK)
     return Fun4AllReturnCodes::ABORTEVENT;
 
@@ -113,9 +150,7 @@ int MakeActsGeometry::InitRun(PHCompositeNode *topNode)
   ActsTrackingGeometry trackingGeometry;
   trackingGeometry.tGeometry = m_tGeometry;
   trackingGeometry.magField = m_magneticField;
-  trackingGeometry.calibContext = m_calibContext;
-  trackingGeometry.magFieldContext = m_magFieldContext;
-  trackingGeometry.geoContext = m_geoCtxt;
+  trackingGeometry.getGeoContext() = m_geoCtxt;  // set reference as plain geocontext
   trackingGeometry.tpcSurfStepPhi = m_surfStepPhi;
   trackingGeometry.tpcSurfStepZ = m_surfStepZ;
 
@@ -134,29 +169,32 @@ int MakeActsGeometry::InitRun(PHCompositeNode *topNode)
   // fill Micromegas volume ids
   for( const auto& [hitsetid, surface]:m_clusterSurfaceMapMmEdit )
     { surfMaps.m_micromegasVolumeIds.insert( surface->geometryId().volume() ); } 
-  
+ 
   m_actsGeometry->setGeometry(trackingGeometry);
   m_actsGeometry->setSurfMaps(surfMaps);
+  m_actsGeometry->set_drift_velocity(m_drift_velocity);
+  // alignment_transformation.useInttSurveyGeometry(m_inttSurvey); 
+   if(Verbosity() > 1)
+    {
+      alignment_transformation.verbosity();
+    }
+  alignment_transformation.createMap(topNode);
+ 
+  for(auto& [layer, factor] : m_misalignmentFactor)
+    {
+      alignment_transformation.misalignmentFactor(layer, factor);
+    }
 
-  // print
+ // print
   if( Verbosity() )
-  {
-    for( const auto& id:surfMaps.m_tpcVolumeIds )
-    { std::cout << "MakeActsGeometry::InitRun - TPC volume id: " << id << std::endl; }
+    {
+      for( const auto& id:surfMaps.m_tpcVolumeIds )
+	{ std::cout << "MakeActsGeometry::InitRun - TPC volume id: " << id << std::endl; }
+      
+      for( const auto& id:surfMaps.m_micromegasVolumeIds )
+	{ std::cout << "MakeActsGeometry::InitRun - Micromegas volume id: " << id << std::endl; }
+    }
   
-    for( const auto& id:surfMaps.m_micromegasVolumeIds )
-    { std::cout << "MakeActsGeometry::InitRun - Micromegas volume id: " << id << std::endl; }
-  }
-  
-  return Fun4AllReturnCodes::EVENT_OK;
-}
-
-int MakeActsGeometry::process_event(PHCompositeNode */*topNode*/)
-{
-  return Fun4AllReturnCodes::EVENT_OK;
-}
-int MakeActsGeometry::End(PHCompositeNode */*topNode*/)
-{
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -167,29 +205,20 @@ int MakeActsGeometry::buildAllGeometry(PHCompositeNode *topNode)
   // this also adds the micromegas surfaces
   // Do this before anything else, so that the geometry is finalized
   
-  // This should be done only on the first tracking pass, to avoid adding surfaces twice
-  if(fake_surfaces)
-    editTPCGeometry(topNode);
-  else
-    std::cout << " NOT adding TPC surfaces" << std::endl;
+  if(getNodes(topNode) != Fun4AllReturnCodes::EVENT_OK)
+    return Fun4AllReturnCodes::ABORTEVENT;  
 
+  setPlanarSurfaceDivisions();//eshulga
+  // This should be done only on the first tracking pass, to avoid adding surfaces twice. 
+  // There is a check for existing acts fake surfaces in editTPCGeometry
+  editTPCGeometry(topNode); 
+ 
   /// Export the new geometry to a root file for examination
   if(Verbosity() > 3)
     {
       PHGeomUtility::ExportGeomtry(topNode, "sPHENIXActsGeom.root"); 
       PHGeomUtility::ExportGeomtry(topNode, "sPHENIXActsGeom.gdml");
     }
-
-  // need to get nodes first, in order to be able to build the proper micromegas geometry
-  if(getNodes(topNode) != Fun4AllReturnCodes::EVENT_OK)
-    return Fun4AllReturnCodes::ABORTEVENT;  
-
-  // In case we did not call EditTpcGeometry, we still want to make the MMs surface map
-  if( m_buildMMs && !m_geomContainerMicromegas )
-  {
-    std::cout << "MakeActsGeometry::buildAllGeometry - could not find node CYLINDERGEOM_MICROMEGAS_FULL. Disabling building MM surfaces" << std::endl;
-    m_buildMMs = false;
-  }
 
   if(createNodes(topNode) != Fun4AllReturnCodes::EVENT_OK)
     return Fun4AllReturnCodes::ABORTEVENT;
@@ -289,6 +318,19 @@ void MakeActsGeometry::editTPCGeometry(PHCompositeNode *topNode)
   assert(tpc_gas_north_node);
   TGeoVolume *tpc_gas_north_vol = tpc_gas_north_node->GetVolume();
   assert(tpc_gas_north_vol);
+
+  int nfakesurfaces = 0;
+  for(int i=0; i<tpc_gas_north_vol->GetNdaughters(); i++)
+    {
+      TString node_name = tpc_gas_north_vol->GetNode(i)->GetName();
+      if(node_name.BeginsWith("tpc_gas_measurement_"))
+	{ nfakesurfaces++; }
+    }
+
+  /// Make a check for the fake surfaces. If we have more than 0
+  /// then we've built the fake surfaces and we should not do it again
+  if(nfakesurfaces > 0)
+    { return; }
 
   if (Verbosity() > 3)
   {
@@ -423,12 +465,15 @@ void MakeActsGeometry::buildActsSurfaces()
   setMaterialResponseFile(responseFile, materialFile);
 
   // Response file contains arguments necessary for geometry building
+  std::ostringstream fld;
+  fld.str("");
+  fld<<"0:0:"<<m_magField;
   std::string argstr[argc]{
     "-n1",
     "--geo-tgeo-jsonconfig", responseFile,
       "--mat-input-type","file",
       "--mat-input-file", materialFile,
-      "--bf-constant-tesla","0:0:1.4",
+      "--bf-constant-tesla",fld.str().c_str(),
       "--bf-bscalor"};
   
   argstr[9] = std::to_string(m_magFieldRescale);
@@ -437,16 +482,17 @@ void MakeActsGeometry::buildActsSurfaces()
   /// Alter args if using field map
   if(m_magField.find(".root") != std::string::npos)
     {
-      if(m_magField.find("2d") != std::string::npos)
-	{        
-	  m_magFieldRescale = 1;
+
+      char *calibrationsroot = getenv("CALIBRATIONROOT");
+      m_magField = "sphenix3dtrackingmapxyz.root";
+      
+      if (calibrationsroot != nullptr)
+	{
+	  m_magField = std::string(calibrationsroot) + std::string("/Field/Map/") + m_magField;
 	}
       
-      m_magField = std::string(getenv("CALIBRATIONROOT")) +
-      	std::string("/Field/Map/sphenix3dtrackingmapxyz.root"); 
-      //m_magField = std::string("/phenix/u/bogui/data/Field/sphenix3dtrackingmapxyz.root");
-      //m_magField = std::string("/phenix/u/bogui/data/Field/sphenix3dbigmapxyz.root");
-      
+      m_magField = CDBInterface::instance()->getUrl("FIELDMAPTRACKING", m_magField);
+
       argstr[7] = "--bf-map-file";
       argstr[8] = m_magField;
       argstr[9]= "--bf-map-tree";
@@ -485,8 +531,8 @@ void MakeActsGeometry::setMaterialResponseFile(std::string& responseFile,
 					       std::string& materialFile)
 {
  
-  responseFile = m_buildMMs ? "tgeo-sphenix-mms.json":"tgeo-sphenix.json";
-  materialFile = m_buildMMs ? "sphenix-mm-material.json":"sphenix-material.json";
+  responseFile =  "tgeo-sphenix-mms.json";
+  materialFile =  "sphenix-mm-material.json";
   /// Check to see if files exist locally - if not, use defaults
   std::ifstream file;
 
@@ -496,9 +542,10 @@ void MakeActsGeometry::setMaterialResponseFile(std::string& responseFile,
       std::cout << responseFile
 		<< " not found locally, use repo version"
 		<< std::endl;
-  
-      responseFile = std::string(getenv("OFFLINE_MAIN")) +
-	(m_buildMMs ? "/share/tgeo-sphenix-mms.json":"/share/tgeo-sphenix.json");
+      char *offline_main = getenv("OFFLINE_MAIN");
+      assert(offline_main);
+      responseFile = std::string(offline_main) +
+	("/share/tgeo-sphenix-mms.json");
     }
 
   file.open(materialFile);
@@ -507,8 +554,10 @@ void MakeActsGeometry::setMaterialResponseFile(std::string& responseFile,
       std::cout << materialFile 
 		<< " not found locally, use repo version" 
 		<< std::endl;
-      materialFile = std::string(getenv("CALIBRATIONROOT")) +
-	(m_buildMMs ? "/ACTS/sphenix-mm-material.json":"/ACTS/sphenix-material.json");
+      const char* calibrationroot = getenv("CALIBRATIONROOT");
+      assert(calibrationroot);
+      materialFile = std::string(calibrationroot) +
+	("/ACTS/sphenix-mm-material.json");
     }
   
   if(Verbosity() > -1)
@@ -523,7 +572,7 @@ void MakeActsGeometry::setMaterialResponseFile(std::string& responseFile,
 
 }
 void MakeActsGeometry::makeGeometry(int argc, char* argv[], 
-				    ActsExamples::IBaseDetector &detector)
+				    ActsExamples::TGeoDetectorWithOptions &detector)
 {
   
   /// setup and parse options
@@ -537,34 +586,93 @@ void MakeActsGeometry::makeGeometry(int argc, char* argv[],
   auto vm = ActsExamples::Options::parse(desc, argc, argv);
  
   /// The geometry, material and decoration
-  auto geometry = ActsExamples::Geometry::build(vm, detector);
+  auto geometry = build(vm, detector);
   /// Geometry is a pair of (tgeoTrackingGeometry, tgeoContextDecorators)
 
   m_tGeometry = geometry.first;
-  m_contextDecorators = geometry.second;
   if(m_useField)
     { m_magneticField = ActsExamples::Options::readMagneticField(vm); }
   else
     { m_magneticField = nullptr; }
 
-  size_t ievt = 0;
-  size_t ialg = 0;
-
-  /// Setup the event and algorithm context
-  ActsExamples::WhiteBoard eventStore(
-            Acts::getDefaultLogger("EventStore#" + std::to_string(ievt),
-				   Acts::Logging::Level::INFO));
-
-  /// The geometry context
-  ActsExamples::AlgorithmContext context(ialg, ievt, eventStore);
-
-  m_calibContext = context.calibContext;
-  m_magFieldContext = context.magFieldContext;
-  m_geoCtxt = context.geoContext;
+  m_geoCtxt = Acts::GeometryContext();
  
   unpackVolumes();
   
   return;
+}
+
+
+std::pair<std::shared_ptr<const Acts::TrackingGeometry>,
+          std::vector<std::shared_ptr<ActsExamples::IContextDecorator>>>
+MakeActsGeometry::build(const boost::program_options::variables_map& vm,
+			ActsExamples::TGeoDetectorWithOptions& detector) {
+  // Material decoration
+  std::shared_ptr<const Acts::IMaterialDecorator> matDeco = nullptr;
+ 
+  // Retrieve the filename
+  auto fileName = vm["mat-input-file"].template as<std::string>();
+  // json or root based decorator
+  if (fileName.find(".json") != std::string::npos ||
+      fileName.find(".cbor") != std::string::npos) 
+    {
+      // Set up the converter first
+      Acts::MaterialMapJsonConverter::Config jsonGeoConvConfig;
+      // Set up the json-based decorator
+      matDeco = std::make_shared<const Acts::JsonMaterialDecorator>(
+	   jsonGeoConvConfig, fileName, Acts::Logging::FATAL);
+    } 
+  else
+    {
+      matDeco = std::make_shared<const Acts::MaterialWiper>();
+    }
+
+  ActsExamples::TGeoDetector::Config config;
+
+  config.elementFactory = sPHENIXElementFactory;
+
+  config.fileName = vm["geo-tgeo-filename"].as<std::string>();
+
+  config.surfaceLogLevel = Acts::Logging::FATAL;
+  config.layerLogLevel = Acts::Logging::FATAL;
+  config.volumeLogLevel = Acts::Logging::FATAL;
+
+  const auto path = vm["geo-tgeo-jsonconfig"].template as<std::string>();
+
+  readTGeoLayerBuilderConfigsFile(path, config);
+
+  /// Return the geometry and context decorators
+  return detector.m_detector.finalize(config, matDeco);
+ }
+  
+void MakeActsGeometry::readTGeoLayerBuilderConfigsFile(const std::string& path,
+						       ActsExamples::TGeoDetector::Config& config) {
+  if (path.empty()) {
+    std::cout << "There is no acts geometry response file loaded. Cannot build, exiting"
+	      << std::endl;
+    exit(1);
+  }
+
+  nlohmann::json djson;
+  std::ifstream infile(path, std::ifstream::in | std::ifstream::binary);
+  infile >> djson;
+
+  config.unitScalor = djson["geo-tgeo-unit-scalor"];
+
+  config.buildBeamPipe = djson["geo-tgeo-build-beampipe"];
+  if (config.buildBeamPipe) {
+    const auto beamPipeParameters =
+        djson["geo-tgeo-beampipe-parameters"].get<std::array<double, 3>>();
+    config.beamPipeRadius = beamPipeParameters[0];
+    config.beamPipeHalflengthZ = beamPipeParameters[1];
+    config.beamPipeLayerThickness = beamPipeParameters[2];
+  }
+
+  // Fill nested volume configs
+  for (const auto& volume : djson["Volumes"]) {
+    auto& vol = config.volumes.emplace_back();
+    vol = volume;
+  }
 }
 
 void MakeActsGeometry::unpackVolumes()
@@ -579,15 +687,12 @@ void MakeActsGeometry::unpackVolumes()
     std::cout << "Before: Mvtx: m_clusterSurfaceMapSilicon size    " << m_clusterSurfaceMapSilicon.size() << std::endl;
     std::cout << "Before: m_clusterSurfaceMapTpc size    " << m_clusterSurfaceMapTpcEdit.size() << std::endl;
   }
-
-  if(m_buildMMs)
   {
     // micromegas
     auto mmBarrel = find_volume_by_name( vol, "MICROMEGAS::Barrel" );
     assert( mmBarrel );
     makeMmMapPairs(mmBarrel);
   }
-  
   {
     // MVTX
     auto mvtxBarrel = find_volume_by_name( vol, "MVTX::Barrel" );
@@ -680,7 +785,7 @@ void MakeActsGeometry::makeTpcMapPairs(TrackingVolumePtr &tpcVolume)
 //____________________________________________________________________________________________
 void MakeActsGeometry::makeMmMapPairs(TrackingVolumePtr &mmVolume)
 {
-  if(Verbosity() > 10)
+  if(Verbosity())
   { std::cout << "MakeActsGeometry::makeMmMapPairs - mmVolume: " << mmVolume->volumeName() << std::endl; }
   const auto mmLayerArray = mmVolume->confinedLayers();
   const auto mmLayerVector = mmLayerArray->arrayObjects();
@@ -711,17 +816,19 @@ void MakeActsGeometry::makeMmMapPairs(TrackingVolumePtr &mmVolume)
       int layer = -1;
       CylinderGeomMicromegas* layergeom = nullptr;
       const auto range = m_geomContainerMicromegas->get_begin_end();
+      double delta_r_min = -1;
       for( auto iter = range.first; iter != range.second; ++iter )
       {
         auto this_layergeom =  static_cast<CylinderGeomMicromegas*>( iter->second );
-        if(this_layergeom->check_radius(world_center))
-        { 
+        const double delta_r = std::abs( this_layergeom->get_radius() - get_r( world_center.x(), world_center.y() ) );
+        if( delta_r_min < 0 || delta_r < delta_r_min )
+        {
           layer = iter->first;
           layergeom = this_layergeom;
-          break;
+          delta_r_min = delta_r;
         }
       }
-      
+
       if( !layergeom ) 
       {
         std::cout << "MakeActsGeometry::makeMmMapPairs - could not file CylinderGeomMicromegas matching ACTS surface" << std::endl;
@@ -729,13 +836,16 @@ void MakeActsGeometry::makeMmMapPairs(TrackingVolumePtr &mmVolume)
       }
 
       // get matching tile
-      int tileid = layergeom->find_tile_planar( world_center );
+      int tileid = layergeom->find_tile_cylindrical( world_center );
       if( tileid < 0 ) 
       {
         std::cout << "MakeActsGeometry::makeMmMapPairs - could not file Micromegas tile matching ACTS surface" << std::endl;
         continue;
       } 
-            
+
+      if( Verbosity() )
+      { std::cout << "MakeActsGeometry::makeMmMapPairs - layer: " << layer << " tileid: " << tileid << std::endl; }
+
       // get segmentation type
       const auto segmentation_type = layergeom->get_segmentation_type();
       
@@ -748,10 +858,13 @@ void MakeActsGeometry::makeMmMapPairs(TrackingVolumePtr &mmVolume)
 }
 
 void MakeActsGeometry::makeInttMapPairs(TrackingVolumePtr &inttVolume)
-{
-  
+{ 
   if(Verbosity() > 10)
-  { std::cout << "MakeActsGeometry::makeInttMapPairs - inttVolume: " << inttVolume->volumeName() << std::endl; }
+  { 
+    std::cout << "MakeActsGeometry::makeInttMapPairs - inttVolume: " << inttVolume->volumeName() << std::endl; 
+  }
+
+  std::cout << "Use Intt survey geometry? m_inttSurvey =" << m_inttSurvey << std::endl;
 
   auto inttLayerArray = inttVolume->confinedLayers();
 
@@ -772,20 +885,38 @@ void MakeActsGeometry::makeInttMapPairs(TrackingVolumePtr &inttVolume)
       auto surf = surfaceVector.at(j)->getSharedPtr();
       auto vec3d = surf->center(m_geoCtxt);
 
-      double ref_rad[4] = {7.188, 7.732, 9.680, 10.262};
+      double ref_rad[4] = {-1., -1., -1., -1.};
+      if (m_inttSurvey) 
+      {
+        ref_rad[0] = 7.453;
+        ref_rad[1] = 8.046;
+        ref_rad[2] = 9.934;
+        ref_rad[3] = 10.569;
+      }
+      else
+      {
+        ref_rad[0] = 7.188;
+        ref_rad[1] = 7.732;
+        ref_rad[2] = 9.680;
+        ref_rad[3] = 10.262;
+      }
+
+      const double tolerance = (m_inttSurvey) ? 0.15 : 0.1;
 
       std::vector<double> world_center = {vec3d(0) / 10.0, vec3d(1) / 10.0, vec3d(2) / 10.0};  // convert from mm to cm
       
       /// The Acts geometry builder combines layers 4 and 5 together, 
       /// and layers 6 and 7 together. We need to use the radius to figure
       /// out which layer to use to get the layergeom
-      double layer_rad = sqrt(pow(world_center[0], 2) + pow(world_center[1], 2));
+      double layer_rad = (m_inttSurvey) ? sqrt(pow(world_center[0]-m_inttbarrelcenter_survey_x, 2) + pow(world_center[1]-m_inttbarrelcenter_survey_y, 2)) : sqrt(pow(world_center[0], 2) + pow(world_center[1], 2));
 
       unsigned int layer = 0;
-      for (unsigned int i = 0; i < 4; ++i)
+      for (unsigned int i2 = 0; i2 < 4; ++i2)
       {
-        if (fabs(layer_rad - ref_rad[i]) < 0.1)
-          layer = i + 3;
+        if (fabs(layer_rad - ref_rad[i2]) < tolerance)
+        {
+          layer = i2 + 3;
+        }
       }
 
       TrkrDefs::hitsetkey hitsetkey = getInttHitSetKeyFromCoords(layer, world_center);
@@ -800,7 +931,7 @@ void MakeActsGeometry::makeInttMapPairs(TrackingVolumePtr &inttVolume)
         unsigned int ladderPhi = InttDefs::getLadderPhiId(hitsetkey);
         unsigned int ladderZ = InttDefs::getLadderZId(hitsetkey);
 
-        std::cout << "Layer radius " << layer_rad << " layer " << layer << " ladderPhi " << ladderPhi << " ladderZ " << ladderZ
+        std::cout << "Layer radius " << layer_rad << " layer " << layer << " ladderPhi " << ladderPhi << " ladderZ " << ladderZ << " hitsetkey " << hitsetkey 
                   << " recover surface from m_clusterSurfaceMapSilicon " << std::endl;
         std::cout << " surface type " << surf->type() << std::endl;
         auto assoc_layer = surf->associatedLayer();
@@ -822,7 +953,6 @@ void MakeActsGeometry::makeInttMapPairs(TrackingVolumePtr &inttVolume)
       }
     }
   }
-
 }
 
 void MakeActsGeometry::makeMvtxMapPairs(TrackingVolumePtr &mvtxVolume)
@@ -858,10 +988,10 @@ void MakeActsGeometry::makeMvtxMapPairs(TrackingVolumePtr &mvtxVolume)
       std::vector<double> world_center = {vec3d(0) / 10.0, vec3d(1) / 10.0, vec3d(2) / 10.0};  // convert from mm to cm
       double layer_rad = sqrt(pow(world_center[0], 2) + pow(world_center[1], 2));
       unsigned int layer = 0;
-      for (unsigned int i = 0; i < 3; ++i)
+      for (unsigned int i2 = 0; i2 < 3; ++i2)
       {
-        if (fabs(layer_rad - ref_rad[i]) < 0.1)
-          layer = i;
+        if (fabs(layer_rad - ref_rad[i2]) < 0.1)
+	{layer = i2;}
       }
 
       TrkrDefs::hitsetkey hitsetkey = getMvtxHitSetKeyFromCoords(layer, world_center);
@@ -969,7 +1099,7 @@ TrkrDefs::hitsetkey MakeActsGeometry::getTpcHitSetKeyFromCoords(std::vector<doub
     if(layer == 30)
       std::cout << "   world = " << world[0] << "  " << world[1] 
 		<< "  " << world[2] << " phi_world " 
-		<< phi_world*180/3.14159 << " layer " << layer 
+		<< phi_world*180/M_PI << " layer " << layer
 		<< " readout_mod " << readout_mod << " side " << side 
 		<< " hitsetkey " << hitset_key<< std::endl;
   
@@ -991,9 +1121,6 @@ TrkrDefs::hitsetkey MakeActsGeometry::getMvtxHitSetKeyFromCoords(unsigned int la
   unsigned int stave = 0;
   unsigned int chip = 0;
   layergeom->get_sensor_indices_from_world_coords(world, stave, chip);
-
-  double check_pos[3] = {0, 0, 0};
-  layergeom->find_sensor_center(stave, 0, 0, chip, check_pos);
 
   unsigned int strobe = 0;
   TrkrDefs::hitsetkey mvtx_hitsetkey = MvtxDefs::genHitSetKey(layer, stave, chip, strobe);
@@ -1018,9 +1145,6 @@ TrkrDefs::hitsetkey MakeActsGeometry::getInttHitSetKeyFromCoords(unsigned int la
   int segment_phi_bin = 0;
   layergeom->find_indices_from_segment_center(segment_z_bin, 
 					      segment_phi_bin, location);
-
-  double check_pos[3] = {0, 0, 0};
-  layergeom->find_segment_center(segment_z_bin, segment_phi_bin, check_pos);
 
   int crossing = 0;
   TrkrDefs::hitsetkey intt_hitsetkey = InttDefs::genHitSetKey(layer, segment_z_bin, segment_phi_bin, crossing);
@@ -1365,45 +1489,44 @@ void MakeActsGeometry::setPlanarSurfaceDivisions()
   m_moduleStepPhi = 2.0 * M_PI / 12.0;
   m_modulePhiStart = -M_PI;
   m_surfStepPhi = 2.0 * M_PI / (double) (m_nSurfPhi * m_nTpcModulesPerLayer);
-  for(unsigned int isector = 0; isector < 3; ++isector)
-    {
-      layer_thickness_sector[isector] = 
-	(m_maxRadius[isector] - m_minRadius[isector]) / 16.0;
 
-      for(unsigned int ilayer =0; ilayer < 16; ++ilayer)
-	{
-	  m_layerRadius[isector*16 + ilayer] = 
-	    m_minRadius[isector] + layer_thickness_sector[isector] * 
-	    (double) ilayer + layer_thickness_sector[isector] / 2.0;
-	  
-	  m_layerThickness[isector*16 + ilayer] = 
-	    layer_thickness_sector[isector];
-	}
-    }
+  int layer=0;
+  PHG4TpcCylinderGeomContainer::ConstRange layerrange = m_geomContainerTpc->get_begin_end();
+  for (PHG4TpcCylinderGeomContainer::ConstIterator layeriter = layerrange.first;
+       layeriter != layerrange.second;
+       ++layeriter)
+  {
+    m_layerRadius[layer] = layeriter->second->get_radius();
+    m_layerThickness[layer] = layeriter->second->get_thickness();
+    layer++;
+  }
+
 }
 
 int MakeActsGeometry::createNodes(PHCompositeNode *topNode)
 {
-  PHNodeIterator iter(topNode);
 
+  PHNodeIterator iter(topNode);
   /// Get the DST Node
-  PHCompositeNode *dstNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "DST"));
+  PHCompositeNode *parNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "PAR"));
   
   /// Check that it is there
-  if (!dstNode)
+  if (!parNode)
     {
-      std::cerr << "DST Node missing, quitting" << std::endl;
-      throw std::runtime_error("failed to find DST node in PHActsSourceLinks::createNodes");
+      std::cout << "PAR Node missing, creating it" << std::endl;
+      parNode = new PHCompositeNode("PAR");
+      topNode->addNode(parNode);
     }
   
+  PHNodeIterator pariter(parNode);
   /// Get the tracking subnode
-  PHCompositeNode *svtxNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "SVTX"));
+  PHCompositeNode *svtxNode = dynamic_cast<PHCompositeNode *>(pariter.findFirst("PHCompositeNode", "SVTX"));
   
   /// Check that it is there
   if (!svtxNode)
     {
       svtxNode = new PHCompositeNode("SVTX");
-      dstNode->addNode(svtxNode);
+      parNode->addNode(svtxNode);
     }
 
   m_actsGeometry = findNode::getClass<ActsGeometry>(topNode, "ActsGeometry");
@@ -1443,12 +1566,15 @@ int MakeActsGeometry::getNodes(PHCompositeNode *topNode)
   }
 
   m_geomContainerTpc =
-      findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
+      findNode::getClass<PHG4TpcCylinderGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
   if (!m_geomContainerTpc)
   {
     std::cout << PHWHERE 
 	      << "ERROR: Can't find node CYLINDERCELLGEOM_SVTX" 
 	      << std::endl;
+    topNode->print();
+    auto se = Fun4AllServer::instance();
+    se->Print();
     return Fun4AllReturnCodes::ABORTRUN;
   }
 
@@ -1462,14 +1588,13 @@ int MakeActsGeometry::getNodes(PHCompositeNode *topNode)
     return Fun4AllReturnCodes::ABORTEVENT;
   }
 
-  // load micromegas geometry
-  // do not abort if not found
   m_geomContainerMicromegas = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_MICROMEGAS_FULL");
   if (!m_geomContainerMicromegas)
   {
     std::cout << PHWHERE 
 	      << " CYLINDERGEOM_MICROMEGAS_FULL  node not found on node tree"
 	      << std::endl;
+    return Fun4AllReturnCodes::ABORTEVENT;
   }
 
   return Fun4AllReturnCodes::EVENT_OK;

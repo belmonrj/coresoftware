@@ -24,13 +24,14 @@ class PHNodeDump : public PHNodeOperation
 
   int AddIgnore(const std::string &name);
   int Select(const std::string &name);
-  void SetOutDir(const std::string &dirname) {outdir = dirname;}
+  void SetOutDir(const std::string &dirname) { outdir = dirname; }
   void SetPrecision(const int digits) { fp_precision = digits; }
-  void PrintEvtSeq(const int i) {print_evtseq = i;}
+  void PrintEvtSeq(const int i) { print_evtseq = i; }
 
  private:
   void perform(PHNode *) override;
   int AddDumpObject(const std::string &NodeName, PHNode *node);
+  int initdump(const std::string &newnode, DumpObject *dmp);
   std::map<std::string, DumpObject *> dumpthis;
   std::set<std::string> ignore;
   std::set<std::string> exclusive;

@@ -92,7 +92,7 @@ int PHG4BlockCellReco::InitRun(PHCompositeNode *topNode)
   }
 
   hitnodename = "G4HIT_" + detector;
-  PHG4HitContainer *g4hit = findNode::getClass<PHG4HitContainer>(topNode, hitnodename.c_str());
+  PHG4HitContainer *g4hit = findNode::getClass<PHG4HitContainer>(topNode, hitnodename);
   if (!g4hit)
   {
     cout << Name() << " Could not locate g4 hit node " << hitnodename << endl;
@@ -104,12 +104,12 @@ int PHG4BlockCellReco::InitRun(PHCompositeNode *topNode)
   if (!cells)
   {
     cells = new PHG4CellContainer();
-    PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(cells, cellnodename.c_str(), "PHObject");
+    PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(cells, cellnodename, "PHObject");
     DetNode->addNode(newNode);
   }
 
   geonodename = "BLOCKGEOM_" + detector;
-  PHG4BlockGeomContainer *geo = findNode::getClass<PHG4BlockGeomContainer>(topNode, geonodename.c_str());
+  PHG4BlockGeomContainer *geo = findNode::getClass<PHG4BlockGeomContainer>(topNode, geonodename);
   if (!geo)
   {
     cout << Name() << " Could not locate geometry node " << geonodename << endl;
@@ -195,7 +195,7 @@ int PHG4BlockCellReco::InitRun(PHCompositeNode *topNode)
       }
 
       double xmin = -layergeom->get_width() / 2.;
-      //double xmax = -xmin;
+      // double xmax = -xmin;
       double xstepsize = (sizeiter->second).second;
       double d_xbins;
       fract = modf(width / xstepsize, &d_xbins);
@@ -247,7 +247,7 @@ int PHG4BlockCellReco::InitRun(PHCompositeNode *topNode)
 
 int PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
 {
-  PHG4HitContainer *g4hit = findNode::getClass<PHG4HitContainer>(topNode, hitnodename.c_str());
+  PHG4HitContainer *g4hit = findNode::getClass<PHG4HitContainer>(topNode, hitnodename);
   if (!g4hit)
   {
     cout << "Could not locate g4 hit node " << hitnodename << endl;
@@ -260,7 +260,7 @@ int PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
     exit(1);
   }
 
-  PHG4BlockCellGeomContainer *seggeo = findNode::getClass<PHG4BlockCellGeomContainer>(topNode, seggeonodename.c_str());
+  PHG4BlockCellGeomContainer *seggeo = findNode::getClass<PHG4BlockCellGeomContainer>(topNode, seggeonodename);
   if (!seggeo)
   {
     cout << "could not locate geo node " << seggeonodename << endl;
@@ -292,7 +292,7 @@ int PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
 
     if (cellptarray.size() < nbins)
     {
-      cellptarray.resize(nbins, 0);
+      cellptarray.resize(nbins, nullptr);
     }
 
     // ------- eta/x binning ------------------------------------------------------------------------
@@ -301,8 +301,14 @@ int PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
       for (hiter = hit_begin_end.first; hiter != hit_begin_end.second; hiter++)
       {
         // checking ADC timing integration window cut
-        if (hiter->second->get_t(0) > tmin_max[*layer].second) continue;
-        if (hiter->second->get_t(1) < tmin_max[*layer].first) continue;
+        if (hiter->second->get_t(0) > tmin_max[*layer].second)
+        {
+          continue;
+        }
+        if (hiter->second->get_t(1) < tmin_max[*layer].first)
+        {
+          continue;
+        }
 
         pair<double, double> etax[2];
         double xbin[2];
@@ -376,7 +382,10 @@ int PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
 
         if (intxbin == intxbinout && intetabin == intetabinout)  // single cell fired
         {
-          if (Verbosity() > 0) cout << "SINGLE CELL FIRED: " << intxbin << " " << intetabin << endl;
+          if (Verbosity() > 0)
+          {
+            cout << "SINGLE CELL FIRED: " << intxbin << " " << intetabin << endl;
+          }
           vx.push_back(intxbin);
           veta.push_back(intetabin);
           vdedx.push_back(trklen);
@@ -391,12 +400,15 @@ int PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
               double dx = geo->get_xcenter(ibp) + geo->get_xstep() / 2.;
               double cy = geo->get_etacenter(ibz) - geo->get_etastep() / 2.;
               double dy = geo->get_etacenter(ibz) + geo->get_etastep() / 2.;
-              //cout << "##### line: " << ax << " " << ay << " " << bx << " " << by << endl;
-              //cout << "####### cell: " << cx << " " << cy << " " << dx << " " << dy << endl;
+              // cout << "##### line: " << ax << " " << ay << " " << bx << " " << by << endl;
+              // cout << "####### cell: " << cx << " " << cy << " " << dx << " " << dy << endl;
               pair<bool, double> intersect = PHG4Utils::line_and_rectangle_intersect(ax, ay, bx, by, cx, cy, dx, dy);
               if (intersect.first)
               {
-                if (Verbosity() > 0) cout << "CELL FIRED: " << ibp << " " << ibz << " " << intersect.second << endl;
+                if (Verbosity() > 0)
+                {
+                  cout << "CELL FIRED: " << ibp << " " << ibz << " " << intersect.second << endl;
+                }
                 vx.push_back(ibp);
                 veta.push_back(ibz);
                 vdedx.push_back(intersect.second);
@@ -404,16 +416,25 @@ int PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
             }
           }
         }
-        if (Verbosity() > 0) cout << "NUMBER OF FIRED CELLS = " << vx.size() << endl;
+        if (Verbosity() > 0)
+        {
+          cout << "NUMBER OF FIRED CELLS = " << vx.size() << endl;
+        }
 
         double tmpsum = 0.;
         for (unsigned int ii = 0; ii < vx.size(); ii++)
         {
           tmpsum += vdedx[ii];
           vdedx[ii] = vdedx[ii] / trklen;
-          if (Verbosity() > 0) cout << "  CELL " << ii << "  dE/dX = " << vdedx[ii] << endl;
+          if (Verbosity() > 0)
+          {
+            cout << "  CELL " << ii << "  dE/dX = " << vdedx[ii] << endl;
+          }
         }
-        if (Verbosity() > 0) cout << "    TOTAL TRACK LENGTH = " << tmpsum << " " << trklen << endl;
+        if (Verbosity() > 0)
+        {
+          cout << "    TOTAL TRACK LENGTH = " << tmpsum << " " << trklen << endl;
+        }
 
         for (unsigned int i1 = 0; i1 < vx.size(); i1++)  // loop over all fired cells
         {

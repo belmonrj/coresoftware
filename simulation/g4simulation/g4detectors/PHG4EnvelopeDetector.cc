@@ -23,8 +23,6 @@ class G4Material;
 class G4VSolid;
 class PHCompositeNode;
 
-using namespace std;
-
 //___________________________________________________________________________________
 PHG4EnvelopeDetector::PHG4EnvelopeDetector(PHG4Subsystem* subsys, PHCompositeNode* Node, const std::string& dnam)
   : PHG4Detector(subsys, Node, dnam)
@@ -47,7 +45,7 @@ PHG4EnvelopeDetector::PHG4EnvelopeDetector(PHG4Subsystem* subsys, PHCompositeNod
 //_______________________________________________________________________________________
 bool PHG4EnvelopeDetector::IsInEnvelope(G4VPhysicalVolume* volume) const
 {
-  if (volume->GetName().find("arbage") != string::npos)
+  if (volume->GetName().find("arbage") != std::string::npos)
   {
     return true;
   }
@@ -60,7 +58,7 @@ bool PHG4EnvelopeDetector::IsInEnvelope(G4VPhysicalVolume* volume) const
 void PHG4EnvelopeDetector::ConstructMe(G4LogicalVolume* logicWorld)
 {
   //***************
-  //Backward Endcap
+  // Backward Endcap
   //***************
 
   G4double placeInZ = _placeInZ;
@@ -83,7 +81,7 @@ void PHG4EnvelopeDetector::ConstructMe(G4LogicalVolume* logicWorld)
                                                 dZ / 2.,
                                                 sPhi, dPhi);
 
-  G4LogicalVolume* GarbageCollector_logical = new G4LogicalVolume(GarbageCollector_solid, material_crystal, G4String("GarbageCollector"), 0, 0, 0);
+  G4LogicalVolume* GarbageCollector_logical = new G4LogicalVolume(GarbageCollector_solid, material_crystal, G4String("GarbageCollector"), nullptr, nullptr, nullptr);
 
   G4VisAttributes* ecalVisAtt = new G4VisAttributes();
   ecalVisAtt->SetVisibility(true);
@@ -100,24 +98,24 @@ void PHG4EnvelopeDetector::ConstructMe(G4LogicalVolume* logicWorld)
                     GarbageCollector_logical,
                     "GarbageCollector",
                     logicWorld,
-                    0,
+                    false,
                     false,
                     OverlapCheck());
 
   //**************
-  //Forward Endcap
+  // Forward Endcap
   //**************
 
   new G4PVPlacement(G4Transform3D(ecal_rotm, G4ThreeVector(placeInX, placeInY, -1 * placeInZ)),
                     GarbageCollector_logical,
                     "GarbageCollector_front",
                     logicWorld,
-                    0,
+                    false,
                     false,
                     OverlapCheck());
 
   //*****************************
-  //Cylinder Surrounding Detector
+  // Cylinder Surrounding Detector
   //*****************************
 
   G4double cyl_place = 0 * mm;
@@ -135,9 +133,9 @@ void PHG4EnvelopeDetector::ConstructMe(G4LogicalVolume* logicWorld)
   G4LogicalVolume* GarbageCollector_cyl_logical = new G4LogicalVolume(GarbageCollector_cyl_solid,
                                                                       material_crystal,
                                                                       G4String("GarbageCollector_cyl"),
-                                                                      0,
-                                                                      0,
-                                                                      0);
+                                                                      nullptr,
+                                                                      nullptr,
+                                                                      nullptr);
 
   GarbageCollector_cyl_logical->SetVisAttributes(ecalVisAtt);
 
@@ -145,7 +143,7 @@ void PHG4EnvelopeDetector::ConstructMe(G4LogicalVolume* logicWorld)
                     GarbageCollector_cyl_logical,
                     "GarbageCollector_cyl",
                     logicWorld,
-                    0,
+                    false,
                     false,
                     OverlapCheck());
 }

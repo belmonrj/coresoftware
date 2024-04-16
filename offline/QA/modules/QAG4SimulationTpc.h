@@ -3,6 +3,7 @@
 
 #include <g4eval/SvtxEvalStack.h>  // for SvtxEvalStack
 
+#include <trackbase/ClusterErrorPara.h>
 #include <trackbase/TrkrDefs.h>
 
 #include <fun4all/SubsysReco.h>
@@ -31,7 +32,7 @@ class QAG4SimulationTpc : public SubsysReco
 
   int InitRun(PHCompositeNode* topNode) override;
   int process_event(PHCompositeNode* topNode) override;
-
+ 
  private:
   /// common prefix for QA histograms
   std::string get_histo_prefix() const;
@@ -71,6 +72,7 @@ class QAG4SimulationTpc : public SubsysReco
   /* it is filled at Init stage. It should not change for the full run */
   std::set<int> m_layers;
   std::multimap<int, int> m_layer_region_map;
+  ClusterErrorPara _ClusErrPara;
 };
 
 #endif

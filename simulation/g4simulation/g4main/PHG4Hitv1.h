@@ -6,10 +6,10 @@
 #include "PHG4Hit.h"
 #include "PHG4HitDefs.h"
 
-#include <climits>  // for INT_MIN, ULONG_LONG_MAX
 #include <cmath>
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <map>
 
 class PHG4Hitv1 : public PHG4Hit
@@ -59,6 +59,7 @@ class PHG4Hitv1 : public PHG4Hit
   float get_local_z(const int i) const override;
   float get_eion() const override { return get_property_float(prop_eion); }
   float get_light_yield() const override { return get_property_float(prop_light_yield); }
+  float get_raw_light_yield() const override { return get_property_float(prop_raw_light_yield); }
   float get_path_length() const override { return get_property_float(prop_path_length); }
   unsigned int get_layer() const override { return get_property_uint(prop_layer); }
   int get_scint_id() const override { return get_property_int(prop_scint_id); }
@@ -82,6 +83,7 @@ class PHG4Hitv1 : public PHG4Hit
   void set_local_z(const int i, const float f) override;
   void set_eion(const float f) override { set_property(prop_eion, f); }
   void set_light_yield(const float f) override { set_property(prop_light_yield, f); }
+  void set_raw_light_yield(const float f) override { set_property(prop_raw_light_yield, f); }
   void set_path_length(const float f) override { set_property(prop_path_length, f); }
   void set_layer(const unsigned int i) override { set_property(prop_layer, i); }
   void set_scint_id(const int i) override { set_property(prop_scint_id, i); }
@@ -102,14 +104,14 @@ class PHG4Hitv1 : public PHG4Hit
   void set_property_nocheck(const PROPERTY prop_id, const unsigned int ui) override { prop_map[prop_id] = ui; }
   // Store both the entry and exit points of the particle
   // Remember, particles do not always enter on the inner edge!
-  float x[2] = {NAN, NAN};
-  float y[2] = {NAN, NAN};
-  float z[2] = {NAN, NAN};
-  float t[2] = {NAN, NAN};
-  PHG4HitDefs::keytype hitid = ULONG_LONG_MAX;
-  int trackid = INT_MIN;
-  int showerid = INT_MIN;
-  float edep = NAN;
+  float x[2] = {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN()};
+  float y[2] = {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN()};
+  float z[2] = {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN()};
+  float t[2] = {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN()};
+  PHG4HitDefs::keytype hitid = std::numeric_limits<PHG4HitDefs::keytype>::max();
+  int trackid = std::numeric_limits<int>::min();
+  int showerid = std::numeric_limits<int>::min();
+  float edep = std::numeric_limits<float>::quiet_NaN();
 
   //! storage types for additional property
   typedef uint8_t prop_id_t;
@@ -117,7 +119,8 @@ class PHG4Hitv1 : public PHG4Hit
   typedef std::map<prop_id_t, prop_storage_t> prop_map_t;
 
   //! convert between 32bit inputs and storage type prop_storage_t
-  union u_property {
+  union u_property
+  {
     float fdata;
     int32_t idata;
     uint32_t uidata;

@@ -4,7 +4,7 @@
 
 /*!
  * \file PHG4OHCalFieldSetup.h
- * \brief 
+ * \brief
  * \author Jin Huang <jhuang@bnl.gov>
  * \version $Revision:   $
  * \date $Date: $
@@ -14,6 +14,9 @@
 #define G4OHCAL_PHG4OHCALFIELDSETUP_H
 
 #include <Geant4/G4Types.hh>  // for G4double, G4int
+
+#include <limits>  // for numeric_limits
+#include <string>
 
 class G4ChordFinder;
 class G4FieldManager;
@@ -27,26 +30,13 @@ class G4MagneticField;
 class PHG4OHCalFieldSetup
 {
  public:
-  PHG4OHCalFieldSetup(G4int steelPlates, G4double scintiGap,
-                      G4double tiltAngle);
+  PHG4OHCalFieldSetup(const std::string& iron_fieldmap_path, const double scale = 1., const double inner_radius = 0., const double outer_radius = 1.e10, const double size_z = 1.e10);
 
   // delete copy ctor and assignment opertor (cppcheck)
   explicit PHG4OHCalFieldSetup(const PHG4OHCalFieldSetup&) = delete;
   PHG4OHCalFieldSetup& operator=(const PHG4OHCalFieldSetup&) = delete;
 
-  virtual ~PHG4OHCalFieldSetup() {}
-
-  G4FieldManager*
-  get_Field_Manager_Gap() const
-  {
-    return fFieldManagerGap;
-  }
-
-  void
-  set_Field_Manager_Gap(G4FieldManager* fieldManagerGap)
-  {
-    fFieldManagerGap = fieldManagerGap;
-  }
+  virtual ~PHG4OHCalFieldSetup();
 
   G4FieldManager*
   get_Field_Manager_Iron() const
@@ -72,59 +62,13 @@ class PHG4OHCalFieldSetup
     fMinStep = minStep;
   }
 
-  G4int
-  get_steel_plates() const
-  {
-    return n_steel_plates;
-  }
-
-  void
-  set_steel_plates(G4int steelPlates)
-  {
-    n_steel_plates = steelPlates;
-  }
-
-  G4double
-  get_scinti_gap() const
-  {
-    return scinti_gap;
-  }
-
-  void
-  set_scinti_gap(G4double scintiGap)
-  {
-    scinti_gap = scintiGap;
-  }
-
-  G4double
-  get_tilt_angle() const
-  {
-    return tilt_angle;
-  }
-
-  void
-  set_tilt_angle(G4double tiltAngle)
-  {
-    tilt_angle = tiltAngle;
-  }
-
  private:
-  G4FieldManager* fFieldManagerIron;
-  G4FieldManager* fFieldManagerGap;
-  G4Mag_UsualEqRhs* fEquationIron;
-  G4Mag_UsualEqRhs* fEquationGap;
-  G4ChordFinder* fChordFinderIron;
-  G4ChordFinder* fChordFinderGap;
-  G4MagneticField* fEMfieldIron;
-  G4MagneticField* fEMfieldGap;
-  G4MagIntegratorStepper* fStepperIron;
-  G4MagIntegratorStepper* fStepperGap;
-
-  G4double fMinStep;
-
-  G4int n_steel_plates;
-  G4double scinti_gap;
-  G4double tilt_angle;
+  G4FieldManager* fFieldManagerIron = nullptr;
+  G4Mag_UsualEqRhs* fEquationIron = nullptr;
+  G4ChordFinder* fChordFinderIron = nullptr;
+  G4MagneticField* fEMfieldIron = nullptr;
+  G4MagIntegratorStepper* fStepperIron = nullptr;
+  G4double fMinStep = std::numeric_limits<float>::quiet_NaN();
 };
 
-#endif /* G4OHCAL_PHG4OHCALFIELDSETUP_H_ */
+#endif /* G4OHCAL_PHG4OHCALFIELDSETUP_H */

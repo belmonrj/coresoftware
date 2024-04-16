@@ -44,23 +44,31 @@ class PHG4TpcDigitizer : public SubsysReco
   void SetTpcMinLayer(const int minlayer) { TpcMinLayer = minlayer; };
   void SetADCThreshold(const float thresh) { ADCThreshold = thresh; };
   void SetENC(const float enc) { TpcEnc = enc; };
+  void set_drift_velocity(float vd) {_drift_velocity = vd;}
+  void set_skip_noise_flag(const bool skip) {skip_noise = skip;}
 
  private:
   void CalculateCylinderCellADCScale(PHCompositeNode *topNode);
   void DigitizeCylinderCells(PHCompositeNode *topNode);
   float added_noise();
-
+  float add_noise_to_bin(float signal);
+  
   unsigned int TpcMinLayer;
+  unsigned int TpcNLayers;
   float ADCThreshold;
+  float ADCThreshold_mV = 0;
   float TpcEnc;
   float Pedestal;
   float ChargeToPeakVolts;
+  float _drift_velocity = 8.0e-3;  // override from macro with simulation drift velocity
 
   float ADCSignalConversionGain;
   float ADCNoiseConversionGain;
 
+  bool skip_noise = false;
+
   std::vector<std::vector<TrkrHitSet::ConstIterator> > phi_sorted_hits;
-  std::vector<std::vector<TrkrHitSet::ConstIterator> > z_sorted_hits;
+  std::vector<std::vector<TrkrHitSet::ConstIterator> > t_sorted_hits;
 
   std::vector<float> adc_input;
   std::vector<TrkrDefs::hitkey> adc_hitid;

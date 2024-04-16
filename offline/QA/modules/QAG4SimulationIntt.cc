@@ -1,6 +1,6 @@
 #include "QAG4SimulationIntt.h"
-#include "QAG4Util.h"
-#include "QAHistManagerDef.h"
+#include <qautils/QAUtil.h>
+#include <qautils/QAHistManagerDef.h>
 
 #include <g4detectors/PHG4CylinderGeomContainer.h>
 
@@ -10,12 +10,13 @@
 #include <trackbase_historic/ActsTransformations.h>
 
 #include <trackbase/ActsGeometry.h>
+#include <trackbase/ClusterErrorPara.h>
+#include <trackbase/InttDefs.h>
 #include <trackbase/TrkrCluster.h>
 #include <trackbase/TrkrClusterContainer.h>
 #include <trackbase/TrkrClusterHitAssoc.h>
 #include <trackbase/TrkrDefs.h>  // for getTrkrId, getHit...
 #include <trackbase/TrkrHitTruthAssoc.h>
-#include <trackbase/InttDefs.h>
 
 #include <fun4all/Fun4AllHistoManager.h>
 #include <fun4all/Fun4AllReturnCodes.h>
@@ -160,7 +161,6 @@ std::string QAG4SimulationIntt::get_histo_prefix() const
 //________________________________________________________________________
 int QAG4SimulationIntt::load_nodes(PHCompositeNode* topNode)
 {
- 
   m_tGeometry = findNode::getClass<ActsGeometry>(topNode, "ActsGeometry");
   if (!m_tGeometry)
   {
@@ -244,7 +244,7 @@ void QAG4SimulationIntt::evaluate_clusters()
     histograms.insert(std::make_pair(layer, h));
   }
 
-  for(const auto& hitsetkey:m_cluster_map->getHitSetKeys(TrkrDefs::TrkrId::inttId))
+  for (const auto& hitsetkey : m_cluster_map->getHitSetKeys(TrkrDefs::TrkrId::inttId))
   {
     auto range = m_cluster_map->getClusters(hitsetkey);
     for (auto clusterIter = range.first; clusterIter != range.second; ++clusterIter)
@@ -260,8 +260,13 @@ void QAG4SimulationIntt::evaluate_clusters()
       const auto r_cluster = QAG4Util::get_r(global(0), global(1));
       const auto z_cluster = global(2);
       const auto phi_cluster = (float) std::atan2(global(1), global(0));
-      const auto phi_error = cluster->getRPhiError() / r_cluster;
-      const auto z_error = cluster->getZError();
+
+      double phi_error = 0;
+      double z_error = 0;
+   
+      phi_error = cluster->getRPhiError() / r_cluster;
+      z_error = cluster->getZError();
+      
 
       // find associated g4hits
       const auto g4hits = find_g4hits(key);
@@ -281,7 +286,8 @@ void QAG4SimulationIntt::evaluate_clusters()
       if (hiter == histograms.end()) continue;
 
       // fill histograms
-      auto fill = [](TH1* h, float value) { if( h ) h->Fill( value ); };
+      auto fill = [](TH1* h, float value)
+      { if( h ) h->Fill( value ); };
       fill(hiter->second.drphi, r_cluster * dphi);
       fill(hiter->second.rphi_error, r_cluster * phi_error);
       fill(hiter->second.phi_pulls, dphi / phi_error);

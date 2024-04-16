@@ -15,8 +15,6 @@
 
 #include <sstream>
 
-using namespace std;
-
 PHG4EnvelopeSubsystem::PHG4EnvelopeSubsystem(const std::string& name, const int /*lyr*/)
   : PHG4Subsystem(name)
   , detector_(nullptr)
@@ -41,14 +39,14 @@ int PHG4EnvelopeSubsystem::Init(PHCompositeNode* topNode)
   if (active)
   {
     // create hit output node
-    ostringstream nodename;
-    nodename << "G4HIT_ENVELOPE_" << detector_type;
+    std::string nodename;
+    nodename = "G4HIT_ENVELOPE_" + detector_type;
 
-    PHG4HitContainer* crystal_hits = findNode::getClass<PHG4HitContainer>(topNode, nodename.str().c_str());
+    PHG4HitContainer* crystal_hits = findNode::getClass<PHG4HitContainer>(topNode, nodename);
     if (!crystal_hits)
     {
-      crystal_hits = new PHG4HitContainer(nodename.str());
-      PHIODataNode<PHObject>* hitNode = new PHIODataNode<PHObject>(crystal_hits, nodename.str().c_str(), "PHObject");
+      crystal_hits = new PHG4HitContainer(nodename);
+      PHIODataNode<PHObject>* hitNode = new PHIODataNode<PHObject>(crystal_hits, nodename, "PHObject");
       dstNode->addNode(hitNode);
     }
 
@@ -71,13 +69,13 @@ int PHG4EnvelopeSubsystem::process_event(PHCompositeNode* topNode)
 }
 
 //_______________________________________________________________________
-PHG4Detector* PHG4EnvelopeSubsystem::GetDetector(void) const
+PHG4Detector* PHG4EnvelopeSubsystem::GetDetector() const
 {
   return detector_;
 }
 
 //_______________________________________________________________________
-PHG4SteppingAction* PHG4EnvelopeSubsystem::GetSteppingAction(void) const
+PHG4SteppingAction* PHG4EnvelopeSubsystem::GetSteppingAction() const
 {
   return steppingAction_;
 }

@@ -8,11 +8,13 @@
 class G4Step;
 class G4VPhysicalVolume;
 class PHCompositeNode;
+class TowerInfoContainer;
 class PHG4OuterHcalDetector;
 class PHParameters;
 class PHG4Hit;
 class PHG4HitContainer;
 class PHG4Shower;
+class TH2;
 
 class PHG4OuterHcalSteppingAction : public PHG4SteppingAction
 {
@@ -26,39 +28,49 @@ class PHG4OuterHcalSteppingAction : public PHG4SteppingAction
   //! stepping action
   bool UserSteppingAction(const G4Step *, bool) override;
 
-  int Init() override;
+  int InitWithNode(PHCompositeNode *topNode) override;
 
   //! reimplemented from base class
   void SetInterfacePointers(PHCompositeNode *) override;
 
   void FieldChecker(const G4Step *);
   void EnableFieldChecker(const int i = 1) { m_EnableFieldCheckerFlag = i; }
+  void CreateNodeTree(PHCompositeNode *topNode);
 
  private:
+  bool NoHitSteppingAction(const G4Step *aStep);
   //! pointer to the detector
-  PHG4OuterHcalDetector *m_Detector;
+  PHG4OuterHcalDetector *m_Detector = nullptr;
+
+  //! efficiency maps from Mephi
+  TH2 *m_MapCorrHist = nullptr;
 
   //! pointer to hit container
-  PHG4HitContainer *m_Hits;
-  PHG4HitContainer *m_AbsorberHits;
-  PHG4Hit *m_Hit;
-  const PHParameters *m_Params;
-  PHG4HitContainer *m_SaveHitContainer;
-  PHG4Shower *m_SaveShower;
-  G4VPhysicalVolume *m_SaveVolPre;
-  G4VPhysicalVolume *m_SaveVolPost;
-  int m_SaveTrackId;
-  int m_SavePreStepStatus;
-  int m_SavePostStepStatus;
-  int m_EnableFieldCheckerFlag;
+  PHG4HitContainer *m_Hits = nullptr;
+  PHG4HitContainer *m_AbsorberHits = nullptr;
+  PHG4Hit *m_Hit = nullptr;
+  const PHParameters *m_Params = nullptr;
+  PHG4HitContainer *m_SaveHitContainer = nullptr;
+  PHG4Shower *m_SaveShower = nullptr;
+  G4VPhysicalVolume *m_SaveVolPre = nullptr;
+  G4VPhysicalVolume *m_SaveVolPost = nullptr;
+  int m_SaveTrackId = -1;
+  int m_SavePreStepStatus = -1;
+  int m_SavePostStepStatus = -1;
+  int m_EnableFieldCheckerFlag = -1;
 
   // since getting parameters is a map search we do not want to
   // do this in every step, the parameters used are cached
   // in the following variables
-  int m_IsActiveFlag;
-  int m_IsBlackHoleFlag;
-  int m_NScintiPlates;
-  int m_LightScintModelFlag;
+  int m_IsActiveFlag = -1;
+  int m_IsBlackHoleFlag = -1;
+  int m_NScintiPlates = -1;
+  int m_LightScintModelFlag = 0;
+  bool m_doG4Hit = true;
+  double m_tmin = -20.;
+  double m_tmax = 60.;
+  double m_dt = 100.;
+  TowerInfoContainer *m_CaloInfoContainer = nullptr;
 };
 
 #endif  // G4DETECTORS_PHG4OUTERHCALSTEPPINGACTION_H

@@ -7,8 +7,6 @@
 
 #include <iostream>
 
-using namespace std;
-
 // Define and initialize static members
 
 // Max number of peaks in cluster; used in EmcCluster::GetSubClusters(...)
@@ -66,12 +64,18 @@ void EmcCluster::GetGlobalPos(float& xA, float& yA, float& zA)
 float EmcCluster::GetTowerEnergy(int ich)
 // Returns the energy of the ich-tower (0 if ich not found in the fHitList)
 {
-  vector<EmcModule>::iterator ph;
-  if (fHitList.empty()) return 0;
+  std::vector<EmcModule>::iterator ph;
+  if (fHitList.empty())
+  {
+    return 0;
+  }
   ph = fHitList.begin();
   while (ph != fHitList.end())
   {
-    if ((*ph).ich == ich) return (*ph).amp;
+    if ((*ph).ich == ich)
+    {
+      return (*ph).amp;
+    }
     ++ph;
   }
   return 0;
@@ -82,9 +86,12 @@ float EmcCluster::GetTowerEnergy(int ich)
 float EmcCluster::GetTowerEnergy(int ix, int iy)
 // Returns the energy of the tower ix,iy (0 if tower not found in the fHitList)
 {
-  vector<EmcModule>::iterator ph;
+  std::vector<EmcModule>::iterator ph;
 
-  if (fHitList.empty()) return 0;
+  if (fHitList.empty())
+  {
+    return 0;
+  }
   ph = fHitList.begin();
   int ich = iy * fOwner->GetNx() + ix;
   return GetTowerEnergy(ich);
@@ -95,12 +102,18 @@ float EmcCluster::GetTowerEnergy(int ix, int iy)
 float EmcCluster::GetTowerToF(int ich)
 // Returns the ToF of the ich-tower (0 if ich not found in the fHitList)
 {
-  vector<EmcModule>::iterator ph;
-  if (fHitList.empty()) return 0;
+  std::vector<EmcModule>::iterator ph;
+  if (fHitList.empty())
+  {
+    return 0;
+  }
   ph = fHitList.begin();
   while (ph != fHitList.end())
   {
-    if ((*ph).ich == ich) return (*ph).tof;
+    if ((*ph).ich == ich)
+    {
+      return (*ph).tof;
+    }
     ++ph;
   }
   return 0;
@@ -111,9 +124,12 @@ float EmcCluster::GetTowerToF(int ich)
 float EmcCluster::GetTotalEnergy()
 // Returns the cluster total energy
 {
-  vector<EmcModule>::iterator ph;
+  std::vector<EmcModule>::iterator ph;
   float et = 0;
-  if (fHitList.empty()) return 0;
+  if (fHitList.empty())
+  {
+    return 0;
+  }
   ph = fHitList.begin();
   while (ph != fHitList.end())
   {
@@ -142,7 +158,7 @@ float EmcCluster::GetECore()
 {
   const float thresh = 0.01;
 
-  vector<EmcModule>::iterator ph;
+  std::vector<EmcModule>::iterator ph;
   float xcg, ycg, xx, xy, yy;
   float energy, es;
 
@@ -150,7 +166,10 @@ float EmcCluster::GetECore()
   //  fOwner->SetProfileParameters(0, energy, xcg, ycg);
 
   es = 0;
-  if (fHitList.empty()) return 0;
+  if (fHitList.empty())
+  {
+    return 0;
+  }
   ph = fHitList.begin();
   while (ph != fHitList.end())
   {
@@ -162,7 +181,10 @@ float EmcCluster::GetECore()
     //    float dy = ycg - iy;
     //    float et = fOwner->PredictEnergy(dx, dy, energy);
     float et = fOwner->PredictEnergy(energy, xcg, ycg, ix, iy);
-    if (et > thresh) es += (*ph).amp;
+    if (et > thresh)
+    {
+      es += (*ph).amp;
+    }
     ++ph;
   }
   return es;
@@ -182,9 +204,15 @@ float EmcCluster::GetE4()
   iy0 = int(ycg + 0.5);
 
   isx = 1;
-  if (xcg - ix0 < 0) isx = -1;
+  if (xcg - ix0 < 0)
+  {
+    isx = -1;
+  }
   isy = 1;
-  if (ycg - iy0 < 0) isy = -1;
+  if (ycg - iy0 < 0)
+  {
+    isy = -1;
+  }
 
   e1 = GetTowerEnergy(ix0, iy0);
   e2 = GetTowerEnergy(ix0 + isx, iy0);
@@ -203,7 +231,10 @@ float EmcCluster::GetE9()
 
   nhit = fHitList.size();
 
-  if (nhit <= 0) return 0;
+  if (nhit <= 0)
+  {
+    return 0;
+  }
 
   fOwner->Momenta(&fHitList, et, xcg, ycg, xx, yy, xy);
   ix0 = int(xcg + 0.5);
@@ -218,13 +249,16 @@ float EmcCluster::GetE9()
 float EmcCluster::GetE9(int ich)
 // Returns the energy in 3x3 towers around the tower ich
 {
-  vector<EmcModule>::iterator ph;
+  std::vector<EmcModule>::iterator ph;
 
   int iy0 = ich / fOwner->GetNx();
   int ix0 = ich - iy0 * fOwner->GetNx();
 
   float es = 0;
-  if (fHitList.empty()) return 0;
+  if (fHitList.empty())
+  {
+    return 0;
+  }
   ph = fHitList.begin();
   while (ph != fHitList.end())
   {
@@ -233,7 +267,10 @@ float EmcCluster::GetE9(int ich)
     int ix = ixy - iy * fOwner->GetNx();
     int idx = fOwner->iTowerDist(ix0, ix);
     int idy = iy - iy0;
-    if (abs(idx) <= 1 && abs(idy) <= 1) es += (*ph).amp;
+    if (abs(idx) <= 1 && abs(idy) <= 1)
+    {
+      es += (*ph).amp;
+    }
     ++ph;
   }
   return es;
@@ -244,14 +281,17 @@ float EmcCluster::GetE9(int ich)
 EmcModule EmcCluster::GetMaxTower()
 // Returns the EmcModule with the maximum energy
 {
-  vector<EmcModule>::iterator ph;
+  std::vector<EmcModule>::iterator ph;
   float emax = 0;
   EmcModule ht;
 
   ht.ich = -1;
   ht.amp = 0;
   ht.tof = 0;
-  if (fHitList.empty()) return ht;
+  if (fHitList.empty())
+  {
+    return ht;
+  }
 
   ph = fHitList.begin();
   while (ph != fHitList.end())
@@ -281,13 +321,14 @@ float EmcCluster::GetProb(float& chi2, int& ndf)
 {
   float e, xg, yg, zg;
   e = GetTotalEnergy();
+  xg = 0; 
   GetGlobalPos(xg, yg, zg);
   return fOwner->GetProb(fHitList, e, xg, yg, zg, chi2, ndf);
 }
 
 // ///////////////////////////////////////////////////////////////////////////
 
-int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* ppeaks)
+int EmcCluster::GetSubClusters(std::vector<EmcCluster>& PkList, std::vector<EmcModule>& ppeaks)
 {
   // Splits the cluster onto subclusters
   // The number of subclusters is equal to the number of Local Maxima in a cluster.
@@ -312,21 +353,27 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
   float *Energy[fgMaxNofPeaks], *totEnergy, *tmpEnergy;
   EmcModule *phit, *hlist, *vv;
   EmcCluster peak(fOwner);
-  vector<EmcModule>::iterator ph;
-  vector<EmcModule> hl;
+  std::vector<EmcModule>::iterator ph;
+  std::vector<EmcModule> hl;
 
-  PkList->clear();
-  ppeaks->clear();
+  PkList.clear();
+  ppeaks.clear();
 
   nhit = fHitList.size();
 
-  if (nhit <= 0) return 0;
+  if (nhit <= 0)
+  {
+    return 0;
+  }
 
   hlist = new EmcModule[nhit];
 
   ph = fHitList.begin();
   vv = hlist;
-  while (ph != fHitList.end()) *vv++ = *ph++;
+  while (ph != fHitList.end())
+  {
+    *vv++ = *ph++;
+  }
 
   // sort by linear channel number
   qsort(hlist, nhit, sizeof(EmcModule), fOwner->HitNCompare);
@@ -341,9 +388,9 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
     if (amp > fOwner->GetPeakThreshold())
     {
       int ich = hlist[ic].ich;
-      //old      int ichmax = ich + fOwner->GetNx() + 1;
-      //old      int ichmin = ich - fOwner->GetNx() - 1;
-      // Look into three raws only
+      // old      int ichmax = ich + fOwner->GetNx() + 1;
+      // old      int ichmin = ich - fOwner->GetNx() - 1;
+      //  Look into three raws only
       int ichmax = (ich / fOwner->GetNx() + 2) * fOwner->GetNx() - 1;
       int ichmin = (ich / fOwner->GetNx() - 1) * fOwner->GetNx();
       int ixc = ich - ich / fOwner->GetNx() * fOwner->GetNx();
@@ -352,8 +399,11 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
       while ((inA < nhit) && (hlist[inA].ich <= ichmax))
       {
         int ixA = hlist[inA].ich - hlist[inA].ich / fOwner->GetNx() * fOwner->GetNx();
-        //old	if( (abs(ixc-ixA) <= 1) && (hlist[inA].amp >= amp) ) goto new_ic;
-        if ((abs(fOwner->iTowerDist(ixA, ixc)) <= 1) && (hlist[inA].amp >= amp)) goto new_ic;
+        // old	if( (abs(ixc-ixA) <= 1) && (hlist[inA].amp >= amp) ) goto new_ic;
+        if ((abs(fOwner->iTowerDist(ixA, ixc)) <= 1) && (hlist[inA].amp >= amp))
+        {
+          goto new_ic;
+        }
         inA++;
       }
       inA = ic - 1;
@@ -361,16 +411,19 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
       while ((inA >= 0) && (hlist[inA].ich >= ichmin))
       {
         int ixA = hlist[inA].ich - hlist[inA].ich / fOwner->GetNx() * fOwner->GetNx();
-        //old	if( (abs(ixc-ixA) <= 1) && (hlist[inA].amp > amp) ) goto new_ic;
-        if ((abs(fOwner->iTowerDist(ixA, ixc)) <= 1) && (hlist[inA].amp > amp)) goto new_ic;
+        // old	if( (abs(ixc-ixA) <= 1) && (hlist[inA].amp > amp) ) goto new_ic;
+        if ((abs(fOwner->iTowerDist(ixA, ixc)) <= 1) && (hlist[inA].amp > amp))
+        {
+          goto new_ic;
+        }
         inA--;
       }
       if (npk >= fgMaxNofPeaks)
       {
         delete[] hlist;
-        cout << "!!! Error in EmcCluster::GetSubClusters(): too many peaks in a cluster (>"
-             << fgMaxNofPeaks
-             << "). May need tower energy threshold increase for clustering." << endl;
+        std::cout << "!!! Error in EmcCluster::GetSubClusters(): too many peaks in a cluster (>"
+                  << fgMaxNofPeaks
+                  << "). May need tower energy threshold increase for clustering." << std::endl;
         return -1;
       }
 
@@ -384,7 +437,7 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
   /*
   for( ipk=0; ipk<npk; ipk++ ) {
     ic = PeakCh[ipk];
-    cout << "  " << ipk << ": E = " << hlist[ic].amp << endl;
+    std::cout << "  " << ipk << ": E = " << hlist[ic].amp << std::endl;
   }
   */
 
@@ -392,14 +445,21 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
   if (npk <= 1)
   {
     hl.clear();
-    for (int ich = 0; ich < nhit; ich++) hl.push_back(hlist[ich]);
+    for (int ich = 0; ich < nhit; ich++)
+    {
+      hl.push_back(hlist[ich]);
+    }
     peak.ReInitialize(hl);
-    PkList->push_back(peak);
+    PkList.push_back(peak);
 
     if (npk == 1)
-      ppeaks->push_back(hlist[PeakCh[0]]);
+    {
+      ppeaks.push_back(hlist[PeakCh[0]]);
+    }
     else
-      ppeaks->push_back(GetMaxTower());
+    {
+      ppeaks.push_back(GetMaxTower());
+    }
 
     delete[] hlist;
     return 1;
@@ -428,7 +488,10 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
     for (ipk = 0; ipk < npk; ipk++)
     {
       ic = PeakCh[ipk];
-      if (iter > 0) ratio = Energy[ipk][ic] / totEnergy[ic];
+      if (iter > 0)
+      {
+        ratio = Energy[ipk][ic] / totEnergy[ic];
+      }
       eg = hlist[ic].amp * ratio;
       ixypk = hlist[ic].ich;
       iypk = ixypk / fOwner->GetNx();
@@ -449,14 +512,20 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
           iy = ixy / fOwner->GetNx();
           ix = ixy - iy * fOwner->GetNx();
 
-          //old	  if( (ixy-ixypk) > fOwner->GetNx()+1 ) break;
-          if (ixy > ichmax) break;
-          //old	  if( abs(ix-ixpk) <= 1 ) {
+          // old	  if( (ixy-ixypk) > fOwner->GetNx()+1 ) break;
+          if (ixy > ichmax)
+          {
+            break;
+          }
+          // old	  if( abs(ix-ixpk) <= 1 ) {
           idx = fOwner->iTowerDist(ixpk, ix);
           idy = iy - iypk;
           if (abs(idx) <= 1)
           {
-            if (iter > 0) ratio = Energy[ipk][in] / totEnergy[in];
+            if (iter > 0)
+            {
+              ratio = Energy[ipk][in] / totEnergy[in];
+            }
             eg = hlist[in].amp * ratio;
             epk[ipk] += eg;
             xpk[ipk] += eg * idx;
@@ -474,14 +543,20 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
           iy = ixy / fOwner->GetNx();
           ix = ixy - iy * fOwner->GetNx();
 
-          //old	  if( (ixypk-ixy) > fOwner->GetNx()+1 ) break;
-          if (ixy < ichmin) break;
-          //old	  if( abs(ix-ixpk) <= 1 ) {
+          // old	  if( (ixypk-ixy) > fOwner->GetNx()+1 ) break;
+          if (ixy < ichmin)
+          {
+            break;
+          }
+          // old	  if( abs(ix-ixpk) <= 1 ) {
           idx = fOwner->iTowerDist(ixpk, ix);
           idy = iy - iypk;
           if (abs(idx) <= 1)
           {
-            if (iter > 0) ratio = Energy[ipk][in] / totEnergy[in];
+            if (iter > 0)
+            {
+              ratio = Energy[ipk][in] / totEnergy[in];
+            }
             eg = hlist[in].amp * ratio;
             epk[ipk] += eg;
             xpk[ipk] += eg * idx;
@@ -505,8 +580,10 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
 
         // predict energy within 2.5 cell square around local peak
         if (ABS(dx) < 2.5 && ABS(dy) < 2.5)
-	  //          a = epk[ipk] * fOwner->PredictEnergy(dx, dy, epk[ipk]);
+        {
+          //          a = epk[ipk] * fOwner->PredictEnergy(dx, dy, epk[ipk]);
           a = epk[ipk] * fOwner->PredictEnergy(epk[ipk], xpk[ipk], ypk[ipk], ix, iy);
+        }
 
         Energy[ipk][in] = a;
         tmpEnergy[in] += a;
@@ -561,7 +638,7 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
       int ndf; // just a plug for changed Gamma parameter list MV 28.01.00
 
       fOwner->Gamma(nh, phit,&chi, &chi0, &epk[ng], &xpk[ng], &ypk[ng],
-		    &epk[ng+1], &xpk[ng+1], &ypk[ng+1], ndf);
+                    &epk[ng+1], &xpk[ng+1], &ypk[ng+1], ndf);
 
       igmpk1[ipk]=ng;
       igmpk2[ipk]=ng;
@@ -585,8 +662,8 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
     ig = igmpk1[ipk];
     if (ig >= 0)
     {
-      //      cout << "  " << ipk << ": X = " << xpk[ig]
-      //           << " Y = " << ypk[ig] << endl;
+      //      std::cout << "  " << ipk << ": X = " << xpk[ig]
+      //           << " Y = " << ypk[ig] << std::endl;
       //      fOwner->SetProfileParameters(0, epk[ig], xpk[ig], ypk[ig]);
       for (in = 0; in < nhit; in++)
       {
@@ -598,7 +675,7 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
           ix = ixy - iy * fOwner->GetNx();
           dx = fOwner->fTowerDist(float(ix), xpk[ig]);
           dy = ypk[ig] - iy;
-	  //          a = epk[ig] * fOwner->PredictEnergy(dx, dy, epk[ig]);
+          //          a = epk[ig] * fOwner->PredictEnergy(dx, dy, epk[ig]);
           a = epk[ig] * fOwner->PredictEnergy(epk[ig], xpk[ig], ypk[ig], ix, iy);
           Energy[ipk][in] += a;
           tmpEnergy[in] += a;
@@ -630,18 +707,24 @@ int EmcCluster::GetSubClusters(vector<EmcCluster>* PkList, vector<EmcModule>* pp
     if (nh > 0)
     {
       //      *ip++ = hlist[PeakCh[ipk]];
-      ppeaks->push_back(hlist[PeakCh[ipk]]);
+      ppeaks.push_back(hlist[PeakCh[ipk]]);
       hl.clear();
-      for (in = 0; in < nh; in++) hl.push_back(phit[in]);
+      for (in = 0; in < nh; in++)
+      {
+        hl.push_back(phit[in]);
+      }
       peak.ReInitialize(hl);
-      PkList->push_back(peak);
+      PkList.push_back(peak);
       nn++;
     }
   }  // for( ipk
 
   delete[] phit;
   delete[] hlist;
-  for (ipk = 0; ipk < npk; ipk++) delete[] Energy[ipk];
+  for (ipk = 0; ipk < npk; ipk++)
+  {
+    delete[] Energy[ipk];
+  }
   delete[] totEnergy;
   delete[] tmpEnergy;
 

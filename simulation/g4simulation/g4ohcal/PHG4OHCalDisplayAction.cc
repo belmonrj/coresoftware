@@ -19,6 +19,7 @@ PHG4OHCalDisplayAction::~PHG4OHCalDisplayAction()
   }
   m_VisAttVec.clear();
   m_ScintiLogVolSet.clear();
+  m_SupportRingLogVolSet.clear();
 }
 
 void PHG4OHCalDisplayAction::ApplyDisplayAction(G4VPhysicalVolume * /*physvol*/)
@@ -37,31 +38,45 @@ void PHG4OHCalDisplayAction::ApplyDisplayAction(G4VPhysicalVolume * /*physvol*/)
     m_VisAttVec.push_back(m_VisAtt);
   }
 
+  for (auto &it : m_SupportRingLogVolSet)
+  {
+    if (it->GetVisAttributes())
+    {
+      return;
+    }
+    G4VisAttributes *m_VisAtt = new G4VisAttributes();
+    m_VisAtt->SetVisibility(true);
+    m_VisAtt->SetForceSolid(true);
+    m_VisAtt->SetColor(G4Colour::Grey());
+    it->SetVisAttributes(m_VisAtt);
+    m_VisAttVec.push_back(m_VisAtt);
+  }
+
   if (m_SteelVol)
   {
-  if (m_SteelVol->GetVisAttributes())
-  {
-    return;
-  }
-  G4VisAttributes *m_VisAtt = new G4VisAttributes();
-  m_VisAtt->SetVisibility(true);
-  m_VisAtt->SetForceSolid(true);
-  m_VisAtt->SetColor(G4Colour::Grey());
-  m_SteelVol->SetVisAttributes(m_VisAtt);
-  m_VisAttVec.push_back(m_VisAtt);
+    if (m_SteelVol->GetVisAttributes())
+    {
+      return;
+    }
+    G4VisAttributes *m_VisAtt = new G4VisAttributes();
+    m_VisAtt->SetVisibility(true);
+    m_VisAtt->SetForceSolid(true);
+    m_VisAtt->SetColor(G4Colour::Grey());
+    m_SteelVol->SetVisAttributes(m_VisAtt);
+    m_VisAttVec.push_back(m_VisAtt);
   }
 
   if (m_ChimSteelVol)
   {
-  if (m_ChimSteelVol->GetVisAttributes())
-  {
-    return;
-  }
-  G4VisAttributes *m_VisAtt2 = new G4VisAttributes();
-  m_VisAtt2->SetVisibility(true);
-  m_VisAtt2->SetForceSolid(true);
-  m_VisAtt2->SetColor(G4Colour::Yellow());
-  m_ChimSteelVol->SetVisAttributes(m_VisAtt2);
-  m_VisAttVec2.push_back(m_VisAtt2);
+    if (m_ChimSteelVol->GetVisAttributes())
+    {
+      return;
+    }
+    G4VisAttributes *m_VisAtt = new G4VisAttributes();
+    m_VisAtt->SetVisibility(true);
+    m_VisAtt->SetForceSolid(true);
+    m_VisAtt->SetColor(G4Colour::Grey());
+    m_ChimSteelVol->SetVisAttributes(m_VisAtt);
+    m_VisAttVec2.push_back(m_VisAtt);
   }
 }

@@ -13,13 +13,11 @@
 
 #include <memory>
 
-struct ActsSurfaceMaps;
-struct ActsTrackingGeometry;
 class SvtxTrack;
 class SvtxTrackMap;
 class TpcSpaceChargeMatrixContainer;
 class TrkrHitSetContainer;
-class   PHG4CylinderCellGeomContainer;
+class PHG4TpcCylinderGeomContainer;
 
 class TFile;
 class TH1;
@@ -27,6 +25,7 @@ class TH2;
 class TH3;
 class TH2;
 class TVector3;
+class TNtuple;
 
 class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterface
 {
@@ -91,6 +90,15 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
   /// get relevant cell for a given hit
   int get_cell_index( const TVector3& ) const;
 
+  /// get the GEM module where cluster hit
+  int Locate(float r , float phi , float z);
+
+  float GetRelPhi( float xorig, float yorig, float x, float y, float phiorig );
+
+  float GetRelTheta( float xorig, float yorig, float zorig, float x, float y, float z, float thetaorig, float phiorig );
+
+  bool sameSign(float num1, float num2);
+
   /// output file
   std::string m_outputfile = "TpcSpaceChargeMatrices.root";
 
@@ -109,9 +117,6 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
 
   float m_pedestal = 74.4;  // pedestal for hit ASDC values
 
-  // TPC drift velocity
-  float m_vdrift = NAN;
-
   //@}
 
   /// matrix container
@@ -120,19 +125,17 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
   ///@name counters
   //@{
   int m_total_hits = 0;
+  int m_matched_hits = 0;
   int m_accepted_clusters = 0;
   //@}
 
   ///@name nodes
   //@{
 
-  PHG4CylinderCellGeomContainer *m_geom_container = nullptr;
+  PHG4TpcCylinderGeomContainer *m_geom_container = nullptr;
 
-  /// Acts surface maps for surface lookup
-  ActsSurfaceMaps* m_surfmaps = nullptr;
-
-  /// Acts tracking geometry for surface lookup
-  ActsTrackingGeometry* m_tGeometry = nullptr;
+  /// Acts geometry
+  ActsGeometry *m_tGeometry = nullptr;
 
   /// acts transformation
   ActsTransformations m_transformer;
@@ -164,6 +167,57 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
 
   /// number of entries per cell
   TH3 *h_entries = nullptr;
+  TNtuple *h_hits = nullptr;
+  TNtuple *h_hits_reco = nullptr;
+  // adc spectra of ALL lasers
+  TH1 *h_adc = nullptr;
+  TH1 *h_adc_reco = nullptr;
+
+  TH1 *h_adc_sum = nullptr;
+  TH1 *h_adc_sum_reco = nullptr;
+
+  TH1 *h_adc_sum_ratio_true = nullptr;
+  TH1 *h_adc_sum_ratio = nullptr;
+
+//_______________________________________
+
+  TH1 *h_num_sum = nullptr;
+  TH1 *h_num_sum_reco = nullptr;
+
+  TH1 *h_num_sum_ratio_true = nullptr;
+  TH1 *h_num_sum_ratio = nullptr;
+
+//_______________________________________
+
+  TH2 *h_adc_vs_DCA_true = nullptr;
+  TH2 *h_adc_sum_ratio_lasrangle = nullptr;
+  TH2 *h_num_sum_ratio_lasrangle = nullptr;
+   
+  //TNtuple *h_origins = nullptr;
+  //TNtuple *h_assoc_hits = nullptr;
+  TNtuple *h_bright_hits_laser1 = nullptr;
+  TNtuple *h_bright_hits_laser2 = nullptr;
+  TNtuple *h_bright_hits_laser3 = nullptr;
+  TNtuple *h_bright_hits_laser4 = nullptr;
+
+  /// for diagnosing separation b/w laser starting points and tpc volume hits
+  TH2 *h_deltheta_delphi = nullptr;
+  TH2 *h_deltheta_delphi_1 = nullptr;
+  TH2 *h_deltheta_delphi_2 = nullptr;
+  TH2 *h_deltheta_delphi_3 = nullptr;
+  TH2 *h_deltheta_delphi_4 = nullptr;
+  TH2 *h_deltheta_delphi_5 = nullptr;
+  TH2 *h_deltheta_delphi_6 = nullptr;
+  TH2 *h_deltheta_delphi_7 = nullptr;
+  TH2 *h_deltheta_delphi_8 = nullptr;
+
+  // for recording # of unique GEM modules hit for the number of associated hits (to be replaced with GEM Modules)
+  TH1 *h_GEMs_hit = nullptr;
+  TH1 *h_layers_hit = nullptr;
+
+  TH2 *h_relangle_lasrangle = nullptr;
+  TH2 *h_relangle_theta_lasrangle = nullptr;
+  TH2 *h_relangle_phi_lasrangle = nullptr;
 
   TH2* h_xy = nullptr;
   TH2* h_xz = nullptr;
@@ -173,6 +227,7 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
   TH2* h_zr = nullptr;
   TH2* h_zr_pca = nullptr;
   TH2* h_dz_z = nullptr;
+  //TNtuple *h_clusters = nullptr;
 
   //@}
 

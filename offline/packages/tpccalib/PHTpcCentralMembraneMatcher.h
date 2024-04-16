@@ -23,10 +23,12 @@ class CMFlashClusterContainer;
 class CMFlashDifferenceContainer;
 
 class TF1;
-class TNtuple;
 class TFile;
 class TH1F;
+class TH1D;
 class TH2F;
+class TGraph;
+class TNtuple;
 class TVector3;
 
 class PHTpcCentralMembraneMatcher : public SubsysReco
@@ -36,7 +38,6 @@ class PHTpcCentralMembraneMatcher : public SubsysReco
  PHTpcCentralMembraneMatcher(const std::string &name = "PHTpcCentralMembraneMatcher");
 
   ~PHTpcCentralMembraneMatcher() override = default;
-
 
   /// set to true to store evaluation histograms and ntuples
   void setSavehistograms( bool value )
@@ -49,6 +50,10 @@ class PHTpcCentralMembraneMatcher : public SubsysReco
   /// output file name for storing the space charge reconstruction matrices
   void setOutputfile(const std::string &outputfile)
   {m_outputfile = outputfile;}
+
+  void setNMatchIter( int val ){ m_nMatchIter = val; }
+
+  void set_useOnly_nClus2( bool val ){ m_useOnly_nClus2 = val; }
   
   void set_grid_dimensions( int phibins, int rbins );
 
@@ -73,7 +78,8 @@ class PHTpcCentralMembraneMatcher : public SubsysReco
 
   /// static distortion container
   /** used in input to correct CM clusters before calculating residuals */
-  TpcDistortionCorrectionContainer* m_dcc_in{nullptr};
+  TpcDistortionCorrectionContainer* m_dcc_in_static{nullptr};
+  TpcDistortionCorrectionContainer* m_dcc_in_average{nullptr};
 
   /// fluctuation distortion container
   /** used in output to write fluctuation distortions */
@@ -100,6 +106,7 @@ class PHTpcCentralMembraneMatcher : public SubsysReco
   TH2F *hrdr = nullptr;
   TH2F *hrdphi = nullptr;
   TH1F *hdrphi = nullptr;
+  TH1F *hdphi = nullptr;
   TH1F *hdr1_single = nullptr;
   TH1F *hdr2_single = nullptr;
   TH1F *hdr3_single = nullptr;
@@ -110,30 +117,42 @@ class PHTpcCentralMembraneMatcher : public SubsysReco
   
   std::unique_ptr<TFile> fout;
 
+
+  std::unique_ptr<TFile> fout2;
+  std::string m_histogramfilename2 = "CMMatcher.root";
+
+  TH2F *hit_r_phi;
+
+  TH2F *clust_r_phi_pos;
+  TH2F *clust_r_phi_neg;
+
+  TNtuple *match_ntup = nullptr;
+
+  int m_event_index = 0;
+
   //@}
-  
-  /// radius cut for matching clusters to pad
-  /** TODO: this will need to be adjusted to match beam-induced time averaged distortions */
-  double m_rad_cut= 0.2;
+    
+  /// radius cut for matching clusters to pad, for size 2 clusters
+  //  double m_rad_cut= 0.5;
   
   /// phi cut for matching clusters to pad
   /** TODO: this will need to be adjusted to match beam-induced time averaged distortions */
-  double m_phi_cut= 0.01;
+  double m_phi_cut= 0.02;
   
   ///@name distortion correction histograms
   //@{
 
   /// distortion correction grid size along phi
-  int m_phibins = 36;
+  int m_phibins = 24;
 
   static constexpr float m_phiMin = 0;
   static constexpr float m_phiMax = 2.*M_PI;
 
   /// distortion correction grid size along r
-  int m_rbins = 16;
+  int m_rbins = 12;
 
   static constexpr float m_rMin = 20; // cm
-  static constexpr float m_rMax = 78; // cm
+  static constexpr float m_rMax = 80; // cm
   
   //@} 
   
@@ -150,9 +169,6 @@ class PHTpcCentralMembraneMatcher : public SubsysReco
   static constexpr int nPads_R1 = 6 * 16;
   static constexpr int nPads_R2 = 8 * 16;
   static constexpr int nPads_R3 = 12 * 16;
-
-  /// radius of arc on end of a stripe
-  static constexpr double arc_r = 0.5 * mm;
 
   /// stripe radii
   static constexpr std::array<double, nRadii> R1_e = {{227.0902789 * mm, 238.4100043 * mm, 249.7297296 * mm, 261.049455 * mm, 272.3691804 * mm, 283.6889058 * mm, 295.0086312 * mm, 306.3283566 * mm}};
@@ -208,10 +224,22 @@ class PHTpcCentralMembraneMatcher : public SubsysReco
     double cx[][nRadii], double cy[][nRadii] );
   
   /// store centers of all central membrane pads
-  std::vector<TVector3> truth_pos;
+  std::vector<TVector3> m_truth_pos;
 
   //@}
 
+  bool m_useOnly_nClus2 = false;
+
+  int m_nMatchIter = 2;
+  
+  double m_clustRotation_pos[3];
+  double m_clustRotation_neg[3];
+
+  double getPhiRotation_smoothed( TH1D *hitHist, TH1D *clustHist );
+
+  std::vector<double> getRPeaks(TH2F *r_phi);
+
+  int getClusterRMatch( std::vector<int> hitMatches, std::vector<double> clusterPeaks, double clusterR);
 };
 
 #endif // PHTPCCENTRALMEMBRANEMATCHER_H

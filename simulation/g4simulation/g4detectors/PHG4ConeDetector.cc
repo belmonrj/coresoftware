@@ -22,7 +22,7 @@ class G4Material;
 class G4VSolid;
 
 //_______________________________________________________________
-//note this inactive thickness is ~1.5% of a radiation length
+// note this inactive thickness is ~1.5% of a radiation length
 PHG4ConeDetector::PHG4ConeDetector(PHG4Subsystem *subsys, PHCompositeNode *Node, PHParameters *parameters, const std::string &dnam, const int lyr)
   : PHG4Detector(subsys, Node, dnam)
   , m_Params(parameters)
@@ -59,7 +59,7 @@ void PHG4ConeDetector::ConstructMe(G4LogicalVolume *logicWorld)
   G4LogicalVolume *cone_logic = new G4LogicalVolume(cone_solid,
                                                     TrackerMaterial,
                                                     GetName() + "_LOGIC",
-                                                    0, 0, 0);
+                                                    nullptr, nullptr, nullptr);
   PHG4Subsystem *mysys = GetMySubsystem();
   mysys->SetLogicalVolume(cone_logic);
 
@@ -98,6 +98,6 @@ void PHG4ConeDetector::ConstructMe(G4LogicalVolume *logicWorld)
                                                   m_Params->get_double_param("place_z") * cm),
                                     cone_logic,
                                     GetName(),
-                                    logicWorld, 0, false, OverlapCheck());
+                                    logicWorld, false, false, OverlapCheck());
   m_DisplayAction->SetMyVolume(cone_logic);
 }

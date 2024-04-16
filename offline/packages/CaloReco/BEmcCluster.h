@@ -34,7 +34,7 @@ class EmcModule
 // ///////////////////////////////////////////////////////////////////////////
 
 /** The 1-st level of the EMCal clustering: cluster is a set of contiguous
-    towers. 
+    towers.
 
     Only used internally by clustering routines.
     @ingroup clustering
@@ -49,7 +49,7 @@ class EmcCluster : public TObject
   {
   }
 
-  EmcCluster(BEmcRec* sector)
+  explicit EmcCluster(BEmcRec* sector)
     : fOwner(sector)
   {
   }
@@ -108,7 +108,7 @@ class EmcCluster : public TObject
   /// Returns the EmcCluster position in PHENIX global coord system
   void GetGlobalPos(float& xg, float& yg, float& zg);
   /// Splits the Cluster onto SubClusters; returns list of clusters and list of peak towers corresponding to subclusters
-  int GetSubClusters(std::vector<EmcCluster>* sClList, std::vector<EmcModule>* ppeaks);
+  int GetSubClusters(std::vector<EmcCluster>& sClList, std::vector<EmcModule>& ppeaks);
   float GetProb(float& chi2, int& ndf);
 
  protected:

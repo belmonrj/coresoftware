@@ -25,11 +25,12 @@ namespace HepMC
 }
 
 //____________________________________________________________________________..
-FermimotionAfterburner::FermimotionAfterburner(const std::string &name)
+FermimotionAfterburner::FermimotionAfterburner(const std::string &name, const double pTspec)
   : SubsysReco(name)
 
 {
   RandomGenerator = gsl_rng_alloc(gsl_rng_mt19937);
+  m_pTspec = pTspec;
 }
 
 //____________________________________________________________________________..
@@ -39,7 +40,7 @@ FermimotionAfterburner::~FermimotionAfterburner()
 }
 
 //____________________________________________________________________________..
-int FermimotionAfterburner::Init(PHCompositeNode */*topNode*/)
+int FermimotionAfterburner::Init(PHCompositeNode * /*topNode*/)
 {
   unsigned int seed = PHRandomSeed();
   gsl_rng_set(RandomGenerator, seed);
@@ -60,14 +61,14 @@ int FermimotionAfterburner::process_event(PHCompositeNode *topNode)
 void FermimotionAfterburner::AddpF(PHCompositeNode *topNode)
 {
   PHHepMCGenEventMap *genevtmap = findNode::getClass<PHHepMCGenEventMap>(topNode, "PHHepMCGenEventMap");
-  for (PHHepMCGenEventMap::Iter iter = genevtmap->begin(); iter != genevtmap->end(); ++iter)
+  for (auto &iter : *genevtmap)
   {
-    PHHepMCGenEvent *genevt = iter->second;
+    PHHepMCGenEvent *genevt = iter.second;
     HepMC::GenEvent *evt = genevt->getEvent();
     if (!evt)
     {
       std::cout << PHWHERE << " no evt pointer under HEPMC Node found" << std::endl;
     }
-    FermiMotion(evt, RandomGenerator);
+    FermiMotion(evt, RandomGenerator, m_pTspec);
   }
 }

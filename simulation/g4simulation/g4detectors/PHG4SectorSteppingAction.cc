@@ -30,15 +30,10 @@
 class G4VPhysicalVolume;
 class PHCompositeNode;
 
-using namespace std;
 //____________________________________________________________________________..
 PHG4SectorSteppingAction::PHG4SectorSteppingAction(PHG4SectorDetector* detector)
   : PHG4SteppingAction(detector->GetName())
   , detector_(detector)
-  , hits_(nullptr)
-  , hit(nullptr)
-  , saveshower(nullptr)
-  , layer_id(-1)
 {
 }
 
@@ -71,16 +66,16 @@ bool PHG4SectorSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
     // the check for the pdg code speeds things up, I do not want to make
     // an expensive string compare for every track when we know
     // geantino or chargedgeantino has pid=0
-    if (aTrack->GetParticleDefinition()->GetPDGEncoding() == 0 && aTrack->GetParticleDefinition()->GetParticleName().find("geantino") != string::npos)
+    if (aTrack->GetParticleDefinition()->GetPDGEncoding() == 0 && aTrack->GetParticleDefinition()->GetParticleName().find("geantino") != std::string::npos)
     {
       geantino = true;
     }
     G4StepPoint* prePoint = aStep->GetPreStepPoint();
     G4StepPoint* postPoint = aStep->GetPostStepPoint();
-    //       cout << "track id " << aTrack->GetTrackID() << endl;
-    //       cout << "time prepoint: " << prePoint->GetGlobalTime() << endl;
-    //       cout << "time postpoint: " << postPoint->GetGlobalTime() << endl;
-    //layer_id is sector number
+    //       std::cout << "track id " << aTrack->GetTrackID() << std::endl;
+    //       std::cout << "time prepoint: " << prePoint->GetGlobalTime() << std::endl;
+    //       std::cout << "time postpoint: " << postPoint->GetGlobalTime() << std::endl;
+    // layer_id is sector number
     switch (prePoint->GetStepStatus())
     {
     case fGeomBoundary:
@@ -89,13 +84,13 @@ bool PHG4SectorSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
       {
         hit = new PHG4Hitv1();
       }
-      //here we set the entrance values in cm
+      // here we set the entrance values in cm
       hit->set_x(0, prePoint->GetPosition().x() / cm);
       hit->set_y(0, prePoint->GetPosition().y() / cm);
       hit->set_z(0, prePoint->GetPosition().z() / cm);
       // time in ns
       hit->set_t(0, prePoint->GetGlobalTime() / nanosecond);
-      //set the track ID
+      // set the track ID
       hit->set_trkid(aTrack->GetTrackID());
       if (G4VUserTrackInformation* p = aTrack->GetUserInformation())
       {
@@ -107,7 +102,7 @@ bool PHG4SectorSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
         }
       }
 
-      //set the initial energy deposit
+      // set the initial energy deposit
       hit->set_edep(0);
       hit->set_eion(0);  // only implemented for v5 otherwise empty
       layer_id = aStep->GetPreStepPoint()->GetTouchable()->GetReplicaNumber(1);
@@ -125,7 +120,7 @@ bool PHG4SectorSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
     hit->set_z(1, postPoint->GetPosition().z() / cm);
 
     hit->set_t(1, postPoint->GetGlobalTime() / nanosecond);
-    //sum up the energy to get total deposited
+    // sum up the energy to get total deposited
     hit->set_edep(hit->get_edep() + edep);
     hit->set_eion(hit->get_eion() + eion);
     hit->set_path_length(aTrack->GetTrackLength() / cm);
@@ -189,7 +184,7 @@ bool PHG4SectorSteppingAction::UserSteppingAction(const G4Step* aStep, bool)
 //____________________________________________________________________________..
 void PHG4SectorSteppingAction::SetInterfacePointers(PHCompositeNode* topNode)
 {
-  string hitnodename;
+  std::string hitnodename;
   if (detector_->SuperDetector() != "NONE")
   {
     hitnodename = "G4HIT_" + detector_->SuperDetector();
@@ -199,8 +194,8 @@ void PHG4SectorSteppingAction::SetInterfacePointers(PHCompositeNode* topNode)
     hitnodename = "G4HIT_" + detector_->GetName();
   }
 
-  //now look for the map and grab a pointer to it.
-  hits_ = findNode::getClass<PHG4HitContainer>(topNode, hitnodename.c_str());
+  // now look for the map and grab a pointer to it.
+  hits_ = findNode::getClass<PHG4HitContainer>(topNode, hitnodename);
 
   // if we do not find the node we need to make it.
   if (!hits_)

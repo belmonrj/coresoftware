@@ -106,6 +106,7 @@ int PHG4HcalCellReco::InitRun(PHCompositeNode *topNode)
   PutOnParNode(ParDetNode, geonodename);
   tmin = get_double_param("tmin");
   tmax = get_double_param("tmax");
+  m_DeltaT = get_double_param("delta_t");
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -140,6 +141,7 @@ int PHG4HcalCellReco::process_event(PHCompositeNode *topNode)
         cell->add_edep(m_FixedEnergy);
         cell->add_eion(m_FixedEnergy);
         cell->add_light_yield(m_FixedEnergy);
+        cell->add_raw_light_yield(m_FixedEnergy);
         slats->AddCell(cell);
       }
     }
@@ -149,8 +151,19 @@ int PHG4HcalCellReco::process_event(PHCompositeNode *topNode)
   PHG4HitContainer::ConstRange hit_begin_end = g4hit->getHits();
   for (hiter = hit_begin_end.first; hiter != hit_begin_end.second; ++hiter)
   {
-    if (hiter->second->get_t(0) > tmax) continue;
-    if (hiter->second->get_t(1) < tmin) continue;
+    if (hiter->second->get_t(0) > tmax)
+    {
+      continue;
+    }
+    if (hiter->second->get_t(1) < tmin)
+    {
+      continue;
+    }
+    if (hiter->second->get_t(1) - hiter->second->get_t(0) > m_DeltaT)
+    {
+      continue;
+    }
+
     short icolumn = hiter->second->get_scint_id();
     int introw = (hiter->second->get_hit_id() >> PHG4HitDefs::hit_idbits);
     if (introw >= ROWDIM || introw < 0)
@@ -181,6 +194,11 @@ int PHG4HcalCellReco::process_event(PHCompositeNode *topNode)
     slatarray[irow][icolumn]->add_edep(hiter->second->get_edep());
     slatarray[irow][icolumn]->add_eion(hiter->second->get_eion());
     slatarray[irow][icolumn]->add_light_yield(hiter->second->get_light_yield());
+    float raw_light = hiter->second->get_raw_light_yield();
+    if (std::isfinite(raw_light))
+    {
+      slatarray[irow][icolumn]->add_raw_light_yield(raw_light);
+    }
     slatarray[irow][icolumn]->add_edep(hiter->first, hiter->second->get_edep());
     slatarray[irow][icolumn]->add_shower_edep(hiter->second->get_shower_id(), hiter->second->get_edep());
   }  // end loop over g4hits
@@ -206,11 +224,6 @@ int PHG4HcalCellReco::process_event(PHCompositeNode *topNode)
   {
     CheckEnergy(topNode);
   }
-  return Fun4AllReturnCodes::EVENT_OK;
-}
-
-int PHG4HcalCellReco::End(PHCompositeNode * /*topNode*/)
-{
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -256,6 +269,7 @@ void PHG4HcalCellReco::SetDefaultParameters()
 {
   set_default_double_param("tmax", 60.0);
   set_default_double_param("tmin", -20.0);  // collision has a timing spread around the triggered event. Accepting negative time too.
+  set_default_double_param("delta_t", 100.);
   return;
 }
 

@@ -1,21 +1,20 @@
 #include "PHTruthClustering.h"
 
-#include <trackbase_historic/SvtxVertexMap.h>
-#include <trackbase_historic/SvtxVertex.h>     // for SvtxVertex
-#include <trackbase_historic/SvtxVertex_v1.h>
+#include <globalvertex/SvtxVertexMap.h>
+#include <globalvertex/SvtxVertex_v1.h>
 
 
 #include <trackbase/TrkrClusterContainerv4.h>
 #include <trackbase/TrkrClusterHitAssoc.h>
 #include <trackbase/TrkrClusterv2.h>
-
+#include <trackbase/ActsGeometry.h>
 #include <trackbase/TrkrDefs.h>  // for hitkey, getLayer
 #include <trackbase/TrkrHit.h>
 #include <trackbase/TrkrHitSet.h>
 #include <trackbase/InttDefs.h>
 #include <trackbase/MvtxDefs.h>
+#include <trackbase/TpcDefs.h>
 
-#include <tpc/TpcDefs.h>
 #include <micromegas/MicromegasDefs.h>
 
 #include <g4main/PHG4TruthInfoContainer.h>
@@ -24,8 +23,8 @@
 #include <g4main/PHG4Hit.h>
 #include <g4main/PHG4HitContainer.h>
 
-#include <g4detectors/PHG4CylinderCellGeom.h>
-#include <g4detectors/PHG4CylinderCellGeomContainer.h>
+#include <g4detectors/PHG4TpcCylinderGeom.h>
+#include <g4detectors/PHG4TpcCylinderGeomContainer.h>
 #include <g4detectors/PHG4CylinderGeom.h>               // for PHG4CylinderGeom
 #include <g4detectors/PHG4CylinderGeomContainer.h>
 
@@ -204,13 +203,13 @@ int PHTruthClustering::process_event(PHCompositeNode* topNode)
   // For the other subsystems, we just copy over all of the the clusters from the reco map
   for(const auto& hitsetkey:_reco_cluster_map->getHitSetKeys())
   {
-    auto range = _reco_cluster_map->getClusters(hitsetkey);
+    auto range_A = _reco_cluster_map->getClusters(hitsetkey);
     unsigned int trkrid = TrkrDefs::getTrkrId(hitsetkey);
 
     // skip TPC
     if(trkrid == TrkrDefs::tpcId)  continue;
     
-    for( auto clusIter = range.first; clusIter != range.second; ++clusIter ){
+    for( auto clusIter = range_A.first; clusIter != range_A.second; ++clusIter ){
       TrkrDefs::cluskey cluskey = clusIter->first;
 
       // we have to make a copy of the cluster, to avoid problems later
@@ -331,7 +330,7 @@ std::map<TrkrDefs::cluskey, TrkrCluster* > PHTruthClustering::all_truth_clusters
       // Estimate the size of the truth cluster
       float g4phisize = NAN;
       float g4zsize = NAN;
-      G4ClusterSize(layer, contributing_hits_entry, contributing_hits_exit, g4phisize, g4zsize);
+      G4ClusterSize(ckey, layer, contributing_hits_entry, contributing_hits_exit, g4phisize, g4zsize);
 
       /*
       std::cout << PHWHERE << " g4trackID " << particle->get_track_id() << " gedep " << gedep << " adc value " << adc_output 
@@ -448,7 +447,7 @@ void PHTruthClustering::LayerClusterG4Hits(std::set<PHG4Hit*> truth_hits, std::v
       // Complicated, since only the part of the energy that is collected within a layer contributes to the position
       //===============================================================================
       
-      PHG4CylinderCellGeom* GeoLayer = _tpc_geom_container->GetLayerCellGeom(layer);
+      PHG4TpcCylinderGeom* GeoLayer = _tpc_geom_container->GetLayerCellGeom(layer);
       // get layer boundaries here for later use
       // radii of layer boundaries
       float rbin = GeoLayer->get_radius() - GeoLayer->get_thickness() / 2.0;
@@ -518,29 +517,29 @@ void PHTruthClustering::LayerClusterG4Hits(std::set<PHG4Hit*> truth_hits, std::v
 	  float yout = yl[1];
 	  float zout = zl[1];
 	  
-	  float t = NAN;
+	  float time = std::numeric_limits<float>::quiet_NaN();
 	  
 	  if (rbegin < rbin)
 	    {
 	      // line segment begins before boundary, find where it crosses
-	      t = line_circle_intersection(xl, yl, zl, rbin);
-	      if (t > 0)
+	      time = line_circle_intersection(xl, yl, zl, rbin);
+	      if (time > 0)
 		{
-		  xin = xl[0] + t * (xl[1] - xl[0]);
-		  yin = yl[0] + t * (yl[1] - yl[0]);
-		  zin = zl[0] + t * (zl[1] - zl[0]);
+		  xin = xl[0] + time * (xl[1] - xl[0]);
+		  yin = yl[0] + time * (yl[1] - yl[0]);
+		  zin = zl[0] + time * (zl[1] - zl[0]);
 		}
 	    }
 	  
 	  if (rend > rbout)
 	    {
 	      // line segment ends after boundary, find where it crosses
-	      t = line_circle_intersection(xl, yl, zl, rbout);
-	      if (t > 0)
+	      time = line_circle_intersection(xl, yl, zl, rbout);
+	      if (time > 0)
 		{
-		  xout = xl[0] + t * (xl[1] - xl[0]);
-		  yout = yl[0] + t * (yl[1] - yl[0]);
-		  zout = zl[0] + t * (zl[1] - zl[0]);
+		  xout = xl[0] + time * (xl[1] - xl[0]);
+		  yout = yl[0] + time * (yl[1] - yl[0]);
+		  zout = zl[0] + time * (zl[1] - zl[0]);
 		}
 	    }
 
@@ -710,7 +709,7 @@ void PHTruthClustering::LayerClusterG4Hits(std::set<PHG4Hit*> truth_hits, std::v
   return;
 }
 
-void PHTruthClustering::G4ClusterSize(unsigned int layer, std::vector<std::vector<double>> contributing_hits_entry,std::vector<std::vector<double>> contributing_hits_exit, float &g4phisize, float &g4zsize)
+void PHTruthClustering::G4ClusterSize(TrkrDefs::cluskey& ckey,unsigned int layer, std::vector<std::vector<double>> contributing_hits_entry,std::vector<std::vector<double>> contributing_hits_exit, float &g4phisize, float &g4zsize)
 {
 
   // sort the contributing g4hits in radius
@@ -756,7 +755,7 @@ void PHTruthClustering::G4ClusterSize(unsigned int layer, std::vector<std::vecto
   double radius = (inner_radius + outer_radius)/2.;
   if(radius > 28 && radius < 80)  // TPC
     {
-      PHG4CylinderCellGeom*layergeom = _tpc_geom_container->GetLayerCellGeom(layer);
+      PHG4TpcCylinderGeom*layergeom = _tpc_geom_container->GetLayerCellGeom(layer);
 
       double tpc_length = 211.0;  // cm
       double drift_velocity = 8.0 / 1000.0;  // cm/ns
@@ -821,8 +820,9 @@ void PHTruthClustering::G4ClusterSize(unsigned int layer, std::vector<std::vecto
 
       int segment_z_bin, segment_phi_bin;
       layergeom->find_indices_from_world_location(segment_z_bin, segment_phi_bin, world_inner);
-
-      TVector3 local_inner_vec =  layergeom->get_local_from_world_coords(segment_z_bin, segment_phi_bin, world_inner_vec);
+      auto hitsetkey = TrkrDefs::getHitSetKeyFromClusKey(ckey);
+      auto surf = _tgeometry->maps().getSiliconSurface(hitsetkey);
+      TVector3 local_inner_vec =  layergeom->get_local_from_world_coords(surf,_tgeometry, world_inner_vec);
       double yin = local_inner_vec[1];
       double zin = local_inner_vec[2];
       int strip_y_index, strip_z_index;
@@ -833,8 +833,9 @@ void PHTruthClustering::G4ClusterSize(unsigned int layer, std::vector<std::vecto
       TVector3 world_outer_vec = {outer_x, outer_y, outer_z};
 
       layergeom->find_indices_from_world_location(segment_z_bin, segment_phi_bin, world_outer);
-
-      TVector3 local_outer_vec =  layergeom->get_local_from_world_coords(segment_z_bin, segment_phi_bin, world_outer_vec);
+      auto outerhitsetkey = TrkrDefs::getHitSetKeyFromClusKey(ckey);
+      auto outersurf = _tgeometry->maps().getSiliconSurface(outerhitsetkey);
+      TVector3 local_outer_vec =  layergeom->get_local_from_world_coords(outersurf,_tgeometry, world_outer_vec);
       double yout = local_outer_vec[1];
       double zout = local_outer_vec[2];
       int strip_y_index_out, strip_z_index_out;
@@ -878,12 +879,16 @@ void PHTruthClustering::G4ClusterSize(unsigned int layer, std::vector<std::vecto
       TVector3 world_inner = {inner_x, inner_y, inner_z};
       std::vector<double> world_inner_vec = { world_inner[0], world_inner[1], world_inner[2] };
       layergeom->get_sensor_indices_from_world_coords(world_inner_vec, stave, chip);
-      TVector3 local_inner = layergeom->get_local_from_world_coords(stave, chip, world_inner);
+      auto ihitsetkey = TrkrDefs::getHitSetKeyFromClusKey(ckey);
+      auto isurf = _tgeometry->maps().getSiliconSurface(ihitsetkey);
+      TVector3 local_inner = layergeom->get_local_from_world_coords(isurf,_tgeometry, world_inner);
 
       TVector3 world_outer = {outer_x, outer_y, outer_z};
       std::vector<double> world_outer_vec = { world_outer[0], world_outer[1], world_outer[2] };
       layergeom->get_sensor_indices_from_world_coords(world_outer_vec, stave_outer, chip_outer);
-      TVector3 local_outer = layergeom->get_local_from_world_coords(stave_outer, chip_outer, world_outer);
+      auto ohitsetkey = TrkrDefs::getHitSetKeyFromClusKey(ckey);
+      auto osurf = _tgeometry->maps().getSiliconSurface(ohitsetkey);
+      TVector3 local_outer = layergeom->get_local_from_world_coords(osurf,_tgeometry, world_outer);
 
       double diff =  max_diffusion_radius * 0.6;  // factor of 0.6 gives decent agreement with low occupancy reco clusters
       if(local_outer[0] < local_inner[0]) 
@@ -1056,6 +1061,7 @@ unsigned int PHTruthClustering::getAdcValue(double gedep)
 
 int PHTruthClustering::GetNodes(PHCompositeNode* topNode)
 {
+  _tgeometry = findNode::getClass<ActsGeometry>(topNode, "ActsGeometry");
   _g4truth_container = findNode::getClass<PHG4TruthInfoContainer>(topNode, "G4TruthInfo");
   if (!_g4truth_container)
   {
@@ -1069,7 +1075,7 @@ int PHTruthClustering::GetNodes(PHCompositeNode* topNode)
   _g4hits_maps = findNode::getClass<PHG4HitContainer>(topNode, "G4HIT_MVTX");
 
   _mms_geom_container = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_MICROMEGAS_FULL");
-  _tpc_geom_container = findNode::getClass<PHG4CylinderCellGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
+  _tpc_geom_container = findNode::getClass<PHG4TpcCylinderGeomContainer>(topNode, "CYLINDERCELLGEOM_SVTX");
   _intt_geom_container = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_INTT");
   _mvtx_geom_container = findNode::getClass<PHG4CylinderGeomContainer>(topNode, "CYLINDERGEOM_MVTX");
 

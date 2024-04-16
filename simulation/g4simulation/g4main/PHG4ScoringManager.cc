@@ -2,7 +2,7 @@
 
 /*!
  * \file PHG4ScoringManager.cc
- * \brief 
+ * \brief
  * \author Jin Huang <jhuang@bnl.gov>
  * \version $Revision:   $
  * \date $Date: $
@@ -45,7 +45,10 @@
 #include <Geant4/G4VScoringMesh.hh>  // for G4VScoringMesh
 #include <Geant4/G4Version.hh>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 #include <boost/format.hpp>
+#pragma GCC diagnostic pop
 
 #include <cassert>
 #include <cmath>  // for fabs, M_PI
@@ -61,9 +64,9 @@ PHG4ScoringManager::PHG4ScoringManager()
 {
 }
 
-int PHG4ScoringManager::InitRun(PHCompositeNode */*topNode*/)
+int PHG4ScoringManager::InitRun(PHCompositeNode * /*topNode*/)
 {
-  //1. check G4RunManager
+  // 1. check G4RunManager
   G4RunManager *runManager = G4RunManager::GetRunManager();
   if (runManager == nullptr)
   {
@@ -71,11 +74,11 @@ int PHG4ScoringManager::InitRun(PHCompositeNode */*topNode*/)
     return Fun4AllReturnCodes::ABORTRUN;
   }
 
-  //2. Init scoring manager
+  // 2. Init scoring manager
   G4ScoringManager *scoringManager = G4ScoringManager::GetScoringManager();
   assert(scoringManager);
 
-  //3. run scoring commands
+  // 3. run scoring commands
   G4UImanager *UImanager = G4UImanager::GetUIpointer();
   assert(UImanager);
 
@@ -88,10 +91,12 @@ int PHG4ScoringManager::InitRun(PHCompositeNode */*topNode*/)
     UImanager->ApplyCommand(cmd.c_str());
   }
 
-  //4 init IOs
+  // 4 init IOs
   if (Verbosity() >= VERBOSITY_SOME)
+  {
     cout << "PHG4ScoringManager::InitRun - Making PHTFileServer " << m_outputFileName
          << endl;
+  }
   PHTFileServer::get().open(m_outputFileName, "RECREATE");
 
   Fun4AllHistoManager *hm = getHistoManager();
@@ -159,13 +164,12 @@ int PHG4ScoringManager::process_event(PHCompositeNode *topNode)
       const PHHepMCGenEvent *genevnt = genevntpair.second;
       assert(genevnt);
 
-      if (genevnt->get_collision_vertex().z() < m_vertexAcceptanceRange.first
-          or genevnt->get_collision_vertex().z() > m_vertexAcceptanceRange.second)
+      if (genevnt->get_collision_vertex().z() < m_vertexAcceptanceRange.first or genevnt->get_collision_vertex().z() > m_vertexAcceptanceRange.second)
       {
         if (Verbosity() >= 2)
         {
-          cout <<__PRETTY_FUNCTION__<<": get vertex "<<genevnt->get_collision_vertex().z()
-              <<" which is outside range "<<m_vertexAcceptanceRange.first <<" to "<<m_vertexAcceptanceRange.second<<" cm:";
+          cout << __PRETTY_FUNCTION__ << ": get vertex " << genevnt->get_collision_vertex().z()
+               << " which is outside range " << m_vertexAcceptanceRange.first << " to " << m_vertexAcceptanceRange.second << " cm:";
           genevnt->identify();
         }
 
@@ -217,7 +221,7 @@ int PHG4ScoringManager::process_event(PHCompositeNode *topNode)
 }
 
 //_________________________________________________________________
-int PHG4ScoringManager::End(PHCompositeNode *)
+int PHG4ScoringManager::End(PHCompositeNode * /*unused*/)
 {
   if (not m_outputFileName.empty())
   {
@@ -229,7 +233,9 @@ int PHG4ScoringManager::End(PHCompositeNode *)
     Fun4AllHistoManager *hm = getHistoManager();
     assert(hm);
     for (unsigned int i = 0; i < hm->nHistos(); i++)
+    {
       hm->getHisto(i)->Write();
+    }
 
   }  //   if (not m_outputFileName.empty())
 
@@ -272,9 +278,9 @@ void PHG4ScoringManager::makeScoringHistograms()
 #else
     const MeshShape meshShape = g4mesh->GetShape();
 #endif
-    //PHENIX units
+    // PHENIX units
     vector<double> meshBoundMin = {std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN()};
-    //PHENIX units
+    // PHENIX units
     vector<double> meshBoundMax = {std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN()};
 #if G4VERSION_NUMBER >= 1060
     if (meshShape == G4VScoringMesh::MeshShape::box)
@@ -360,7 +366,7 @@ void PHG4ScoringManager::makeScoringHistograms()
              << " Saving to histogram " << hname << " : " << htitle
              << endl;
       }
-      //book histogram
+      // book histogram
       TH3 *h = new TH3D(hname.c_str(),   //
                         htitle.c_str(),  //
                         nMeshSegments[0],
@@ -416,9 +422,11 @@ PHG4ScoringManager::getHistoManager()
   if (!hm)
   {
     if (Verbosity())
+    {
       cout
           << "PHG4ScoringManager::get_HistoManager - Making Fun4AllHistoManager " << histname
           << endl;
+    }
     hm = new Fun4AllHistoManager(histname);
     se->registerHistoManager(hm);
   }

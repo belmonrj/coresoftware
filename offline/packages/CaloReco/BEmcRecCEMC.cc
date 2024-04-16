@@ -6,8 +6,6 @@
 #include <cmath>
 #include <iostream>
 
-using namespace std;
-
 BEmcRecCEMC::BEmcRecCEMC()
 //  : _emcprof(nullptr)
 {
@@ -21,12 +19,11 @@ BEmcRecCEMC::~BEmcRecCEMC()
   //  delete _emcprof;
 }
 
-void BEmcRecCEMC::LoadProfile(const string& fname)
+void BEmcRecCEMC::LoadProfile(const std::string& fname)
 {
-  //  cout << "Infor from BEmcRecCEMC::LoadProfile(): no external file used for shower profile evaluation in CEMC" << endl;
+  //  std::cout << "Infor from BEmcRecCEMC::LoadProfile(): no external file used for shower profile evaluation in CEMC" << std::endl;
   _emcprof = new BEmcProfile(fname);
 }
-
 
 void BEmcRecCEMC::GetImpactThetaPhi(float xg, float yg, float zg, float& theta, float& phi)
 {
@@ -34,13 +31,22 @@ void BEmcRecCEMC::GetImpactThetaPhi(float xg, float yg, float zg, float& theta, 
   phi = 0;
 
   //  float theta = atan(sqrt(xg*xg + yg*yg)/fabs(zg-fVz));
-  float rg = sqrt(xg*xg+yg*yg);
+  float rg = std::sqrt(xg * xg + yg * yg);
   float theta_twr;
-  if( fabs(zg)<=15 ) theta_twr = 0;
-  else if( zg>15 )   theta_twr = atan2(zg-15,rg);
-  else               theta_twr = atan2(zg+15,rg);
-  float theta_tr = atan2(zg-fVz,rg);
-  theta = fabs(theta_tr - theta_twr);
+  if (std::fabs(zg) <= 15)
+  {
+    theta_twr = 0;
+  }
+  else if (zg > 15)
+  {
+    theta_twr = std::atan2(zg - 15, rg);
+  }
+  else
+  {
+    theta_twr = std::atan2(zg + 15, rg);
+  }
+  float theta_tr = std::atan2(zg - fVz, rg);
+  theta = std::fabs(theta_tr - theta_twr);
   //  phi = atan2(yg,xg);
 }
 
@@ -99,7 +105,7 @@ float BEmcRecCEMC::GetProb(vector<EmcModule> HitList, float et, float xg, float 
       nn++;
       if (nn >= Nmax)
       {
-      cout << "BEmcRec::GetProb: Cluster size is too big. Skipping the rest of the towers" << endl;
+      std::cout << "BEmcRec::GetProb: Cluster size is too big. Skipping the rest of the towers" << std::endl;
         break;
       }
     }  // if( ee[nn]
@@ -244,28 +250,40 @@ void BEmcRecCEMC::CorrectShowerDepth(float E, float xA, float yA, float zA, floa
   */
 
   float logE = log(0.1);
-  if( E>0.1 ) logE = log(E);
+  if (E > 0.1)
+  {
+    logE = std::log(E);
+  }
 
   // Rotate by phi (towers are tilted by a fixed angle in phi by ~9 deg?)
   // Just tuned from sim data
-  float phi = 0.002 - 0.001*logE;
-  xC = xA*cos(phi) - yA*sin(phi);
-  yC = xA*sin(phi) + yA*cos(phi);
+  float phi = 0.002 - 0.001 * logE;
+  xC = xA * std::cos(phi) - yA * std::sin(phi);
+  yC = xA * std::sin(phi) + yA * std::cos(phi);
 
   // Correction in z
   // Just tuned for sim data ... don't fully understand why it works like that
-  float rA = sqrt(xA*xA + yA*yA);
+  float rA = std::sqrt(xA * xA + yA * yA);
   //  float theta_twr = GetTowerTheta(xA,yA,zA);
   float theta_twr;
-  if( fabs(zA)<=15 ) theta_twr = 0;
-  else if( zA>15 )   theta_twr = atan2(zA-15,rA);
-  else               theta_twr = atan2(zA+15,rA);
+  if (std::fabs(zA) <= 15)
+  {
+    theta_twr = 0;
+  }
+  else if (zA > 15)
+  {
+    theta_twr = std::atan2(zA - 15, rA);
+  }
+  else
+  {
+    theta_twr = std::atan2(zA + 15, rA);
+  }
 
-  float theta_tr = atan2(zA-fVz,rA);
-  float L = -1.3 + 0.7*logE; // Shower CG in long. direction
-  float dz = L*sin(theta_tr-theta_twr)/cos(theta_twr);
+  float theta_tr = std::atan2(zA - fVz, rA);
+  float L = -1.3 + 0.7 * logE;  // Shower CG in long. direction
+  float dz = L * std::sin(theta_tr - theta_twr) / std::cos(theta_twr);
 
-  dz -= fVz*0.10;
+  dz -= fVz * 0.10;
 
   zC = zA - dz;
 
@@ -325,7 +343,10 @@ void BEmcRecCEMC::CorrectPosition(float Energy, float x, float y,
   xc = x;
   yc = y;
 
-  if (Energy < 0.01) return;
+  if (Energy < 0.01)
+  {
+    return;
+  }
   /*
   float xA, yA, zA;
   Tower2Global(Energy, x, y, xA, yA, zA);
@@ -340,16 +361,24 @@ void BEmcRecCEMC::CorrectPosition(float Energy, float x, float y,
   float sin2Ty = sinTy * sinTy;
 
   if (sinTx > 0)
+  {
     xZero = -0.417 * sinTx - 1.500 * sin2Tx;
+  }
   else
+  {
     xZero = -0.417 * sinTx + 1.500 * sin2Tx;
+  }
 
   if (sinTy > 0)
+  {
     yZero = -0.417 * sinTy - 1.500 * sin2Ty;
+  }
   else
+  {
     yZero = -0.417 * sinTy + 1.500 * sin2Ty;
+  }
 
-  t = 0.98 + 0.98 * sqrt(Energy);
+  t = 0.98 + 0.98 * std::sqrt(Energy);
   bx = 0.15 + t * sin2Tx;
   by = 0.15 + t * sin2Ty;
 
@@ -363,20 +392,29 @@ void BEmcRecCEMC::CorrectPosition(float Energy, float x, float y,
   else
   {
     x0 = x;
-    cout << "????? Something wrong in BEmcRecCEMC::CorrectPosition: x = "
-         << x << " dx = " << x0 - ix0 << endl;
+    std::cout << "????? Something wrong in BEmcRecCEMC::CorrectPosition: x = "
+              << x << " dx = " << x0 - ix0 << std::endl;
   }
 
   // Correct for phi bias within module of 8 towers
   int ix8 = int(x + 0.5) / 8;
   float x8 = x + 0.5 - ix8 * 8 - 4;  // from -4 to +4
   float dx = 0.10 * x8 / 4.;
-  if (fabs(x8) > 3.3) dx = 0;  // Don't correct near the module edge
+  if (std::fabs(x8) > 3.3)
+  {
+    dx = 0;  // Don't correct near the module edge
+  }
   //  dx = 0;
 
   xc = x0 - dx;
-  while (xc < -0.5) xc += float(fNx);
-  while (xc >= fNx - 0.5) xc -= float(fNx);
+  while (xc < -0.5)
+  {
+    xc += float(fNx);
+  }
+  while (xc >= fNx - 0.5)
+  {
+    xc -= float(fNx);
+  }
 
   y0 = y + yZero;
   iy0 = EmcCluster::lowint(y0 + 0.5);
@@ -388,8 +426,8 @@ void BEmcRecCEMC::CorrectPosition(float Energy, float x, float y,
   else
   {
     y0 = y;
-    cout << "????? Something wrong in BEmcRecCEMC::CorrectPosition: y = "
-         << y << "dy = " << y0 - iy0 << endl;
+    std::cout << "????? Something wrong in BEmcRecCEMC::CorrectPosition: y = "
+              << y << "dy = " << y0 - iy0 << std::endl;
   }
   yc = y0;
 }
@@ -444,8 +482,8 @@ void BEmcRecCEMC::CorrectPosition(float Energy, float x, float y,
   else
   {
     *pxc = x - xShift;
-    cout << "????? Something wrong in CorrectPosition: x = "
-         << x << " dx = " << x0 - ix0 << endl;
+    std::cout << "????? Something wrong in CorrectPosition: x = "
+         << x << " dx = " << x0 - ix0 << std::endl;
   }
 
   y0 = y;
@@ -459,8 +497,8 @@ void BEmcRecCEMC::CorrectPosition(float Energy, float x, float y,
   else
   {
     *pyc = y - yShift;
-    cout << "????? Something wrong in CorrectPosition: y = "
-         << y << " dy = " << y0 - iy << endl;
+    std::cout << "????? Something wrong in CorrectPosition: y = "
+         << y << " dy = " << y0 - iy << std::endl;
   }
 }
 */

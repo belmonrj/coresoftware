@@ -6,25 +6,28 @@ lib_LTLIBRARIES = \
 AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include \
-  -I$(ROOTSYS)/include
+  -isystem$(ROOTSYS)/include
 
 AM_LDFLAGS = \
   -L$(libdir) \
-  -L$(OFFLINE_MAIN)/lib
+  -L$(OFFLINE_MAIN)/lib \
+  -L$(OFFLINE_MAIN)/lib64
 
 libffamodules_la_LIBADD = \
   -lfun4all \
   -lffaobjects \
   -lphhepmc_io \
+  -lsphenixnpc \
   -lSubsysReco
 
-
 pkginclude_HEADERS = \
+  CDBInterface.h \
   FlagHandler.h \
   HeadReco.h \
   SyncReco.h
 
 libffamodules_la_SOURCES = \
+  CDBInterface.cc \
   FlagHandler.cc \
   HeadReco.cc \
   SyncReco.cc

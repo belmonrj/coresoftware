@@ -58,13 +58,6 @@ class PHTpcDeltaZCorrection : public SubsysReco, public PHParameterInterface
   /** needed to prevent clusters to be corrected twice, when same cluster is used for two different tracks */
   std::set<TrkrDefs::cluskey> m_corrected_clusters;
 
-  /// constant magnetic field
-  /** it is used to get helix trajectory from momentum at origin */
-  double m_bz_const = 1.4; // Tesla
-
-  /// electron drift velocity in gas
-  double m_drift_velocity = NAN;
-
 };
 
 #endif // PHTpcDeltaZCorrection_H
